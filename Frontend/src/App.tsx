@@ -4,6 +4,7 @@ import './App.css';
 import UserMainPage from './UserPages/UserMainPage';
 import UserLogin from './UserPages/UserLogin';
 import UserProfile from './UserPages/UserProfile';
+import UserApplyServices from './UserPages/UserApplyServices';
 
 
 const App: React.FC = () => {
@@ -20,6 +21,7 @@ const App: React.FC = () => {
           <Route path="/Login" element={<UserLogin />} />
           <Route path="/MainPage" element={<UserMainPage />} />
           <Route path="/UserProfile" element={<UserProfile />} />
+          <Route path="/UserApplyServices" element={<UserApplyServices />} />
 
 
           {/* 404 Catch-all */}

@@ -1,5 +1,5 @@
 import React from 'react';
-import Layout from '../components/Navbar';
+import Navbar from '../components/Navbar';
 import { User, Gift, Bell, Calendar, AlertTriangle, ShieldAlert } from 'lucide-react';
 
 const StatCard = ({ title, value, subtext, icon: Icon, color = "text-gray-900" }: any) => (
@@ -40,7 +40,7 @@ const NotificationRow = ({ type, title, message, date, isNew }: any) => {
 
 const UserMainPage: React.FC = () => {
   return (
-    <Layout pageTitle="My Profile">
+    <Navbar pageTitle="My Profile">
       <div className="space-y-4 md:space-y-6 max-w-7xl mx-auto">
         
         {/* Welcome Card */}
@@ -110,7 +110,7 @@ const UserMainPage: React.FC = () => {
         </div>
 
       </div>
-    </Layout>
+    </Navbar>
   );
 };
 

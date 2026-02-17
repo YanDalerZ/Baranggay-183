@@ -16,8 +16,8 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
   const location = useLocation();
 
   const menuItems = [
-    { name: 'Profile', shortName: 'Profile', icon: User, path: '/MainPage' },
-    { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/Apply' },
+    { name: 'Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
+    { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/UserApplyServices' },
     { name: 'My Benefits', shortName: 'Benefits', icon: Gift, path: '/Benefits' },
     { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/Alerts' },
     // These extra items will show in the sidebar but might be hidden in a 4-item bottom bar
