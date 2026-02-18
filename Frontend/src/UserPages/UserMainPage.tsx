@@ -1,34 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import '../css/UserMainPage.css';
+import { type SlideData, type ServiceData, type EventData } from '../interfaces';
 
-interface SlideData {
-    id: number;
-    category: string;
-    title: string;
-    description: string;
-    image: string;
-    cta: string;
-}
-
-interface ServiceData {
-    id: number;
-    label: string;
-    title: string;
-    description: string;
-    image: string;
-}
-
-interface EventData {
-    id: number;
-    day: string;
-    month: string;
-    year: string;
-    title: string;
-    time: string;
-    location: string;
-    featured?: boolean;
-}
 
 
 const SLIDES: SlideData[] = [
@@ -85,7 +59,7 @@ const UserMainPage: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [progress, setProgress] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+    //asd
     const nextSlide = useCallback(() => {
         setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
         setProgress(0);
@@ -146,9 +120,8 @@ const UserMainPage: React.FC = () => {
                 )}
             </header>
 
-            {/* Hero Section */}
             <section className="hero-section">
-                <div className="relative w-full h-full">
+                <div className="relative w-full h-[90vh]">
                     {SLIDES.map((slide, idx) => (
                         <div
                             key={slide.id}
@@ -218,7 +191,7 @@ const UserMainPage: React.FC = () => {
 
             {/* Events Calendar */}
             <section id="events" className="events-section">
-                <div className="max-w-[1440px] mx-auto px-4 md:px-6">
+                <div className="max-w-full mx-auto px-4 md:px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4">Upcoming Events</h2>
                         <div className="w-16 h-1 bg-red-600 mx-auto" />
@@ -251,7 +224,7 @@ const UserMainPage: React.FC = () => {
 
             {/* Footer */}
             <footer id="about" className="footer-wrapper">
-                <div className="max-w-[1440px] mx-auto px-4 md:px-6">
+                <div className="max-w-full mx-auto px-4 md:px-6">
                     <div className="footer-grid">
                         <div className="space-y-8">
                             <div className="bg-[#ff0000] text-white p-3 leading-none inline-flex flex-col items-center justify-center">
