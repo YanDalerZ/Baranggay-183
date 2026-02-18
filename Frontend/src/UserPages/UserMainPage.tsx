@@ -59,7 +59,7 @@ const UserMainPage: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [progress, setProgress] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-
+    //asd
     const nextSlide = useCallback(() => {
         setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
         setProgress(0);
