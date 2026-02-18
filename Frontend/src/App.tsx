@@ -7,28 +7,27 @@ import UserProfile from './UserPages/UserProfile';
 
 
 const App: React.FC = () => {
-  // Vite's built-in types for environment variables
 
   return (
     <Router>
 
-        <Routes>
-          {/* Default Route */}
-          <Route path="/" element={<Navigate to="/Login" replace />} />
+      <Routes>
+        {/* Default Route */}
+        <Route path="/" element={<Navigate to="/Login" replace />} />
 
-          {/* Page Routes */}
-          <Route path="/Login" element={<UserLogin />} />
-          <Route path="/MainPage" element={<UserMainPage />} />
-          <Route path="/UserProfile" element={<UserProfile />} />
+        {/* Page Routes */}
+        <Route path="/Login" element={<UserLogin />} />
+        <Route path="/MainPage" element={<UserMainPage />} />
+        <Route path="/UserProfile" element={<UserProfile />} />
 
 
-          {/* 404 Catch-all */}
-          <Route path="*" element={
-            <div style={{ padding: '20px', textAlign: 'center' }}>
-              <h2>404: Page Not Found</h2>
-            </div>
-          } />
-        </Routes>
+        {/* 404 Catch-all */}
+        <Route path="*" element={
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h2>404: Page Not Found</h2>
+          </div>
+        } />
+      </Routes>
 
     </Router>
   );

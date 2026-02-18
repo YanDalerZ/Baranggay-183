@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Menu, X, ChevronLeft, ChevronRight, HelpCircle, MapPin, Globe } from 'lucide-react';
-
-// --- Types ---
+import { Search, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import '../css/UserMainPage.css';
 
 interface SlideData {
     id: number;
@@ -31,7 +30,6 @@ interface EventData {
     featured?: boolean;
 }
 
-// --- Mock Data ---
 
 const SLIDES: SlideData[] = [
     {
@@ -83,9 +81,6 @@ const EVENTS: EventData[] = [
     { id: 4, day: "20", month: "Mar", year: "2026", title: "Community Clean-up", time: "6:00 AM", location: "Zone A" }
 ];
 
-// --- Sub-Component: UserMainPage ---
-// This represents the main portal view as requested
-
 const UserMainPage: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [progress, setProgress] = useState(0);
@@ -115,38 +110,25 @@ const UserMainPage: React.FC = () => {
     }, [nextSlide]);
 
     return (
-        <div className="min-h-screen bg-white text-black font-sans selection:bg-red-100">
-
-            {/* Top Utility Bar */}
-            <div className="hidden md:flex justify-end px-6 py-2 space-x-6 text-[11px] font-bold border-b border-gray-100 uppercase tracking-widest text-gray-400">
-                <a href="#" className="flex items-center hover:text-black"><HelpCircle className="w-3 h-3 mr-1" /> Help</a>
-                <a href="#" className="flex items-center hover:text-black"><MapPin className="w-3 h-3 mr-1" /> Brgy Hall</a>
-                <a href="#" className="flex items-center hover:text-black"><Globe className="w-3 h-3 mr-1" /> PH / Tagalog</a>
-            </div>
-
-            {/* Main Header */}
-            <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-                <div className="max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-6 h-16 md:h-20">
+        <div className="page-wrapper">
+            <header className="header-sticky">
+                <div className="nav-container">
                     <div className="flex items-center space-x-10">
-                        <div className="bg-[#ff0000] text-white p-2 md:p-3 leading-none flex flex-col items-center justify-center cursor-pointer">
+                        <div className="logo-box">
                             <span className="text-[10px] md:text-[13px] font-black tracking-tighter uppercase">Barangay</span>
                             <span className="text-[18px] md:text-[22px] font-black tracking-tighter uppercase">183</span>
                         </div>
 
                         <nav className="hidden lg:flex space-x-10 font-bold text-[13px] uppercase tracking-[0.15em]">
-                            <a href="#services" className="hover:border-b-2 border-black pb-1 transition-all">Services</a>
-                            <a href="#events" className="hover:border-b-2 border-black pb-1 text-red-600 transition-all">Events</a>
-                            <a href="#about" className="hover:border-b-2 border-black pb-1 transition-all">About</a>
+                            <a href="#services" className="nav-link">Services</a>
+                            <a href="#events" className="nav-link nav-link-active">Events</a>
+                            <a href="#about" className="nav-link">About</a>
                         </nav>
                     </div>
 
                     <div className="flex items-center space-x-6">
-                        <div className="hidden md:flex items-center border-b border-black py-1">
-                            <input
-                                type="text"
-                                placeholder="Search Programs"
-                                className="text-[11px] uppercase outline-none w-32 lg:w-48 placeholder:text-gray-300"
-                            />
+                        <div className="search-container">
+                            <input type="text" placeholder="Search Programs" className="search-input" />
                             <Search className="w-4 h-4 text-black" />
                         </div>
                         <button className="lg:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -156,7 +138,7 @@ const UserMainPage: React.FC = () => {
                 </div>
 
                 {isMenuOpen && (
-                    <div className="lg:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-200 shadow-xl py-6 px-6 flex flex-col space-y-4 font-bold text-sm uppercase tracking-widest">
+                    <div className="mobile-menu">
                         <a href="#services" onClick={() => setIsMenuOpen(false)}>Services</a>
                         <a href="#events" onClick={() => setIsMenuOpen(false)} className="text-red-600">Events</a>
                         <a href="#about" onClick={() => setIsMenuOpen(false)}>About Us</a>
@@ -165,56 +147,50 @@ const UserMainPage: React.FC = () => {
             </header>
 
             {/* Hero Section */}
-            <section className="relative w-full overflow-hidden bg-black aspect-[4/5] md:aspect-video">
+            <section className="hero-section">
                 <div className="relative w-full h-full">
                     {SLIDES.map((slide, idx) => (
                         <div
                             key={slide.id}
-                            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+                            className={`${idx === currentSlide ? 'opacity-100' : 'opacity-0'} hero-slide`}
                         >
                             <div
-                                className="absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms] ease-linear"
+                                className="hero-bg-image"
                                 style={{
                                     backgroundImage: `url(${slide.image})`,
                                     transform: idx === currentSlide ? 'scale(1.1)' : 'scale(1)'
                                 }}
                             />
-                            <div className="absolute inset-0 bg-black/40 md:bg-transparent md:bg-gradient-to-r md:from-black/70 md:via-black/20" />
-                            <div className="relative h-full flex flex-col justify-end p-6 md:p-16 text-white max-w-3xl">
-                                <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 uppercase w-fit mb-4 tracking-widest">
-                                    {slide.category}
-                                </span>
-                                <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter italic">
+                            <div className="hero-overlay" />
+                            <div className="hero-content">
+                                <span className="hero-badge">{slide.category}</span>
+                                <h2 className="hero-title">
                                     {slide.title.split('.').map((part, i) => (part && <React.Fragment key={i}>{part}{i === 0 && <br />}</React.Fragment>))}
                                 </h2>
-                                <p className="text-sm md:text-lg mb-8 opacity-90 font-medium max-w-lg leading-relaxed">
-                                    {slide.description}
-                                </p>
-                                <button className="bg-white text-black text-[12px] font-black uppercase py-4 px-12 w-fit hover:bg-gray-200 transition-colors shadow-lg">
-                                    {slide.cta}
-                                </button>
+                                <p className="hero-desc">{slide.description}</p>
+                                <button className="hero-btn">{slide.cta}</button>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="absolute bottom-10 right-6 md:right-16 flex space-x-1 z-20">
-                    <button onClick={prevSlide} className="bg-white/90 p-4 md:p-5 hover:bg-white transition-colors group">
+                <div className="slider-nav-container">
+                    <button onClick={prevSlide} className="slider-arrow-btn">
                         <ChevronLeft className="w-5 h-5 group-active:scale-90 transition-transform" />
                     </button>
-                    <button onClick={nextSlide} className="bg-white/90 p-4 md:p-5 hover:bg-white transition-colors group">
+                    <button onClick={nextSlide} className="slider-arrow-btn">
                         <ChevronRight className="w-5 h-5 group-active:scale-90 transition-transform" />
                     </button>
                 </div>
 
-                <div className="absolute bottom-0 left-0 w-full h-[3px] bg-white/20 z-30">
+                <div className="progress-bar-bg">
                     <div className="h-full bg-red-600" style={{ width: `${progress}%` }} />
                 </div>
             </section>
 
-            {/* Services Section */}
-            <section id="services" className="max-w-[1440px] mx-auto px-4 md:px-6 py-16 md:py-24">
-                <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 border-b border-gray-100 pb-8">
+            {/* Services Guide */}
+            <section id="services" className="section-container">
+                <div className="section-header">
                     <div>
                         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter">Services Guide</h2>
                         <p className="text-gray-400 font-bold text-[11px] uppercase tracking-[0.2em] mt-3">Essential Community Support</p>
@@ -224,34 +200,24 @@ const UserMainPage: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-1 md:gap-4">
+                <div className="service-grid">
                     {SERVICES.map((item) => (
                         <div key={item.id} className="group cursor-pointer mb-8 md:mb-0">
-                            <div className="aspect-square bg-gray-100 overflow-hidden relative">
-                                <img
-                                    src={item.image}
-                                    alt={item.title}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                                />
-                                <div className="absolute top-4 left-4 bg-white px-2 py-1 text-[9px] font-black uppercase tracking-wider shadow-sm">
-                                    {item.label}
-                                </div>
+                            <div className="service-card-img-wrapper">
+                                <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                                <div className="service-card-label">{item.label}</div>
                             </div>
-                            <div className="py-6 border-b-2 border-transparent group-hover:border-red-600 transition-all duration-500">
-                                <h3 className="font-black text-[20px] uppercase tracking-tight leading-none mb-3">
-                                    {item.title}
-                                </h3>
-                                <p className="text-gray-500 text-sm font-medium leading-relaxed">
-                                    {item.description}
-                                </p>
+                            <div className="service-card-content">
+                                <h3 className="font-black text-[20px] uppercase tracking-tight leading-none mb-3">{item.title}</h3>
+                                <p className="text-gray-500 text-sm font-medium leading-relaxed">{item.description}</p>
                             </div>
                         </div>
                     ))}
                 </div>
             </section>
 
-            {/* Events Calendar Section */}
-            <section id="events" className="bg-[#f4f4f4] py-20 md:py-32">
+            {/* Events Calendar */}
+            <section id="events" className="events-section">
                 <div className="max-w-[1440px] mx-auto px-4 md:px-6">
                     <div className="text-center mb-16">
                         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4">Upcoming Events</h2>
@@ -262,9 +228,9 @@ const UserMainPage: React.FC = () => {
                         {EVENTS.map((event) => (
                             <div
                                 key={event.id}
-                                className={`bg-white p-8 transition-all hover:shadow-2xl hover:-translate-y-1 border-t-4 ${event.featured ? 'border-red-600' : 'border-gray-200'}`}
+                                className={`${event.featured ? 'border-red-600' : 'border-gray-200'} event-card`}
                             >
-                                <div className={`font-black text-4xl mb-1 ${event.featured ? 'text-red-600' : 'text-black'}`}>
+                                <div className={`${event.featured ? 'text-red-600' : 'text-black'} event-date-number`}>
                                     {event.day}
                                 </div>
                                 <div className="text-[11px] font-black uppercase tracking-widest text-gray-400 mb-6">
@@ -284,9 +250,9 @@ const UserMainPage: React.FC = () => {
             </section>
 
             {/* Footer */}
-            <footer id="about" className="bg-white border-t border-gray-200 pt-20 pb-12">
+            <footer id="about" className="footer-wrapper">
                 <div className="max-w-[1440px] mx-auto px-4 md:px-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-20 mb-20">
+                    <div className="footer-grid">
                         <div className="space-y-8">
                             <div className="bg-[#ff0000] text-white p-3 leading-none inline-flex flex-col items-center justify-center">
                                 <span className="text-[14px] font-black tracking-tighter uppercase">Barangay</span>
@@ -298,8 +264,8 @@ const UserMainPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <h5 className="font-black text-[12px] uppercase mb-8 tracking-[0.2em]">Our Barangay</h5>
-                            <ul className="text-[12px] space-y-4 font-bold text-gray-400 uppercase">
+                            <h5 className="footer-heading">Our Barangay</h5>
+                            <ul className="footer-link-list">
                                 <li><a href="#" className="hover:text-black transition-colors">Profile</a></li>
                                 <li><a href="#" className="hover:text-black transition-colors">Transparency</a></li>
                                 <li><a href="#" className="hover:text-black transition-colors">Officials</a></li>
@@ -307,15 +273,15 @@ const UserMainPage: React.FC = () => {
                         </div>
 
                         <div>
-                            <h5 className="font-black text-[12px] uppercase mb-8 tracking-[0.2em] text-red-600">Quick Support</h5>
-                            <ul className="text-[12px] space-y-4 font-bold text-gray-400 uppercase">
+                            <h5 className="footer-heading text-red-600">Quick Support</h5>
+                            <ul className="footer-link-list">
                                 <li><a href="#" className="hover:text-red-600 transition-colors">Hotlines</a></li>
                                 <li><a href="#" className="hover:text-red-600 transition-colors">Forms</a></li>
                             </ul>
                         </div>
 
                         <div>
-                            <h5 className="font-black text-[12px] uppercase mb-8 tracking-[0.2em]">Contact</h5>
+                            <h5 className="footer-heading">Contact</h5>
                             <p className="text-[12px] font-bold text-gray-500 mb-6 uppercase">Brgy 183 Hall, Villamor Airbase, Pasay City</p>
                             <div className="flex space-x-3">
                                 {[1, 2, 3].map(i => (
