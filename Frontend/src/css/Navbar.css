@@ -1,0 +1,170 @@
+@reference "tailwindcss";
+
+@layer components {
+  /* Scope wrapper to prevent bleeding into other pages */
+  .navbar-scope {
+    @apply flex flex-col md:flex-row min-h-screen bg-slate-100 font-sans;
+
+    /* Sidebar Base */
+    .sidebar-aside {
+      @apply hidden md:flex bg-white border-r border-gray-200 sticky top-0 h-screen flex-col transition-all duration-300 ease-in-out z-20;
+      width: 16rem;
+    }
+
+    .sidebar-aside[data-collapsed='true'] {
+      width: 5rem;
+    }
+
+    .sidebar-header {
+      @apply p-6 flex items-start justify-between relative;
+    }
+
+    /* Branding */
+    .logo-text-container {
+      @apply flex items-center gap-3 overflow-hidden whitespace-nowrap;
+    }
+
+    .logo-box {
+      @apply w-10 h-10 bg-blue-600 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-black text-lg;
+    }
+
+    .sidebar-aside[data-collapsed='true'] .logo-box {
+      @apply mx-auto;
+    }
+
+    .brand-title {
+      @apply font-bold text-sm tracking-tight text-gray-900;
+    }
+
+    .brand-subtitle {
+      @apply text-[10px] text-gray-400 font-bold uppercase;
+    }
+
+    /* Collapse Button */
+    .collapse-btn {
+      @apply p-1.5 rounded-lg transition-colors hover:bg-gray-100 text-gray-400 border border-gray-100 shadow-sm bg-white absolute;
+    }
+
+    .sidebar-aside[data-collapsed='false'] .collapse-btn {
+      @apply top-4 right-4;
+    }
+
+    .sidebar-aside[data-collapsed='true'] .collapse-btn {
+      @apply left-1/2 -translate-x-1/2 top-20;
+    }
+
+    /* Navigation Links */
+    .nav-item-list {
+      @apply flex-1 px-4 py-4 space-y-1 mt-4;
+    }
+
+    .nav-link {
+      @apply w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all relative;
+    }
+
+    .nav-link[data-active='true'] {
+      @apply bg-blue-600 text-white shadow-lg shadow-blue-200;
+    }
+
+    .nav-link[data-active='false'] {
+      @apply text-gray-500 hover:bg-gray-50;
+    }
+
+    .signout-container {
+      @apply p-4 border-t border-gray-100;
+    }
+
+    /* Main Content Structure */
+    .main-wrapper {
+      @apply flex-1 flex flex-col h-screen overflow-hidden pb-20 md:pb-0;
+    }
+
+    .top-header {
+      @apply h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 md:px-8 shrink-0;
+    }
+
+    .header-mobile-brand {
+      @apply flex items-center gap-3 md:hidden;
+    }
+
+    .mobile-logo-sm {
+      @apply w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs;
+    }
+
+    .page-title-mobile {
+      @apply font-bold text-gray-800 text-base;
+    }
+
+    .page-title-desktop {
+      @apply hidden md:block font-bold text-gray-800 text-lg;
+    }
+
+    /* Top Right Actions */
+    .header-actions {
+      @apply flex items-center gap-3 md:gap-5;
+    }
+
+    .accessibility-tools {
+      @apply hidden lg:flex items-center gap-4 text-[13px] font-bold text-gray-500;
+    }
+
+    .tool-btn-volume {
+      @apply text-green-600 bg-green-50 px-2 py-1 rounded-md;
+    }
+
+    .vertical-divider {
+      @apply h-6 w-px bg-gray-200 hidden md:block;
+    }
+
+    .user-info-block {
+      @apply flex items-center gap-2;
+    }
+
+    .user-details {
+      @apply text-right hidden sm:block;
+    }
+
+    .user-name {
+      @apply text-sm font-bold text-gray-800 leading-none;
+    }
+
+    .user-role {
+      @apply text-[10px] text-gray-400 font-bold uppercase;
+    }
+
+    .user-avatar-circle {
+      @apply w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 border border-blue-100;
+    }
+
+    /* Page Body */
+    .page-content {
+      @apply flex-1 overflow-y-auto p-4 md:p-8;
+    }
+
+    /* Mobile Bottom Navigation */
+    .mobile-nav-bar {
+      @apply md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-50;
+      box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .mobile-nav-btn {
+      @apply flex flex-col items-center gap-1 transition-all;
+    }
+
+    .mobile-nav-btn[data-active='true'] {
+      @apply text-blue-600;
+    }
+
+    .mobile-nav-btn[data-active='false'] {
+      @apply text-gray-400;
+    }
+
+    .mobile-label {
+      @apply text-[10px] font-bold uppercase;
+    }
+
+    .active-dot {
+      @apply w-1 h-1 bg-blue-600 rounded-full;
+    }
+  }
+}
