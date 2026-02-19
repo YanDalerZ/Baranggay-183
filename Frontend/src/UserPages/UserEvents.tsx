@@ -9,14 +9,7 @@ import {
     Package,
     Syringe,
     AlertCircle,
-    Cake,
-    Sun,
-    Type,
-    User,
-    LogOut,
-    Globe,
-    Menu,
-    X
+    Cake
 } from 'lucide-react';
 
 // --- Types ---
