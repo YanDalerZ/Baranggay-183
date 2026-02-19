@@ -6,7 +6,7 @@ import UserLogin from './UserPages/UserLogin';
 import UserProfile from './UserPages/UserProfile';
 import UserBenefits from './UserPages/UserBenefits';
 import Navbar from './components/Navbar';
-
+import UserAlert from './UserPages/UserAlerts';
 const App: React.FC = () => {
   return (
     <Router>
@@ -19,6 +19,7 @@ const App: React.FC = () => {
         <Route path="/UserProfile" element={<Navbar pageTitle="User Profile"><UserProfile /></Navbar>} />
 
         <Route path="/UserBenefits" element={<Navbar pageTitle="My Benefits"> <UserBenefits /></Navbar>} />
+        <Route path="/UserAlerts" element={<Navbar pageTitle="User Alerts and Notifications"> <UserAlert /></Navbar>} />
 
         <Route path="*" element={
           <div style={{ padding: '50px', textAlign: 'center' }}>
