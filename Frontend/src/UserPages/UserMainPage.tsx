@@ -3,8 +3,6 @@ import { Search, Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import '../css/UserMainPage.css';
 import { type SlideData, type ServiceData, type EventData } from '../interfaces';
 
-
-
 const SLIDES: SlideData[] = [
     {
         id: 1,
@@ -59,7 +57,7 @@ const UserMainPage: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [progress, setProgress] = useState(0);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    //asd
+
     const nextSlide = useCallback(() => {
         setCurrentSlide((prev) => (prev + 1) % SLIDES.length);
         setProgress(0);
@@ -84,7 +82,8 @@ const UserMainPage: React.FC = () => {
     }, [nextSlide]);
 
     return (
-        <div className="page-wrapper">
+        <div className="user-main-page-scope">
+            {/* Header / Navigation */}
             <header className="header-sticky">
                 <div className="nav-container">
                     <div className="flex items-center space-x-10">
@@ -97,6 +96,8 @@ const UserMainPage: React.FC = () => {
                             <a href="#services" className="nav-link">Services</a>
                             <a href="#events" className="nav-link nav-link-active">Events</a>
                             <a href="#about" className="nav-link">About</a>
+                            <a href="/userprofile" className="nav-link">Dashboard</a>
+
                         </nav>
                     </div>
 
@@ -120,6 +121,7 @@ const UserMainPage: React.FC = () => {
                 )}
             </header>
 
+            {/* Hero Carousel Section */}
             <section className="hero-section">
                 <div className="relative w-full h-[90vh]">
                     {SLIDES.map((slide, idx) => (
@@ -138,7 +140,9 @@ const UserMainPage: React.FC = () => {
                             <div className="hero-content">
                                 <span className="hero-badge">{slide.category}</span>
                                 <h2 className="hero-title">
-                                    {slide.title.split('.').map((part, i) => (part && <React.Fragment key={i}>{part}{i === 0 && <br />}</React.Fragment>))}
+                                    {slide.title.split('.').map((part, i) => (
+                                        part && <React.Fragment key={i}>{part}{i === 0 && <br />}</React.Fragment>
+                                    ))}
                                 </h2>
                                 <p className="hero-desc">{slide.description}</p>
                                 <button className="hero-btn">{slide.cta}</button>
@@ -148,10 +152,10 @@ const UserMainPage: React.FC = () => {
                 </div>
 
                 <div className="slider-nav-container">
-                    <button onClick={prevSlide} className="slider-arrow-btn">
+                    <button onClick={prevSlide} className="slider-arrow-btn group">
                         <ChevronLeft className="w-5 h-5 group-active:scale-90 transition-transform" />
                     </button>
-                    <button onClick={nextSlide} className="slider-arrow-btn">
+                    <button onClick={nextSlide} className="slider-arrow-btn group">
                         <ChevronRight className="w-5 h-5 group-active:scale-90 transition-transform" />
                     </button>
                 </div>
@@ -180,7 +184,7 @@ const UserMainPage: React.FC = () => {
                                 <img src={item.image} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
                                 <div className="service-card-label">{item.label}</div>
                             </div>
-                            <div className="service-card-content">
+                            <div className="service-card-content group-hover:border-red-600">
                                 <h3 className="font-black text-[20px] uppercase tracking-tight leading-none mb-3">{item.title}</h3>
                                 <p className="text-gray-500 text-sm font-medium leading-relaxed">{item.description}</p>
                             </div>
@@ -258,7 +262,7 @@ const UserMainPage: React.FC = () => {
                             <p className="text-[12px] font-bold text-gray-500 mb-6 uppercase">Brgy 183 Hall, Villamor Airbase, Pasay City</p>
                             <div className="flex space-x-3">
                                 {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer">
+                                    <div key={i} className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-red-600 transition-colors">
                                         <div className="w-3 h-3 bg-gray-300 rounded-sm" />
                                     </div>
                                 ))}
@@ -275,33 +279,4 @@ const UserMainPage: React.FC = () => {
     );
 };
 
-// --- Main App Entry ---
-
-const App: React.FC = () => {
-    // Simulating a simple router where / (default) points to UserMainPage
-    const [currentPath, setCurrentPath] = useState('/');
-
-    useEffect(() => {
-        // Handle hash or path changes if needed
-        const handleLocationChange = () => setCurrentPath(window.location.pathname);
-        window.addEventListener('popstate', handleLocationChange);
-        return () => window.removeEventListener('popstate', handleLocationChange);
-    }, []);
-
-    // Simple routing logic: only UserMainPage is available on /
-    const renderContent = () => {
-        switch (currentPath) {
-            case '/':
-            default:
-                return <UserMainPage />;
-        }
-    };
-
-    return (
-        <div className="app-container">
-            {renderContent()}
-        </div>
-    );
-};
-
-export default App;
+export default UserMainPage;
