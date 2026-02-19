@@ -22,7 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
     { name: 'Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
     { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/Apply' },
     { name: 'My Benefits', shortName: 'Benefits', icon: Gift, path: '/UserBenefits' },
-    { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/Alerts' },
+    { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/UserAlerts' },
     { name: 'History', shortName: 'History', icon: History, path: '/History' },
   ];
 
