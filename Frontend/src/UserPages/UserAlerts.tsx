@@ -132,7 +132,7 @@ export default function Dashboard() {
 
 
 
-        <main className="max-w-7xl mx-auto p-8 space-y-8">
+        <main className="max-w-full mx-auto p-8 space-y-8">
 
             {/* Top Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -7,6 +7,8 @@ import UserProfile from './UserPages/UserProfile';
 import UserBenefits from './UserPages/UserBenefits';
 import Navbar from './components/Navbar';
 import UserAlert from './UserPages/UserAlerts';
+import UserEvents from './UserPages/UserEvents';
+
 const App: React.FC = () => {
   return (
     <Router>
@@ -16,10 +18,11 @@ const App: React.FC = () => {
 
         <Route path="/MainPage" element={<UserMainPage />} />
 
-        <Route path="/UserProfile" element={<Navbar pageTitle="User Profile"><UserProfile /></Navbar>} />
+        <Route path="/UserProfile" element={<Navbar pageTitle="My Profile"><UserProfile /></Navbar>} />
 
         <Route path="/UserBenefits" element={<Navbar pageTitle="My Benefits"> <UserBenefits /></Navbar>} />
-        <Route path="/UserAlerts" element={<Navbar pageTitle="User Alerts and Notifications"> <UserAlert /></Navbar>} />
+        <Route path="/UserAlerts" element={<Navbar pageTitle="Alerts and Notifications"> <UserAlert /></Navbar>} />
+        <Route path="/UserEvents" element={<Navbar pageTitle="Events Calendar"> <UserEvents /></Navbar>} />
 
         <Route path="*" element={
           <div style={{ padding: '50px', textAlign: 'center' }}>
