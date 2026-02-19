@@ -1,28 +1,24 @@
 {
   "compilerOptions": {
-    "composite": true, /* Required for references */
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-    "target": "ES2022",
-    "lib": ["ES2023"],
+    "target": "ESNext",
+    "lib": ["ESNext"],
     "module": "ESNext",
-    "moduleResolution": "bundler",
-    "types": ["node"],
     "skipLibCheck": true,
 
-    /* The Fix for the current error */
-    "noEmit": false,
-    "emitDeclarationOnly": true, 
+    /* Ensure these are set correctly */
+    "moduleResolution": "bundler", 
     "allowImportingTsExtensions": true,
-
-    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
     "moduleDetection": "force",
+    "noEmit": true,
 
-    /* Linting */
+    /* Add this line to explicitly include Vite types */
+    "types": ["vite/client", "node"], 
+
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noFallthroughCasesInSwitch": true
   },
   "include": ["vite.config.ts"]
 }
