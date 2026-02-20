@@ -1,7 +1,7 @@
 @reference "tailwindcss";
 
 .user-benefits-scope {
-  @apply min-h-screen bg-gray-50 pb-20 font-sans text-gray-900;
+  @apply max-w-7xl  mx-auto p-8 space-y-8;
 }
 
 /* Stats Row */
@@ -10,7 +10,7 @@
 }
 
 .stat-card {
-  @apply bg-white p-6 rounded-2xl border border-gray-100 shadow-sm;
+  @apply bg-white p-6  border border-gray-100 shadow-sm;
 }
 
 .stat-value {
@@ -23,7 +23,7 @@
 
 /* Benefit List Section */
 .section-wrapper {
-  @apply bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden mb-8;
+  @apply bg-white  border border-gray-100 shadow-sm overflow-hidden mb-8;
 }
 
 .section-header {
@@ -31,11 +31,11 @@
 }
 
 .benefit-item {
-  @apply p-6 mx-8 mb-6 border border-gray-100 rounded-2xl flex flex-col md:flex-row md:items-center justify-between hover:border-blue-100 transition-colors;
+  @apply p-6 mx-8 mb-6 border border-gray-100  flex flex-col md:flex-row md:items-center justify-between hover:border-blue-100 transition-colors;
 }
 
 .tag {
-  @apply px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tighter;
+  @apply px-3 py-1  text-xs font-bold uppercase tracking-tighter;
 }
 
 .tag-financial {
@@ -52,11 +52,11 @@
 }
 
 .btn-details {
-  @apply flex items-center gap-2 px-4 py-2 text-sm font-bold border border-gray-200 rounded-lg hover:bg-gray-50;
+  @apply flex items-center gap-2 px-4 py-2 text-sm font-bold border border-gray-200  hover:bg-gray-50;
 }
 
 .btn-apply {
-  @apply flex items-center gap-2 px-6 py-2 text-sm font-bold bg-black text-white rounded-lg hover:bg-gray-800 transition-transform active:scale-95;
+  @apply flex items-center gap-2 px-6 py-2 text-sm font-bold bg-black text-white  hover:bg-gray-800 transition-transform active:scale-95;
 }
 
 /* Timeline/Steps */
@@ -65,5 +65,5 @@
 }
 
 .step-number {
-  @apply w-10 h-10 flex-shrink-0 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center font-bold;
+  @apply w-10 h-10 flex-shrink-0 bg-blue-50 text-blue-600  flex items-center justify-center font-bold;
 }

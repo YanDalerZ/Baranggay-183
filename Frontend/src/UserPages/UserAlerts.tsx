@@ -63,7 +63,7 @@ const notifications: Notification[] = [
 // --- Components ---
 
 const StatCard = ({ title, value, subtext, colorClass }: { title: string, value: string | number, subtext: string, colorClass: string }) => (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col justify-between h-32">
+    <div className="bg-white p-6  border border-gray-200 shadow-sm flex flex-col justify-between h-32">
         <h3 className="text-gray-600 font-medium text-sm">{title}</h3>
         <div>
             <p className={`text-3xl font-bold ${colorClass}`}>{value}</p>
@@ -93,19 +93,19 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
     const isHighlighted = notification.isNew && notification.type === 'Emergency' || notification.type === 'Warning' && notification.isNew;
 
     return (
-        <div className={`p-5 border rounded-lg transition-colors ${isHighlighted ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}>
+        <div className={`p-5 border  transition-colors ${isHighlighted ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}>
             <div className="flex gap-4">
-                <div className={`p-2 rounded-lg h-fit ${isHighlighted ? 'bg-white' : 'bg-gray-50'}`}>
+                <div className={`p-2  h-fit ${isHighlighted ? 'bg-white' : 'bg-gray-50'}`}>
                     {getIcon()}
                 </div>
                 <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-bold text-gray-900">{notification.title}</h4>
                         {notification.isNew && (
-                            <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">New</span>
+                            <span className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5  uppercase">New</span>
                         )}
                     </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded border uppercase inline-block mb-3 ${getBadgeStyles()}`}>
+                    <span className={`text-[11px] font-bold px-2 py-0.5  border uppercase inline-block mb-3 ${getBadgeStyles()}`}>
                         {notification.type}
                     </span>
                     <p className="text-gray-700 text-sm mb-4 leading-relaxed">{notification.message}</p>
@@ -114,7 +114,7 @@ const NotificationItem = ({ notification }: { notification: Notification }) => {
                         <div className="flex items-center gap-2">
                             <span>Sent via:</span>
                             {notification.channels.map(channel => (
-                                <span key={channel} className="bg-gray-100 px-2 py-0.5 rounded border border-gray-200 text-gray-600 font-medium">
+                                <span key={channel} className="bg-gray-100 px-2 py-0.5  border border-gray-200 text-gray-600 font-medium">
                                     {channel}
                                 </span>
                             ))}
@@ -130,15 +130,17 @@ export default function Dashboard() {
 
     return (
 
-
-
-        <main className="max-w-full mx-auto p-8 space-y-8">
-
+        <main className="max-w-7xl  mx-auto p-8 space-y-8">
+            <div>
+                <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                    Notifications & Alerts</h2>
+                <p className="text-gray-500 text-xs sm:text-sm">Stay updated with important information</p>
+            </div>
             {/* Top Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard title="Total Notifications" value={5} subtext="All messages" colorClass="text-gray-800" />
-                <StatCard title="Unread" value={3} subtext="New messages" colorClass="text-blue-600" />
-                <StatCard title="Emergency Alerts" value={3} subtext="Priority alerts" colorClass="text-red-600" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+                <div className="hover:shadow-2xl hover:-translate-y-1"> <StatCard title="Total Notifications" value={5} subtext="All messages" colorClass="text-gray-800" /></div>
+                <div className="hover:shadow-2xl hover:-translate-y-1"><StatCard title="Unread" value={3} subtext="New messages" colorClass="text-blue-600" /></div>
+                <div className="hover:shadow-2xl hover:-translate-y-1"><StatCard title="Emergency Alerts" value={3} subtext="Priority alerts" colorClass="text-red-600" /></div>
             </div>
 
             {/* Notifications List Section */}
@@ -148,7 +150,7 @@ export default function Dashboard() {
                         <h2 className="text-lg font-bold">Notifications & Alerts</h2>
                         <p className="text-gray-500 text-sm">Stay updated with important information</p>
                     </div>
-                    <button className="flex items-center gap-2 text-xs font-bold border border-gray-300 rounded-lg px-4 py-2 bg-white hover:bg-gray-50 shadow-sm">
+                    <button className="flex items-center gap-2 text-xs font-bold border border-gray-300  px-4 py-2 bg-white hover:bg-gray-50 shadow-sm">
                         <CheckCircle size={14} /> Mark All as Read
                     </button>
                 </div>
@@ -159,7 +161,7 @@ export default function Dashboard() {
             </section>
 
             {/* Preferences Section */}
-            <section className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+            <section className="bg-white border border-gray-200  overflow-hidden shadow-sm">
                 <div className="p-6 border-b border-gray-100">
                     <h2 className="text-lg font-bold">Notification Preferences</h2>
                     <p className="text-gray-500 text-sm">Manage how you receive notifications</p>
@@ -176,7 +178,7 @@ export default function Dashboard() {
                                 <p className="font-bold text-sm text-gray-800">{item.label}</p>
                                 <p className="text-xs text-gray-500">{item.sub}</p>
                             </div>
-                            <button className="bg-gray-100 text-gray-800 text-[10px] font-bold px-3 py-1 rounded border border-gray-200 uppercase">
+                            <button className="bg-gray-100 text-gray-800 text-[10px] font-bold px-3 py-1  border border-gray-200 uppercase">
                                 Enabled
                             </button>
                         </div>
@@ -185,7 +187,7 @@ export default function Dashboard() {
             </section>
 
             {/* Emergency Contacts Footer */}
-            <section className="bg-red-50 border border-red-100 rounded-xl p-8">
+            <section className="bg-red-50 border border-red-100  p-8">
                 <div className="flex items-center gap-2 text-red-700 mb-6">
                     <AlertTriangle size={20} />
                     <h2 className="font-bold">Emergency Contacts</h2>
