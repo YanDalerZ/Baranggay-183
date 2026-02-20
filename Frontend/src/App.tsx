@@ -5,6 +5,7 @@ import UserMainPage from './UserPages/UserMainPage';
 import UserLogin from './UserPages/UserLogin';
 import UserProfile from './UserPages/UserProfile';
 import UserApplyServices from './UserPages/UserApplyServices';
+import UserServiceGuide from './UserPages/UserServiceGuide';
 
 
 const App: React.FC = () => {
@@ -22,6 +23,7 @@ const App: React.FC = () => {
           <Route path="/MainPage" element={<UserMainPage />} />
           <Route path="/UserProfile" element={<UserProfile />} />
           <Route path="/UserApplyServices" element={<UserApplyServices />} />
+          <Route path="/UserServiceGuide" element={<UserServiceGuide/>} />
 
 
           {/* 404 Catch-all */}

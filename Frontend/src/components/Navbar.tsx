@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
-  User, FileText, Gift, History, Bell,
-   LogOut, Sun, Type, Volume2, Menu, ChevronLeft 
+  User, FileText, Gift, Box, Bell, Calendar, BookOpen, ClipboardList,
+  LogOut, Sun, Type, Volume2, Menu, ChevronLeft 
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -15,19 +15,22 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Updated menuItems: My Profile now uses the User icon instead of the Home icon
   const menuItems = [
-    { name: 'Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
+    { name: 'My Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
     { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/UserApplyServices' },
     { name: 'My Benefits', shortName: 'Benefits', icon: Gift, path: '/Benefits' },
-    { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/Alerts' },
-    // These extra items will show in the sidebar but might be hidden in a 4-item bottom bar
-    { name: 'History', shortName: 'History', icon: History, path: '/History' },
+    { name: 'Claims History', shortName: 'History', icon: Box, path: '/History' },
+    { name: 'Alerts & Notifications', shortName: 'Alerts', icon: Bell, path: '/Alerts' },
+    { name: 'Events Calendar', shortName: 'Events', icon: Calendar, path: '/Events' },
+    { name: 'Services Guide', shortName: 'Guide', icon: BookOpen, path: '/UserServiceGuide' },
+    { name: 'Appointments', shortName: 'Appts', icon: ClipboardList, path: '/Appointments' },
   ];
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-[#f1f5f9] font-sans">
       
-      {/* DESKTOP SIDEBAR (Visible only on md and up) */}
+      {/* DESKTOP SIDEBAR */}
       <aside 
         className={`hidden md:flex ${
           isCollapsed ? 'w-20' : 'w-64'
@@ -54,7 +57,7 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1 mt-4">
+        <nav className="flex-1 px-4 py-4 space-y-1 mt-4 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -83,7 +86,7 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden pb-20 md:pb-0">
         
-        {/* TOP NAVBAR (Adjusted for Mobile) */}
+        {/* TOP NAVBAR */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 md:px-8 shrink-0">
           <div className="flex items-center gap-3 md:hidden">
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs">B183</div>
@@ -93,9 +96,9 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
 
           <div className="flex items-center gap-3 md:gap-5">
             <div className="hidden lg:flex items-center gap-4 text-[13px] font-bold text-gray-500">
-              <button className="hover:text-blue-600"><Sun size={16} /></button>
-              <button className="hover:text-blue-600"><Type size={16} /></button>
-              <button className="text-green-600 bg-green-50 px-2 py-1 rounded-md"><Volume2 size={16} /></button>
+              <button className="hover:text-blue-600 flex items-center gap-1.5"><Sun size={16} /> High Contrast</button>
+              <button className="hover:text-blue-600 flex items-center gap-1.5"><Type size={16} /> 100%</button>
+              <button className="text-green-600 bg-green-50 px-2 py-1 rounded-md flex items-center gap-1.5"><Volume2 size={16} /> SR Enabled</button>
             </div>
             <div className="h-6 w-px bg-gray-200 hidden md:block" />
             <div className="flex items-center gap-2">
@@ -115,7 +118,7 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
           {children}
         </main>
 
-        {/* MOBILE BOTTOM NAVIGATION (Visible only on mobile) */}
+        {/* MOBILE BOTTOM NAVIGATION */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
           {menuItems.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.path;
