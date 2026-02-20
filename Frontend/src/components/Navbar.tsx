@@ -15,7 +15,6 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Updated menuItems: My Profile now uses the User icon instead of the Home icon
   const menuItems = [
     { name: 'My Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
     { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/UserApplyServices' },
@@ -24,7 +23,7 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
     { name: 'Alerts & Notifications', shortName: 'Alerts', icon: Bell, path: '/Alerts' },
     { name: 'Events Calendar', shortName: 'Events', icon: Calendar, path: '/Events' },
     { name: 'Services Guide', shortName: 'Guide', icon: BookOpen, path: '/UserServiceGuide' },
-    { name: 'Appointments', shortName: 'Appts', icon: ClipboardList, path: '/Appointments' },
+    { name: 'Appointments', shortName: 'Appts', icon: ClipboardList, path: '/UserAppointments' },
   ];
 
   return (
@@ -118,28 +117,34 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
           {children}
         </main>
 
-        {/* MOBILE BOTTOM NAVIGATION */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-          {menuItems.slice(0, 4).map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.name}
-                onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center gap-1 transition-all ${
-                  isActive ? 'text-blue-600' : 'text-gray-400'
-                }`}
-              >
-                <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[10px] font-bold uppercase">{item.shortName}</span>
-                {isActive && <div className="w-1 h-1 bg-blue-600 rounded-full" />}
-              </button>
-            );
-          })}
-          <button onClick={() => navigate('/Login')} className="flex flex-col items-center gap-1 text-gray-400">
-            <LogOut size={22} />
-            <span className="text-[10px] font-bold uppercase">Exit</span>
-          </button>
+        {/* MOBILE BOTTOM NAVIGATION (Modified to show all items) */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+          <div className="flex overflow-x-auto no-scrollbar items-center px-4 py-3 gap-6">
+            {menuItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => navigate(item.path)}
+                  className={`flex flex-col items-center gap-1 min-w-[60px] transition-all shrink-0 ${
+                    isActive ? 'text-blue-600' : 'text-gray-400'
+                  }`}
+                >
+                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="text-[10px] font-bold uppercase whitespace-nowrap">{item.shortName}</span>
+                  {isActive && <div className="w-1 h-1 bg-blue-600 rounded-full" />}
+                </button>
+              );
+            })}
+            {/* Exit Button at the end of scroll */}
+            <button 
+              onClick={() => navigate('/Login')} 
+              className="flex flex-col items-center gap-1 min-w-[60px] text-gray-400 shrink-0"
+            >
+              <LogOut size={22} />
+              <span className="text-[10px] font-bold uppercase">Exit</span>
+            </button>
+          </div>
         </nav>
       </div>
     </div>

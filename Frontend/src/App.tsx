@@ -6,7 +6,7 @@ import UserLogin from './UserPages/UserLogin';
 import UserProfile from './UserPages/UserProfile';
 import UserApplyServices from './UserPages/UserApplyServices';
 import UserServiceGuide from './UserPages/UserServiceGuide';
-
+import UserAppointments from './UserPages/UserAppointments';
 
 const App: React.FC = () => {
   // Vite's built-in types for environment variables
@@ -24,6 +24,7 @@ const App: React.FC = () => {
           <Route path="/UserProfile" element={<UserProfile />} />
           <Route path="/UserApplyServices" element={<UserApplyServices />} />
           <Route path="/UserServiceGuide" element={<UserServiceGuide/>} />
+          <Route path="/UserAppointments" element={<UserAppointments/>} />
 
 
           {/* 404 Catch-all */}
