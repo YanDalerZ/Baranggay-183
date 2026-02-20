@@ -1,15 +1,8 @@
-import React from 'react';
 import {
     CheckCircle2,
     Clock,
     Package,
-    Wallet,
-    ChevronRight,
-    Info,
-    LogOut,
-    User,
-    Sun,
-    Type
+    Info
 } from 'lucide-react';
 
 // --- Types ---
