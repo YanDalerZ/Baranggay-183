@@ -1,11 +1,43 @@
-/* src/App.css */
 @import 'tailwindcss';
+
+@font-face {
+  font-family: 'Visby CF';
+  src: url('/fonts/VisbyCF-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Visby CF';
+  src: url('/fonts/VisbyCF-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Visby CF';
+  src: url('/fonts/VisbyCF-Heavy.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+}
+
+:root {
+  --brand-blue: #00308f;
+  --brand-orange: #ff9800;
+  --brand-bg: #ffffff;
+}
+
+body {
+  font-family: 'Visby CF', 'Inter', -apple-system, sans-serif;
+  background-color: var(--brand-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
 .App {
   width: 100%;
   min-height: 100vh;
 }
 
-/* Example of a custom animation if you want a fade-in effect for your UserMainPage */
 .fade-in {
   animation: fadeIn 0.5s ease-in;
 }
@@ -17,4 +49,24 @@
   to {
     opacity: 1;
   }
+}
+
+.text-royal {
+  color: var(--brand-blue);
+}
+.bg-royal {
+  background-color: var(--brand-blue);
+}
+.text-vibrant {
+  color: var(--brand-orange);
+}
+.bg-vibrant {
+  background-color: var(--brand-orange);
+}
+
+.border-royal {
+  border-color: var(--brand-blue);
+}
+.border-vibrant {
+  border-color: var(--brand-orange);
 }

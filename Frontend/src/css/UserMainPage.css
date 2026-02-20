@@ -5,34 +5,6 @@
   .user-main-page-scope {
     @apply min-h-screen bg-white text-black font-sans selection:bg-red-100;
 
-    .header-sticky {
-      @apply sticky top-0 z-50 bg-white border-b border-gray-200;
-    }
-
-    .nav-container {
-      @apply max-w-[1440px] mx-auto flex items-center justify-between px-4 md:px-6 h-16 md:h-20;
-    }
-
-    .logo-box {
-      @apply bg-[#ff0000] text-white p-2 md:p-3 leading-none flex flex-col items-center justify-center cursor-pointer;
-    }
-
-    .nav-link {
-      @apply hover:border-b-2 border-black pb-1 transition-all;
-    }
-
-    .nav-link-active {
-      @apply text-red-600;
-    }
-
-    .search-container {
-      @apply hidden md:flex items-center border-b border-black py-1;
-    }
-
-    .search-input {
-      @apply text-[11px] uppercase outline-none w-32 lg:w-48 placeholder:text-gray-300;
-    }
-
     .mobile-menu {
       @apply lg:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-200 shadow-xl py-6 px-6 flex flex-col space-y-4 font-bold text-sm uppercase tracking-widest;
     }

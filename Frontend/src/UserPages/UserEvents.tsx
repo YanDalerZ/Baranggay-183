@@ -96,7 +96,7 @@ const CalendarWidget = () => {
     const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
     return (
-        <div className="bg-white p-2 sm:p-4 border border-gray-100 rounded-xl shadow-sm w-full mx-auto">
+        <div className="bg-white p-2 sm:p-4 border border-gray-100  shadow-sm w-full mx-auto">
             <div className="flex justify-between items-center mb-4 px-2">
                 <button className="text-gray-400 hover:text-black p-1"><ChevronLeft size={18} /></button>
                 <h3 className="font-bold text-sm">February 2026</h3>
@@ -108,7 +108,7 @@ const CalendarWidget = () => {
             <div className="grid grid-cols-7 gap-1">
                 <div className="h-8"></div>
                 {days.map(d => (
-                    <div key={d} className={`h-8 flex items-center justify-center text-xs rounded-full cursor-pointer transition-colors
+                    <div key={d} className={`h-8 flex items-center justify-center text-xs  cursor-pointer transition-colors
             ${d === 15 ? 'bg-black text-white font-bold' : 'hover:bg-gray-100 text-gray-700'}
             ${[18, 20, 25, 28].includes(d) ? 'border border-gray-300' : ''}
           `}>
@@ -124,10 +124,10 @@ const EventCard = ({ event }: { event: EventItem }) => {
     const catInfo = CATEGORIES.find(c => c.label === event.category)!;
 
     return (
-        <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
+        <div className="bg-white border border-gray-100  p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                 <div className="flex-shrink-0">
-                    <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold ${catInfo.bgColor} ${catInfo.color} ${catInfo.borderColor}`}>
+                    <span className={`inline-flex items-center gap-2 px-3 py-1.5  border text-xs font-bold ${catInfo.bgColor} ${catInfo.color} ${catInfo.borderColor}`}>
                         {catInfo.icon} {event.category}
                     </span>
                 </div>
@@ -153,7 +153,7 @@ const EventCard = ({ event }: { event: EventItem }) => {
                     <div className="flex items-center flex-wrap gap-2">
                         <span className="text-[10px] text-gray-400 font-bold uppercase">For:</span>
                         {event.tags.map(tag => (
-                            <span key={tag} className="px-3 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">
+                            <span key={tag} className="px-3 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold ">
                                 {tag}
                             </span>
                         ))}
@@ -170,40 +170,41 @@ export default function EventsCalendar() {
     const [activeCategory, setActiveCategory] = useState('All');
 
     return (
-        <main className="max-w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+        <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
             <div>
-                <h2 className="text-xl sm:text-2xl font-black text-gray-900">Events Calendar</h2>
+                <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                    Events Calendar</h2>
                 <p className="text-gray-500 text-xs sm:text-sm">Stay informed about community events, health missions, and celebrations</p>
             </div>
 
             {/* Top Controls Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Select Date Widget */}
-                <div className="lg:col-span-4 bg-white p-4 sm:p-6 border border-gray-200 rounded-xl">
+                <div className="lg:col-span-4 bg-white p-4 sm:p-6 border border-gray-200 ">
                     <h3 className="text-sm font-bold mb-4 sm:mb-6">Select Date</h3>
                     <CalendarWidget />
                 </div>
 
                 {/* Filters */}
                 <div className="lg:col-span-8 space-y-6">
-                    <div className="bg-white p-4 sm:p-6 border border-gray-200 rounded-xl">
+                    <div className="bg-white p-4 sm:p-6 border border-gray-200 ">
                         <h3 className="text-sm font-bold mb-4">Filter by Month & Year</h3>
                         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                            <select className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm w-full sm:w-40 outline-none focus:ring-2 focus:ring-blue-100">
+                            <select className="bg-white border border-gray-200  px-4 py-2 text-sm w-full sm:w-40 outline-none focus:ring-2 focus:ring-blue-100">
                                 <option>February</option>
                             </select>
-                            <select className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm w-full sm:w-32 outline-none focus:ring-2 focus:ring-blue-100">
+                            <select className="bg-white border border-gray-200  px-4 py-2 text-sm w-full sm:w-32 outline-none focus:ring-2 focus:ring-blue-100">
                                 <option>2026</option>
                             </select>
                         </div>
                     </div>
 
-                    <div className="bg-white p-4 sm:p-6 border border-gray-200 rounded-xl">
+                    <div className="bg-white p-4 sm:p-6 border border-gray-200 ">
                         <h3 className="text-sm font-bold mb-4">Filter by Category</h3>
                         <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => setActiveCategory('All')}
-                                className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-colors ${activeCategory === 'All' ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200'}`}
+                                className={`px-4 py-1.5  text-xs font-bold border transition-colors ${activeCategory === 'All' ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200'}`}
                             >
                                 All
                             </button>
@@ -211,7 +212,7 @@ export default function EventsCalendar() {
                                 <button
                                     key={cat.label}
                                     onClick={() => setActiveCategory(cat.label)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors
+                                    className={`flex items-center gap-2 px-3 py-1.5  text-xs font-bold border transition-colors
                           ${activeCategory === cat.label ? 'bg-gray-100 border-gray-400' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}
                         `}
                                 >
@@ -224,11 +225,11 @@ export default function EventsCalendar() {
             </div>
 
             {/* Categories Legend */}
-            <section className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6">
+            <section className="bg-white border border-gray-200  p-4 sm:p-6">
                 <h3 className="text-sm font-bold mb-4">Event Categories Legend</h3>
                 <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                     {CATEGORIES.map(cat => (
-                        <div key={cat.label} className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-[10px] sm:text-[11px] font-bold ${cat.bgColor} ${cat.color} ${cat.borderColor}`}>
+                        <div key={cat.label} className={`flex items-center gap-2 px-3 py-2  border text-[10px] sm:text-[11px] font-bold ${cat.bgColor} ${cat.color} ${cat.borderColor}`}>
                             <span className="shrink-0">{cat.icon}</span>
                             <span className="truncate">{cat.label}</span>
                         </div>
