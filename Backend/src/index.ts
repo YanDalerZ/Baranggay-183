@@ -42,10 +42,6 @@ app.use('/api/user', AllRoutes.UserRoute);
 const frontendPath = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendPath));
 
-app.get("*", (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
-});
-
 app.listen(PORT, '0.0.0.0', async () => {
     try {
         const conn = await pool.getConnection();
