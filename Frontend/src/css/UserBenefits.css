@@ -1,0 +1,69 @@
+@reference "tailwindcss";
+
+.user-benefits-scope {
+  @apply max-w-7xl  mx-auto p-8 space-y-8;
+}
+
+/* Stats Row */
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-3 gap-6 mb-8;
+}
+
+.stat-card {
+  @apply bg-white p-6  border border-gray-100 shadow-sm;
+}
+
+.stat-value {
+  @apply text-3xl font-bold mt-2;
+}
+
+.stat-label {
+  @apply text-sm font-semibold text-gray-500 uppercase tracking-wider;
+}
+
+/* Benefit List Section */
+.section-wrapper {
+  @apply bg-white  border border-gray-100 shadow-sm overflow-hidden mb-8;
+}
+
+.section-header {
+  @apply p-8 border-b border-gray-50;
+}
+
+.benefit-item {
+  @apply p-6 mx-8 mb-6 border border-gray-100  flex flex-col md:flex-row md:items-center justify-between hover:border-blue-100 transition-colors;
+}
+
+.tag {
+  @apply px-3 py-1  text-xs font-bold uppercase tracking-tighter;
+}
+
+.tag-financial {
+  @apply bg-green-100 text-green-700;
+}
+.tag-discount {
+  @apply bg-purple-100 text-purple-700;
+}
+.tag-relief {
+  @apply bg-orange-100 text-orange-700;
+}
+.tag-medical {
+  @apply bg-blue-100 text-blue-700;
+}
+
+.btn-details {
+  @apply flex items-center gap-2 px-4 py-2 text-sm font-bold border border-gray-200  hover:bg-gray-50;
+}
+
+.btn-apply {
+  @apply flex items-center gap-2 px-6 py-2 text-sm font-bold bg-black text-white  hover:bg-gray-800 transition-transform active:scale-95;
+}
+
+/* Timeline/Steps */
+.step-container {
+  @apply flex gap-6 mb-8;
+}
+
+.step-number {
+  @apply w-10 h-10 flex-shrink-0 bg-blue-50 text-blue-600  flex items-center justify-center font-bold;
+}

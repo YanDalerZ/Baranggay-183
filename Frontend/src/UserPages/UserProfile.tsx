@@ -8,37 +8,34 @@ const StatCard = ({ title, value, subtext, icon: Icon, color = "text-gray-900" }
       <Icon size={16} />
       <span>{title}</span>
     </div>
-    <div className={`text-3xl font-bold ${color}`}>{value}</div>
-    <div className="text-[11px] text-gray-400 mt-1 font-medium">{subtext}</div>
   </div>
 );
 
-const NotificationRow = ({ type, title, message, date, isNew }: any) => {
-  const styles: any = {
-    warning: { bg: 'bg-amber-50', icon: 'text-amber-500', border: 'border-amber-100' },
-    pension: { bg: 'bg-green-50', icon: 'text-green-500', border: 'border-green-100' },
-    typhoon: { bg: 'bg-red-50', icon: 'text-red-500', border: 'border-red-100' }
-  };
-  const style = styles[type] || styles.warning;
+const NotificationItem = ({ type, title, message, date, isNew }: any) => {
+  const isUrgent = type === 'typhoon' || type === 'warning';
 
   return (
-    <div className={`p-4 rounded-xl border ${style.border} bg-white flex gap-3 md:gap-4 items-start mb-3`}>
-      <div className={`p-2 rounded-lg flex-shrink-0 ${style.bg} ${style.icon}`}>
-        {type === 'typhoon' ? <ShieldAlert size={18} /> : <Bell size={18} />}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center">
-          <h4 className="text-sm font-bold text-gray-800 truncate">{title}</h4>
-          {isNew && <span className="bg-blue-100 text-blue-600 text-[9px] font-black px-1.5 py-0.5 rounded ml-2">NEW</span>}
+    <div className="group border-b border-gray-100 p-6 last:border-0 hover:bg-slate-50 transition-colors">
+      <div className="flex justify-between items-start gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            {isNew && <span className={`w-2 h-2 rounded-full ${BRAND_BG_ORANGE}`} />}
+            <h4 className={`text-sm font-bold uppercase tracking-tight ${isUrgent ? BRAND_ORANGE : BRAND_BLUE}`}>
+              {title}
+            </h4>
+          </div>
+          <p className="text-sm text-slate-600 leading-relaxed max-w-xl font-medium">{message}</p>
+          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest pt-1">{date}</p>
         </div>
-        <p className="text-xs md:text-sm text-gray-500 mt-1 leading-relaxed">{message}</p>
-        <p className="text-[10px] text-gray-400 mt-2 font-medium">{date}</p>
+        <button className={`p-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 ${BRAND_BLUE}`}>
+          <ArrowRight size={18} />
+        </button>
       </div>
     </div>
   );
 };
 
-const UserMainPage: React.FC = () => {
+const UserProfile: React.FC = () => {
   return (
     <Navbar pageTitle="My Profile">
       <div className="space-y-4 md:space-y-6 max-w-7xl mx-auto">
@@ -54,71 +51,80 @@ const UserMainPage: React.FC = () => {
               <p className="text-xs md:text-sm text-gray-500 font-bold tracking-wide">PWD-001 • BOTH</p>
             </div>
           </div>
-          <span className="w-full md:w-auto bg-red-500 text-white text-[10px] font-black px-3 py-2 rounded-lg flex items-center justify-center md:justify-start gap-1.5 shadow-sm">
-            <AlertTriangle size={14} /> FLOOD-PRONE AREA
-          </span>
-        </section>
-
-        {/* Metrics Grid - Stacks on mobile */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
-          <StatCard title="Benefits" value="2" subtext="Total claimed" icon={Gift} />
-          <StatCard title="Available" value="5" subtext="Eligible" icon={Gift} />
-          <StatCard title="Alerts" value="1" subtext="Unread" icon={Bell} />
-          <StatCard title="ID Validity" value="25d" subtext="Until expiry" icon={Calendar} color="text-red-600" />
-        </div>
-
-        {/* Yellow ID Reminder */}
-        <div className="bg-amber-50 border border-amber-200 p-4 md:p-5 rounded-2xl flex gap-3 items-start">
-          <AlertTriangle className="text-amber-600 flex-shrink-0 mt-1" size={20} />
-          <p className="text-xs md:text-sm text-amber-800 leading-relaxed">
-            Your ID will expire in <span className="font-bold underline">25 days</span> (2026-03-15). Visit the barangay office to renew.
+          <h1 className={`text-5xl md:text-7xl font-heavy tracking-tighter italic ${BRAND_BLUE}`}>
+            Hello, Maria.
+          </h1>
+          <p className="text-slate-500 text-sm max-w-sm font-medium leading-relaxed">
+            Your resident profile is fully verified. You have <span className={`${BRAND_BLUE} font-bold`}>5 community benefits</span> awaiting your claim.
           </p>
         </div>
 
-        {/* Information Section */}
-        <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm text-left">
-          <h3 className="text-base md:text-lg font-black text-gray-900 mb-6 flex items-center gap-2 border-b pb-4">
-            <User size={20} className="text-blue-600" /> Personal Details
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
-            <div className="space-y-4">
-              <Detail label="Full Name" value="Maria Santos" />
-              <Detail label="System ID" value="PWD-001" />
-              <Detail label="Birthday" value="1965-03-15" />
-            </div>
-            <div className="space-y-4">
-              <Detail label="Address" value="Blk 1 Lot 15, Camarin Rd" />
-              <Detail label="Contact" value="09171234567" />
-              <Detail label="Emergency" value="Juan Santos (Son)" />
-            </div>
+        <div className={`${BRAND_BG_ORANGE} text-white px-8 py-5 flex items-center gap-4 shadow-lg shadow-orange-200/50`}>
+          <ShieldAlert size={24} strokeWidth={2} />
+          <div>
+            <p className="text-[10px] font-black tracking-widest uppercase leading-none opacity-90">Safety Advisory</p>
+            <p className="text-sm font-bold mt-1 uppercase tracking-tight">Flood-Prone Area: High Alert</p>
           </div>
         </div>
+      </header>
 
-        {/* Notifications */}
-        <div className="bg-white p-5 md:p-8 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm text-left">
-          <h3 className="text-base md:text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
-            <Bell size={20} className="text-blue-600" /> Notifications
-          </h3>
-          <NotificationRow 
-            type="warning" title="ID Expiration" 
-            message="Your PWD ID will expire on March 15." date="2026-02-08" isNew={true}
-          />
-          <NotificationRow 
-            type="typhoon" title="Typhoon Warning" 
-            message="Signal #2 raised. Stay safe." date="2026-01-28"
-          />
+      <main className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+        <div className="lg:col-span-8 space-y-12">
+          <section>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border-t-2 border-l-2 border-[#00308F]">
+              <div className="border-r-2 border-b-2 border-[#00308F]"><StatTile title="Claimed" value="02" subtext="Benefits used" /></div>
+              <div className="border-r-2 border-b-2 border-[#00308F]"><StatTile title="Eligible" value="05" subtext="Available now" isPrimary={true} /></div>
+              <div className="border-r-2 border-b-2 border-[#00308F]"><StatTile title="Messages" value="01" subtext="Unread alerts" /></div>
+              <div className="border-r-2 border-b-2 border-[#00308F]"><StatTile title="Validity" value="25d" subtext="Until Renewal" color={BRAND_ORANGE} /></div>
+            </div>
+          </section>
+
+          <section>
+            <SectionHeader title="Recent Communications" icon={Bell} />
+            <div className="divide-y divide-slate-100 border-x border-slate-50">
+              <NotificationItem
+                type="warning"
+                title="ID Renewal Required"
+                message="Your PWD Identification card is nearing expiry. Please schedule a visit to the local barangay hall before March 15th."
+                date="FEB 08, 2026"
+                isNew={true}
+              />
+              <NotificationItem
+                type="typhoon"
+                title="Weather Advisory"
+                message="Typhoon warning Signal #2. Evacuation centers in Zone 4 are now open for residents in high-risk zones."
+                date="JAN 28, 2026"
+              />
+            </div>
+          </section>
         </div>
+
+        <div className="lg:col-span-4 space-y-10">
+          <section className="bg-slate-50 p-8 border-t-4 border-[#00308F]">
+            <SectionHeader title="Account Details" icon={User} />
+            <div className="space-y-8 mt-8">
+              <DetailItem label="Full Name" value="Maria Santos" />
+              <DetailItem label="Primary Address" value="Blk 1 Lot 15, Camarin Rd" icon={MapPin} />
+              <DetailItem label="Phone Number" value="+63 917 123 4567" icon={Phone} />
+              <DetailItem label="Emergency Contact" value="Juan Santos (Son)" icon={Heart} />
+            </div>
 
       </div>
     </Navbar>
   );
 };
 
-const Detail = ({ label, value }: { label: string, value: string }) => (
-  <div>
-    <p className="text-[10px] text-gray-400 font-bold uppercase">{label}</p>
-    <p className="text-sm font-bold text-gray-800 leading-tight">{value}</p>
+const DetailItem = ({ label, value, icon: Icon }: any) => (
+  <div className="flex gap-4 group">
+    <div className={`mt-1 transition-colors group-hover:${BRAND_ORANGE}`}>
+      {Icon && <Icon size={16} strokeWidth={2} className="text-slate-400" />}
+    </div>
+    <div>
+      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{label}</p>
+      <p className="text-sm font-bold text-slate-800 tracking-tight leading-snug">{value}</p>
+    </div>
   </div>
 );
 
-export default UserMainPage;
+export default UserProfile;

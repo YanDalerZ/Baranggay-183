@@ -7,13 +7,19 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 interface NavbarProps {
   children: React.ReactNode;
-  pageTitle: string;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const Navbar: React.FC<NavbarProps> = ({ children }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const menuItems = [
     { name: 'My Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
@@ -52,9 +58,12 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 absolute -right-3 top-12 bg-white border border-gray-200 shadow-sm z-30"
           >
-            {isCollapsed ? <Menu size={14} /> : <ChevronLeft size={14} />}
-          </button>
-        </div>
+            <img className="size-10" src="/Logo.png"></img>
+            <div className="hidden md:block">
+              <h3 className="text-sm font-bold uppercase tracking-[0.2em] leading-none text-[#00308F]">Barangay 183</h3>
+              <p className="text-[10px] text-gray-400 font-small uppercase tracking-widest mt-1">Resident Portal</p>
+            </div>
+          </div>
 
         <nav className="flex-1 px-4 py-4 space-y-1 mt-4 overflow-y-auto">
           {menuItems.map((item) => {
@@ -63,12 +72,10 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all group relative ${
-                  isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'text-gray-500 hover:bg-gray-50'
-                }`}
+                className={`text-[11px] font-bold uppercase tracking-widest hover:text-[#00308F] transition-colors ${location.pathname === item.path ? 'border-b-2 border-[#00308F] pb-1 text-[#00308F]' : 'text-gray-500'
+                  }`}
               >
-                <item.icon size={20} strokeWidth={2.5} className="flex-shrink-0" />
-                {!isCollapsed && <span className="overflow-hidden whitespace-nowrap">{item.name}</span>}
+                {item.name}
               </button>
             );
           })}
@@ -91,7 +98,6 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs">B183</div>
              <h2 className="font-bold text-gray-800 text-base">{pageTitle}</h2>
           </div>
-          <h2 className="hidden md:block font-bold text-gray-800 text-lg">{pageTitle}</h2>
 
           <div className="flex items-center gap-3 md:gap-5">
             <div className="hidden lg:flex items-center gap-4 text-[13px] font-bold text-gray-500">
@@ -99,23 +105,57 @@ const Navbar: React.FC<NavbarProps> = ({ children, pageTitle }) => {
               <button className="hover:text-blue-600 flex items-center gap-1.5"><Type size={16} /> 100%</button>
               <button className="text-green-600 bg-green-50 px-2 py-1 rounded-md flex items-center gap-1.5"><Volume2 size={16} /> SR Enabled</button>
             </div>
-            <div className="h-6 w-px bg-gray-200 hidden md:block" />
-            <div className="flex items-center gap-2">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-gray-800 leading-none text-nowrap">Maria Santos</p>
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Resident</p>
-              </div>
-              <div className="w-9 h-9 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 border border-blue-100">
-                <User size={18} />
-              </div>
-            </div>
-          </div>
-        </header>
 
-        {/* PAGE CONTENT */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
-          {children}
-        </main>
+            {/* Notification bell hover and badge color changed to Orange */}
+            <button className="relative text-black hover:text-[#FF9800] transition-colors">
+              <Bell size={20} strokeWidth={1.5} />
+              <span className="absolute -top-1 -right-1 bg-[#FF9800] text-[8px] text-white w-4 h-4 rounded-full flex items-center justify-center font-bold">1</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/UserProfile')}
+              className="flex items-center gap-2 group"
+            >
+              {/* Profile circle hover color changed to Royal Blue */}
+              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#00308F] group-hover:text-white transition-all">
+                <User size={16} strokeWidth={1.5} />
+              </div>
+            </button>
+
+            <button className="lg:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {isMenuOpen && (
+        <div className="fixed inset-0 bg-white z-[60] pt-24 px-8 lg:hidden animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex flex-col gap-8">
+            {menuItems.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
+                className="text-2xl font-bold tracking-tighter text-left border-b border-gray-100 pb-4 flex justify-between items-center"
+              >
+                {item.name}
+                <item.icon className="text-gray-300" />
+              </button>
+            ))}
+            <button
+              onClick={() => navigate('/Login')}
+              /* Sign out changed to Orange */
+              className="text-[#FF9800] font-bold uppercase tracking-widest text-sm mt-4"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+
+      <main className="pt-18 pb-32 md:pb-12 mx-auto">
+        {children}
+      </main>
 
         {/* MOBILE BOTTOM NAVIGATION (Modified to show all items) */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
