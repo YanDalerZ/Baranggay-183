@@ -1,2 +1,2 @@
-export { default as LoginRoute } from "./LoginRoute";
-export { default as UserRoute } from "./UserRoute";
+export { default as LoginRoute } from "./LoginRoute.js";
+export { default as UserRoute } from "./UserRoute.js";
