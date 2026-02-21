@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
 
 import UserMainPage from './UserPages/UserMainPage';
 import UserLogin from './UserPages/UserLogin';
@@ -13,28 +14,59 @@ import UserHistory from './UserPages/UserHistory';
 import UserApply from './UserPages/UserApplyServices';
 import UserAppointments from './UserPages/UserAppointments';
 import UserGuide from './UserPages/UserServiceGuide';
+import UserCRUD from './UserPages/UserCRUD';
+
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const token = localStorage.getItem('token');
+  return token ? <Navigate to="/UserMainPage" replace /> : <>{children}</>;
+};
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to="/Login" replace />} />
-        <Route path="/Login" element={<UserLogin />} />
 
-        <Route path="/UserMainPage" element={<Navbar><UserMainPage /></Navbar>} />
+        <Route
+          path="/Login"
+          element={
+            <PublicRoute>
+              <UserLogin />
+            </PublicRoute>
+          }
+        />
 
-        <Route path="/UserProfile" element={<Navbar><UserProfile /></Navbar>} />
+        {/* Protected Routes - Only accessible if token exists */}
+        <Route path="/UserCRUD" element={<ProtectedRoute><UserCRUD /></ProtectedRoute>} />
 
-        <Route path="/UserBenefits" element={<Navbar> <UserBenefits /></Navbar>} />
-        <Route path="/UserAlerts" element={<Navbar> <UserAlert /></Navbar>} />
-        <Route path="/UserEvents" element={<Navbar> <UserEvents /></Navbar>} />
-        <Route path="/UserHistory" element={<Navbar> <UserHistory /></Navbar>} />
-        <Route path="/UserApply" element={<Navbar> <UserApply /></Navbar>} />
-        <Route path="/UserAppointments" element={<Navbar> <UserAppointments /></Navbar>} />
-        <Route path="/UserGuide" element={<Navbar> <UserGuide /></Navbar>} />
+        <Route path="/UserMainPage" element={<ProtectedRoute><Navbar><UserMainPage /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserProfile" element={<ProtectedRoute><Navbar><UserProfile /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserBenefits" element={<ProtectedRoute><Navbar><UserBenefits /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserAlerts" element={<ProtectedRoute><Navbar><UserAlert /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserEvents" element={<ProtectedRoute><Navbar><UserEvents /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserHistory" element={<ProtectedRoute><Navbar><UserHistory /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserApply" element={<ProtectedRoute><Navbar><UserApply /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserAppointments" element={<ProtectedRoute><Navbar><UserAppointments /></Navbar></ProtectedRoute>} />
+
+        <Route path="/UserGuide" element={<ProtectedRoute><Navbar><UserGuide /></Navbar></ProtectedRoute>} />
+
+        {/* 404 Route */}
         <Route path="*" element={
           <div style={{ padding: '50px', textAlign: 'center' }}>
-            <h2>404: Page Not Found</h2>
+            <h2 style={{ color: '#00308F', fontWeight: 'bold' }}>404: Page Not Found</h2>
+            <button
+              onClick={() => window.location.href = '/'}
+              style={{ marginTop: '20px', color: '#00308F', fontWeight: 'bold', textDecoration: 'underline' }}
+            >
+              Go Back Home
+            </button>
           </div>
         } />
       </Routes>

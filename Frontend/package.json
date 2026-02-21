@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.18",
+    "axios": "^1.13.5",
     "clsx": "^2.1.1",
     "lucide-react": "^0.574.0",
     "react": "^19.2.0",
@@ -23,6 +24,7 @@
     "@types/node": "^20.0.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.24",
     "eslint": "^9.39.1",
