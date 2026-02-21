@@ -1,26 +1,5 @@
 @import 'tailwindcss';
 
-@font-face {
-  font-family: 'Visby CF';
-  src: url('/fonts/VisbyCF-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Visby CF';
-  src: url('/fonts/VisbyCF-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Visby CF';
-  src: url('/fonts/VisbyCF-Heavy.woff2') format('woff2');
-  font-weight: 900;
-  font-style: normal;
-}
-
 :root {
   --brand-blue: #00308f;
   --brand-orange: #ff9800;

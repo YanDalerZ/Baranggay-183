@@ -1,30 +1,51 @@
 import 'dotenv/config';
-import express from 'express';
-import type { Request, Response, Application } from 'express';
-import path from 'path';
+import express, { Application } from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import pool from './database/db.ts';
+import * as AllRoutes from './routes/AllRoutes.ts';
 
 const app: Application = express();
-const PORT: number = Number(process.env.PORT) || 3000;
-//asdas
+
+const PORT = process.env.PORT || 3000;
+
+const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+].filter(Boolean) as string[];
+
+const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        console.error(`CORS Blocked: ${origin}`);
+        return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+app.use(cookieParser());
 
-// 1. Point Express to your React build folder (usually 'dist' for Vite)
-app.use(express.static(path.join(__dirname, '../frontend/dist')));
+app.use('/api/login', AllRoutes.LoginRoute);
+app.use('/api/user', AllRoutes.UserRoute);
 
-// 2. Route the root to serve the React index.html
-app.get('/', (req: Request, res: Response): void => {
-    // If you just want to send JSON (API style):
-    /*
-    res.status(200).json({
-        message: "Backend is active",
-        page: "UserMainPage"
-    });
-    */
 
-    // If you want to serve the actual Frontend app:
-    res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
+app.get("/", (req, res) => {
+    res.send("Backend is running!");
 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 [server]: Server is running at http://localhost:${PORT}`);
+app.listen(PORT, async () => {
+
+    try {
+        const conn = await pool.getConnection();
+        console.log('✅ MySQL Pool Ready and Connected to Aiven.');
+        conn.release();
+    } catch (err) {
+        console.error('❌ Connection failed. Check Aiven IP Whitelist or .env credentials.');
+        console.error(err);
+    }
 });
