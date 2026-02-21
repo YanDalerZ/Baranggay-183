@@ -10,6 +10,9 @@ import UserBenefits from './UserPages/UserBenefits';
 import UserAlert from './UserPages/UserAlerts';
 import UserEvents from './UserPages/UserEvents';
 import UserHistory from './UserPages/UserHistory';
+import UserApply from './UserPages/UserApplyServices';
+import UserAppointments from './UserPages/UserAppointments';
+import UserGuide from './UserPages/UserServiceGuide';
 
 const App: React.FC = () => {
   return (
@@ -26,7 +29,9 @@ const App: React.FC = () => {
         <Route path="/UserAlerts" element={<Navbar> <UserAlert /></Navbar>} />
         <Route path="/UserEvents" element={<Navbar> <UserEvents /></Navbar>} />
         <Route path="/UserHistory" element={<Navbar> <UserHistory /></Navbar>} />
-
+        <Route path="/UserApply" element={<Navbar> <UserApply /></Navbar>} />
+        <Route path="/UserAppointments" element={<Navbar> <UserAppointments /></Navbar>} />
+        <Route path="/UserGuide" element={<Navbar> <UserGuide /></Navbar>} />
         <Route path="*" element={
           <div style={{ padding: '50px', textAlign: 'center' }}>
             <h2>404: Page Not Found</h2>

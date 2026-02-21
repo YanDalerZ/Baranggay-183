@@ -29,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/UserAlerts' },
     { name: 'Events Calendar', shortName: 'Events', icon: Bell, path: '/UserEvents' },
     { name: 'History', shortName: 'History', icon: History, path: '/UserHistory' },
-    { name: 'Appointment', shortName: 'Appointment', icon: History, path: '/UserAppointment' },
+    { name: 'Appointment', shortName: 'Appointment', icon: History, path: '/UserAppointments' },
     { name: 'Services Guide', shortName: 'Guide', icon: Bell, path: '/UserGuide' },
 
   ];
