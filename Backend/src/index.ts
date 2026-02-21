@@ -2,18 +2,23 @@ import 'dotenv/config';
 import express, { Application } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from './database/db.js';
 import * as AllRoutes from './routes/AllRoutes.js';
 
 const app: Application = express();
 
-const PORT = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = Number(process.env.PORT) || 3000;
+
 
 const allowedOrigins = [
     "http://localhost:3000",
     "http://localhost:5173",
-    "https://baranggay-183.onrender.com/",
-
+    "https://baranggay-183.onrender.com",
 ].filter(Boolean) as string[];
 
 const corsOptions: cors.CorsOptions = {
@@ -21,7 +26,6 @@ const corsOptions: cors.CorsOptions = {
         if (!origin || allowedOrigins.includes(origin)) {
             return callback(null, true);
         }
-        console.error(`CORS Blocked: ${origin}`);
         return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
@@ -35,19 +39,20 @@ app.use(cookieParser());
 app.use('/api/login', AllRoutes.LoginRoute);
 app.use('/api/user', AllRoutes.UserRoute);
 
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendPath));
 
-app.get("/", (req, res) => {
-    res.send("Backend is running!");
+app.get("*", (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
-app.listen(PORT, async () => {
-
+app.listen(PORT, '0.0.0.0', async () => {
     try {
         const conn = await pool.getConnection();
-        console.log('✅ MySQL Pool Ready and Connected to Aiven.');
+        console.log(`✅ Server running on port ${PORT} & Connected to Aiven.`);
         conn.release();
     } catch (err) {
-        console.error('❌ Connection failed. Check Aiven IP Whitelist or .env credentials.');
+        console.error('❌ Database connection failed.');
         console.error(err);
     }
 });
