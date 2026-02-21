@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { 
-  User, FileText, Gift, Box, Bell, Calendar, BookOpen, ClipboardList,
-  LogOut, Sun, Type, Volume2, Menu, ChevronLeft 
+import React, { useState, useEffect } from 'react';
+import {
+  User, FileText, Gift, History, Bell,
+  LogOut, Sun, Type, Volume2, Menu, X,
+  Newspaper
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -22,41 +23,26 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
   }, []);
 
   const menuItems = [
-    { name: 'My Profile', shortName: 'Profile', icon: User, path: '/UserProfile' },
-    { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/UserApplyServices' },
-    { name: 'My Benefits', shortName: 'Benefits', icon: Gift, path: '/Benefits' },
-    { name: 'Claims History', shortName: 'History', icon: Box, path: '/History' },
-    { name: 'Alerts & Notifications', shortName: 'Alerts', icon: Bell, path: '/Alerts' },
-    { name: 'Events Calendar', shortName: 'Events', icon: Calendar, path: '/Events' },
-    { name: 'Services Guide', shortName: 'Guide', icon: BookOpen, path: '/UserServiceGuide' },
-    { name: 'Appointments', shortName: 'Appts', icon: ClipboardList, path: '/UserAppointments' },
+    { name: 'Home', shortName: 'Home', icon: Newspaper, path: '/UserMainPage' },
+    { name: 'Apply for Services', shortName: 'Apply', icon: FileText, path: '/UserApply' },
+    { name: 'My Benefits', shortName: 'Benefits', icon: Gift, path: '/UserBenefits' },
+    { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/UserAlerts' },
+    { name: 'Events Calendar', shortName: 'Events', icon: Bell, path: '/UserEvents' },
+    { name: 'History', shortName: 'History', icon: History, path: '/UserHistory' },
+    { name: 'Appointment', shortName: 'Appointment', icon: History, path: '/UserAppointment' },
+    { name: 'Services Guide', shortName: 'Guide', icon: Bell, path: '/UserGuide' },
+
   ];
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-[#f1f5f9] font-sans">
-      
-      {/* DESKTOP SIDEBAR */}
-      <aside 
-        className={`hidden md:flex ${
-          isCollapsed ? 'w-20' : 'w-64'
-        } bg-white border-r border-gray-200 sticky top-0 h-screen flex-col transition-all duration-300 ease-in-out z-20`}
-      >
-        <div className="p-6 flex items-center justify-between relative">
-          {!isCollapsed ? (
-            <div className="flex items-center gap-3 overflow-hidden whitespace-nowrap">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex-shrink-0 flex items-center justify-center text-white font-black text-lg">B183</div>
-              <div>
-                <h1 className="font-bold text-sm tracking-tight text-gray-900">Barangay 183</h1>
-                <p className="text-[10px] text-gray-400 font-bold uppercase">Resident Portal</p>
-              </div>
-            </div>
-          ) : (
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black mx-auto">B183</div>
-          )}
-          
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 absolute -right-3 top-12 bg-white border border-gray-200 shadow-sm z-30"
+    <div className="min-h-screen bg-white font-sans text-black">
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${scrolled ? 'bg-white py-2 shadow-sm' : 'bg-white py-4'
+        }`}>
+        <div className=" mx-auto px-4 md:px-8 flex items-center justify-between">
+
+          <div
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => navigate('/UserMainPage')}
           >
             <img className="size-10" src="/Logo.png"></img>
             <div className="hidden md:block">
@@ -65,10 +51,8 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
             </div>
           </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1 mt-4 overflow-y-auto">
-          {menuItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
+          <div className="hidden lg:flex items-center gap-5">
+            {menuItems.slice(0, 10).map((item) => (
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
@@ -77,33 +61,14 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
               >
                 {item.name}
               </button>
-            );
-          })}
-        </nav>
-        
-        <div className="p-4 border-t">
-          <button onClick={() => navigate('/Login')} className="w-full flex items-center gap-3 px-3 py-3 text-gray-500 font-bold hover:text-red-500 rounded-xl transition-colors">
-            <LogOut size={20} />
-            {!isCollapsed && <span>Sign Out</span>}
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden pb-20 md:pb-0">
-        
-        {/* TOP NAVBAR */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 md:px-8 shrink-0">
-          <div className="flex items-center gap-3 md:hidden">
-             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-black text-xs">B183</div>
-             <h2 className="font-bold text-gray-800 text-base">{pageTitle}</h2>
+            ))}
           </div>
 
-          <div className="flex items-center gap-3 md:gap-5">
-            <div className="hidden lg:flex items-center gap-4 text-[13px] font-bold text-gray-500">
-              <button className="hover:text-blue-600 flex items-center gap-1.5"><Sun size={16} /> High Contrast</button>
-              <button className="hover:text-blue-600 flex items-center gap-1.5"><Type size={16} /> 100%</button>
-              <button className="text-green-600 bg-green-50 px-2 py-1 rounded-md flex items-center gap-1.5"><Volume2 size={16} /> SR Enabled</button>
+          <div className="flex items-center gap-5">
+            <div className="hidden md:flex items-center gap-4 text-gray-400 mr-4">
+              <button className="hover:text-[#00308F]"><Sun size={18} strokeWidth={1.5} /></button>
+              <button className="hover:text-[#00308F]"><Type size={18} strokeWidth={1.5} /></button>
+              <button className="hover:text-[#00308F] transition-colors"><Volume2 size={18} strokeWidth={1.5} /></button>
             </div>
 
             {/* Notification bell hover and badge color changed to Orange */}
@@ -157,36 +122,37 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
         {children}
       </main>
 
-        {/* MOBILE BOTTOM NAVIGATION (Modified to show all items) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-          <div className="flex overflow-x-auto no-scrollbar items-center px-4 py-3 gap-6">
-            {menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => navigate(item.path)}
-                  className={`flex flex-col items-center gap-1 min-w-[60px] transition-all shrink-0 ${
-                    isActive ? 'text-blue-600' : 'text-gray-400'
-                  }`}
-                >
-                  <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
-                  <span className="text-[10px] font-bold uppercase whitespace-nowrap">{item.shortName}</span>
-                  {isActive && <div className="w-1 h-1 bg-blue-600 rounded-full" />}
-                </button>
-              );
-            })}
-            {/* Exit Button at the end of scroll */}
-            <button 
-              onClick={() => navigate('/Login')} 
-              className="flex flex-col items-center gap-1 min-w-[60px] text-gray-400 shrink-0"
-            >
-              <LogOut size={22} />
-              <span className="text-[10px] font-bold uppercase">Exit</span>
-            </button>
-          </div>
-        </nav>
-      </div>
+      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-50 px-2 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex justify-around items-center">
+          {menuItems.slice(0, 4).map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.path)}
+                className="flex flex-col items-center gap-1 min-w-[64px]"
+              >
+                {/* Mobile active state background changed to Royal Blue tint and text to Royal Blue */}
+                <div className={`p-1.5 rounded-lg transition-colors ${isActive ? 'bg-[#00308F]/10 text-[#00308F]' : 'text-gray-400'}`}>
+                  <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+                </div>
+                <span className={`text-[9px] font-bold uppercase tracking-tighter ${isActive ? 'text-[#00308F]' : 'text-gray-400'}`}>
+                  {item.shortName}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => navigate('/Login')}
+            className="flex flex-col items-center gap-1 min-w-[64px] text-gray-400"
+          >
+            <div className="p-1.5">
+              <LogOut size={20} strokeWidth={1.5} />
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-tighter">Exit</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };
