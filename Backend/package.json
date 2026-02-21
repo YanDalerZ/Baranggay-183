@@ -4,8 +4,9 @@
   "type": "module",
   "main": "index.js",
  "scripts": {
+
   "dev": "tsx watch src/index.ts",
-  "build": "rimraf dist && tsc", 
+  "build": "node -e \"const fs=require('fs'); if(fs.existsSync('dist')) fs.rmSync('dist', {recursive:true, force:true})\" && tsc", 
   "start": "node dist/src/server.js",
   "go": "npm install && concurrently \"npm run dev\" \"cd ../Frontend && npm run dev\"",
   "render-build": "npm install && npm run build && cd ../Frontend && npm install && npm run build"
