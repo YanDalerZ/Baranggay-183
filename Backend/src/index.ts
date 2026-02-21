@@ -39,7 +39,7 @@ app.use(cookieParser());
 app.use('/api/login', AllRoutes.LoginRoute);
 app.use('/api/user', AllRoutes.UserRoute);
 
-const frontendPath = path.join(__dirname, '../../frontend/dist');
+const frontendPath = path.join(__dirname, '../../Frontend/dist');
 app.use(express.static(frontendPath));
 app.get(/^((?!\/api).)*$/, (req, res) => {
     res.sendFile(path.resolve(frontendPath, "index.html"));
