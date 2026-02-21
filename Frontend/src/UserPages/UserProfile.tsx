@@ -1,32 +1,12 @@
 import React from 'react';
-import { User, Bell, ShieldAlert, ArrowRight, MapPin, Phone, Heart } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import { User, Gift, Bell, Calendar, AlertTriangle, ShieldAlert } from 'lucide-react';
 
-// --- Brand Constants based on uploaded palette ---
-const BRAND_BLUE = "text-[#00308F]";
-const BRAND_BG_BLUE = "bg-[#00308F]";
-const BRAND_ORANGE = "text-[#FF9800]";
-const BRAND_BG_ORANGE = "bg-[#FF9800]";
-
-const SectionHeader = ({ title, icon: Icon }: { title: string, icon: any }) => (
-  <div className="flex items-center justify-between border-b-2 border-[#00308F] pb-2 mb-6">
-    <div className="flex items-center gap-2">
-      <Icon size={18} strokeWidth={2} className="#00308F" />
-      <h2 className={`text-sm font-bold tracking-[0.15em] uppercase ${BRAND_BLUE}`}>{title}</h2>
-    </div>
-    <button className={`text-[10px] font-extrabold underline hover:no-underline uppercase tracking-tighter ${BRAND_BLUE}`}>
-      View All
-    </button>
-  </div>
-);
-
-const StatTile = ({ title, value, subtext, isPrimary = false }: any) => (
-  <div className="group cursor-pointer">
-    <div className={`border border-gray-200 p-6 transition-all duration-300 group-hover:border-[#00308F] h-full flex flex-col justify-between ${isPrimary ? 'bg-blue-50/30' : 'bg-white'}`}>
-      <div>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">{title}</p>
-        <p className={`text-4xl font-bold tracking-tighter ${isPrimary ? BRAND_BLUE : 'text-slate-800'}`}>{value}</p>
-      </div>
-      <p className="text-[10px] mt-4 text-gray-400 font-semibold uppercase tracking-tight">{subtext}</p>
+const StatCard = ({ title, value, subtext, icon: Icon, color = "text-gray-900" }: any) => (
+  <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+    <div className="flex items-center gap-2 text-gray-500 text-xs font-semibold uppercase mb-3">
+      <Icon size={16} />
+      <span>{title}</span>
     </div>
   </div>
 );
@@ -57,14 +37,19 @@ const NotificationItem = ({ type, title, message, date, isNew }: any) => {
 
 const UserProfile: React.FC = () => {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 md:py-12 bg-white min-h-screen font-['Visby_CF', 'Inter', sans-serif]">
-
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] uppercase">
-            <span className={BRAND_BLUE}>System Access</span>
-            <span className="text-gray-300">|</span>
-            <span className={BRAND_ORANGE}>PWD-001</span>
+    <Navbar pageTitle="My Profile">
+      <div className="space-y-4 md:space-y-6 max-w-7xl mx-auto">
+        
+        {/* Welcome Card */}
+        <section className="bg-white p-5 md:p-6 rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-4 md:gap-5 w-full">
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 border-2 border-white shadow-sm flex-shrink-0">
+              <User size={28} />
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-lg md:text-2xl font-black text-gray-900 truncate">Welcome, Maria!</h3>
+              <p className="text-xs md:text-sm text-gray-500 font-bold tracking-wide">PWD-001 • BOTH</p>
+            </div>
           </div>
           <h1 className={`text-5xl md:text-7xl font-heavy tracking-tighter italic ${BRAND_BLUE}`}>
             Hello, Maria.
@@ -125,22 +110,8 @@ const UserProfile: React.FC = () => {
               <DetailItem label="Emergency Contact" value="Juan Santos (Son)" icon={Heart} />
             </div>
 
-            <button className={`w-full mt-10 ${BRAND_BG_BLUE} text-white text-xs font-black uppercase tracking-[0.2em] py-4 hover:bg-blue-900 transition-all shadow-md active:scale-95`}>
-              Update Profile
-            </button>
-          </section>
-
-          {/* Support with Brand Colors */}
-          <div className={`border-2 border-[#FF9800] p-6 bg-orange-50/30`}>
-            <h4 className={`text-[11px] font-black uppercase tracking-widest mb-2 ${BRAND_ORANGE}`}>Need Assistance?</h4>
-            <p className="text-xs text-slate-600 mb-4 font-medium italic">Our support team is available 24/7 for community-related queries.</p>
-            <p className={`text-sm font-bold underline cursor-pointer hover:${BRAND_BLUE} transition-colors`}>
-              Contact Barangay Office
-            </p>
-          </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </Navbar>
   );
 };
 
