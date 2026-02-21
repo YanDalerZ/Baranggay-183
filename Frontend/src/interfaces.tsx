@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+export const API_BASE_URL = window.location.hostname === 'localhost'
+    ? 'http://localhost:3000'
+    : 'https://baranggay-183.onrender.com';
 export default API_BASE_URL;
 
 export interface SlideData {
