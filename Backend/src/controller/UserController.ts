@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import pool from '../database/db';
+import pool from '../database/db.js';
 
 class UserController {
     public async register(req: Request, res: Response): Promise<Response> {

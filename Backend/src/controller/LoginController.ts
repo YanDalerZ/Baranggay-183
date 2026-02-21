@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import pool from '../database/db';
+import pool from '../database/db.js';
 import { RowDataPacket } from 'mysql2';
 
 class LoginController {

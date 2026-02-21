@@ -2,8 +2,8 @@ import 'dotenv/config';
 import express, { Application } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import pool from './database/db.ts';
-import * as AllRoutes from './routes/AllRoutes.ts';
+import pool from './database/db.js';
+import * as AllRoutes from './routes/AllRoutes.js';
 
 const app: Application = express();
 
