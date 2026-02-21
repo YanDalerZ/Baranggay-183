@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../interfaces';
 
 const CreateUser: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -23,7 +24,7 @@ const CreateUser: React.FC = () => {
 
         try {
             // Adjust URL based on your index.ts routing
-            const response = await axios.post('http://localhost:3000/api/user', formData);
+            const response = await axios.post(`${API_BASE_URL}/api/user`, formData);
             setMessage({ type: 'success', text: response.data.message });
             setFormData({ firstname: '', lastname: '', email: '', password: '', contact_number: '' });
         } catch (err: any) {

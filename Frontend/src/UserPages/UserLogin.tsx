@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../interfaces';
 
 const UserLogin: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -13,15 +14,13 @@ const UserLogin: React.FC = () => {
     setError(null);
 
     try {
-      // API call to your backend
-      const response = await axios.post('http://localhost:3000/api/login', {
+      const response = await axios.post(`${API_BASE_URL}/api/login`, {
         email,
         password,
       }, {
         withCredentials: true
       });
 
-      // Save user data and token
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
