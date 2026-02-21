@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Navbar from '../components/Navbar';
 import { FileText, Send, ChevronDown } from 'lucide-react';
 
 type ApplicationType = 'RBI' | 'PWD' | 'Senior';
@@ -8,25 +7,25 @@ const UserApplyServices: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ApplicationType>('RBI');
 
   return (
-    <Navbar>
-      <div className="max-w-7xl mx-auto space-y-6 text-left pb-24 px-4 sm:px-6">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
         {/* Header Section */}
         <section>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Digital Application Portal</h1>
+           <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+            Services Application Portal</h2>
           <p className="text-sm text-gray-500 mt-1 font-medium">
             Apply for barangay services online. All forms are WCAG 2.1 compliant and optimized for accessibility.
           </p>
         </section>
 
         {/* Form Selection Tabs */}
-        <div className="flex flex-wrap bg-gray-200/60 p-1 rounded-xl w-fit gap-1">
+        <div className="flex flex-wrap bg-gray-200/60 p-1  w-fit gap-1">
           <TabButton active={activeTab === 'RBI'} onClick={() => setActiveTab('RBI')} label="RBI Registration" />
           <TabButton active={activeTab === 'PWD'} onClick={() => setActiveTab('PWD')} label="PWD ID Application" />
           <TabButton active={activeTab === 'Senior'} onClick={() => setActiveTab('Senior')} label="Senior Citizen ID" />
         </div>
 
         {/* Main Form Container */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-8 md:p-12">
             {activeTab === 'RBI' && <RBIRegistrationForm />}
             {activeTab === 'PWD' && <PWDApplicationForm />}
@@ -34,10 +33,10 @@ const UserApplyServices: React.FC = () => {
 
             {/* Form Actions */}
             <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-12 mt-12 border-t border-gray-100">
-              <button className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all">
+              <button className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-200  hover:bg-gray-50 transition-all">
                 Save as Draft
               </button>
-              <button className="px-6 py-2.5 text-sm font-bold text-white bg-[#05051e] rounded-xl hover:opacity-90 transition-all flex items-center gap-2">
+              <button className="px-6 py-2.5 text-sm font-bold text-white bg-[#05051e]  hover:opacity-90 transition-all flex items-center gap-2">
                 <Send size={16} /> Submit Application
               </button>
             </div>
@@ -45,7 +44,7 @@ const UserApplyServices: React.FC = () => {
         </div>
 
         {/* Help Section */}
-        <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8">
+        <section className="bg-white  border border-gray-100 shadow-sm p-8">
           <h4 className="font-bold text-gray-900 mb-6">Need Help?</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -68,7 +67,6 @@ const UserApplyServices: React.FC = () => {
           </div>
         </section>
       </div>
-    </Navbar>
   );
 };
 
@@ -115,7 +113,7 @@ const RBIRegistrationForm = () => (
 
     <FormSection title="Emergency Information">
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-5 bg-gray-200 rounded-full relative"><div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full"></div></div>
+        <div className="w-10 h-5 bg-gray-200  relative"><div className="absolute left-1 top-1 w-3 h-3 bg-white "></div></div>
         <span className="text-sm font-medium text-gray-700">Located in Flood-Prone Area?</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -169,7 +167,7 @@ const PWDApplicationForm = () => (
 
     <FormSection title="Consent">
       <div className="flex gap-3">
-        <input type="checkbox" className="mt-1 w-4 h-4 rounded border-gray-300" />
+        <input type="checkbox" className="mt-1 w-4 h-4  border-gray-300" />
         <p className="text-sm text-gray-700 font-medium leading-tight">
           I consent to the collection and processing of my personal data in accordance with the Data Privacy Act of 2012 * <br />
           <span className="text-blue-600 text-xs font-bold cursor-pointer hover:underline">Read the Data Privacy Policy</span>
@@ -218,7 +216,7 @@ const SeniorCitizenForm = () => (
 // --- REUSABLE UI ATOMS ---
 
 const TabButton = ({ active, onClick, label }: { active: boolean, onClick: () => void, label: string }) => (
-  <button onClick={onClick} className={`flex items-center gap-2 px-8 py-2.5 rounded-lg text-sm font-bold transition-all ${active ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
+  <button onClick={onClick} className={`flex items-center gap-2 px-8 py-2.5  text-sm font-bold transition-all ${active ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
     <FileText size={16} /> {label}
   </button>
 );
@@ -233,7 +231,7 @@ const FormSection = ({ title, children }: { title: string, children: React.React
 const Input = ({ label, placeholder, defaultValue }: any) => (
   <div className="space-y-1.5 flex-1">
     <label className="text-[13px] font-bold text-gray-800">{label}</label>
-    <input type="text" placeholder={placeholder} defaultValue={defaultValue} className="w-full p-2.5 bg-[#f3f4f6] border-none rounded-lg text-sm text-gray-600 focus:ring-1 focus:ring-blue-500 outline-none" />
+    <input type="text" placeholder={placeholder} defaultValue={defaultValue} className="w-full p-2.5 bg-[#f3f4f6] border-none  text-sm text-gray-600 focus:ring-1 focus:ring-blue-500 outline-none" />
   </div>
 );
 
@@ -241,7 +239,7 @@ const Select = ({ label, options }: any) => (
   <div className="space-y-1.5 flex-1">
     <label className="text-[13px] font-bold text-gray-800">{label}</label>
     <div className="relative">
-      <select className="w-full p-2.5 bg-[#f3f4f6] border-none rounded-lg text-sm text-gray-500 appearance-none outline-none">
+      <select className="w-full p-2.5 bg-[#f3f4f6] border-none  text-sm text-gray-500 appearance-none outline-none">
         <option>Select {label.toLowerCase().replace('*', '').trim()}</option>
         {options.map((opt: string) => <option key={opt}>{opt}</option>)}
       </select>
@@ -253,15 +251,15 @@ const Select = ({ label, options }: any) => (
 const TextArea = ({ label, placeholder }: any) => (
   <div className="space-y-1.5">
     <label className="text-[13px] font-bold text-gray-800">{label}</label>
-    <textarea rows={3} placeholder={placeholder} className="w-full p-3 bg-[#f3f4f6] border-none rounded-lg text-sm text-gray-600 outline-none" />
+    <textarea rows={3} placeholder={placeholder} className="w-full p-3 bg-[#f3f4f6] border-none  text-sm text-gray-600 outline-none" />
   </div>
 );
 
 const FileUpload = ({ label, sub }: any) => (
   <div className="space-y-1.5">
     <label className="text-[13px] font-bold text-gray-800">{label}</label>
-    <div className="w-full p-2 bg-[#f3f4f6] rounded-lg border-none flex items-center">
-      <button className="bg-white px-3 py-1 text-xs font-bold border border-gray-200 rounded shadow-sm mr-3">Choose File</button>
+    <div className="w-full p-2 bg-[#f3f4f6]  border-none flex items-center">
+      <button className="bg-white px-3 py-1 text-xs font-bold border border-gray-200  shadow-sm mr-3">Choose File</button>
       <span className="text-xs text-gray-400">No file chosen</span>
     </div>
     <p className="text-[11px] text-gray-400 italic">{sub}</p>
@@ -270,7 +268,7 @@ const FileUpload = ({ label, sub }: any) => (
 
 const Checkbox = ({ label }: { label: string }) => (
   <div className="flex items-center gap-3">
-    <input type="checkbox" className="w-4 h-4 border-gray-300 rounded" />
+    <input type="checkbox" className="w-4 h-4 border-gray-300 " />
     <span className="text-sm font-medium text-gray-700">{label}</span>
   </div>
 );
