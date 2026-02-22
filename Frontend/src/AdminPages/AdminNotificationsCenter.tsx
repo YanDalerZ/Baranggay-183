@@ -45,7 +45,7 @@ const AdminNotificationCenter = () => {
 
                     {/* Left Column: Send Notification Form */}
                     <div className="lg:col-span-2 space-y-6">
-                        <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <section className="bg-white  border border-gray-100 shadow-sm p-6">
                             <header className="mb-6">
                                 <h2 className="text-base font-bold text-gray-900">Send Notification</h2>
                                 <p className="text-sm text-gray-500">Multi-channel notification gateway</p>
@@ -54,7 +54,7 @@ const AdminNotificationCenter = () => {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Recipient Group</label>
-                                    <select className="w-full bg-gray-50 border-gray-200 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none">
+                                    <select className="w-full bg-gray-50 border-gray-200  py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none">
                                         <option>Select recipient group</option>
                                         <option>All Residents</option>
                                         <option>Senior Citizens</option>
@@ -68,7 +68,7 @@ const AdminNotificationCenter = () => {
                                     <input
                                         type="text"
                                         placeholder="Enter notification title"
-                                        className="w-full bg-gray-50 border-gray-200 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                        className="w-full bg-gray-50 border-gray-200  py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                     />
                                 </div>
 
@@ -77,7 +77,7 @@ const AdminNotificationCenter = () => {
                                     <textarea
                                         rows={4}
                                         placeholder="Enter your message"
-                                        className="w-full bg-gray-50 border-gray-200 rounded-lg py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none resize-none"
+                                        className="w-full bg-gray-50 border-gray-200  py-2.5 px-4 text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none resize-none"
                                     ></textarea>
                                 </div>
 
@@ -86,14 +86,14 @@ const AdminNotificationCenter = () => {
                                     <div className="flex flex-wrap gap-6">
                                         {['SMS', 'Email', 'Messenger', 'Web Notification'].map((channel) => (
                                             <label key={channel} className="flex items-center gap-2 cursor-pointer group">
-                                                <input type="checkbox" className="w-4 h-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500" />
+                                                <input type="checkbox" className="w-4 h-4  text-blue-600 border-gray-300 focus:ring-blue-500" />
                                                 <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">{channel}</span>
                                             </label>
                                         ))}
                                     </div>
                                 </div>
 
-                                <button className="w-full bg-[#030712] text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all mt-6 shadow-md active:scale-[0.98]">
+                                <button className="w-full bg-[#030712] text-white py-3  font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-all mt-6 shadow-md active:scale-[0.98]">
                                     <Send size={18} /> Send Notification
                                 </button>
                             </div>
@@ -103,7 +103,7 @@ const AdminNotificationCenter = () => {
                     {/* Right Column: Stats & Performance */}
                     <div className="space-y-6">
                         {/* Delivery Stats Card */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <div className="bg-white  border border-gray-100 shadow-sm p-6">
                             <h3 className="text-sm font-bold text-gray-900 mb-6 flex items-center gap-2">
                                 <BarChart3 size={16} className="text-blue-500" /> Delivery Stats
                             </h3>
@@ -124,7 +124,7 @@ const AdminNotificationCenter = () => {
                         </div>
 
                         {/* Channel Performance Card */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+                        <div className="bg-white  border border-gray-100 shadow-sm p-6">
                             <h3 className="text-sm font-bold text-gray-900 mb-6">Channel Performance</h3>
                             <div className="space-y-4">
                                 {channelPerformance.map((channel) => (
@@ -142,7 +142,7 @@ const AdminNotificationCenter = () => {
                 </div>
 
                 {/* Bottom Section: Notification History */}
-                <section className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <section className="bg-white  border border-gray-100 shadow-sm overflow-hidden">
                     <header className="p-6 border-b border-gray-50 flex items-center justify-between">
                         <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                             <History size={18} className="text-gray-400" /> Notification History
@@ -155,7 +155,7 @@ const AdminNotificationCenter = () => {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <h4 className="text-sm font-bold text-gray-900">{item.title}</h4>
-                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded uppercase">Sent</span>
+                                            <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold  uppercase">Sent</span>
                                         </div>
                                         <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
                                         <div className="flex items-center gap-3 pt-1">
@@ -166,7 +166,7 @@ const AdminNotificationCenter = () => {
                                     </div>
                                     <div className="flex gap-1.5 self-start md:self-center">
                                         {item.channels.map(c => (
-                                            <span key={c} className="px-2 py-1 bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold rounded-md">
+                                            <span key={c} className="px-2 py-1 bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold ">
                                                 {c}
                                             </span>
                                         ))}

@@ -23,6 +23,7 @@ import AdminRBIManagement from './AdminPages/AdminRBIManagement';
 import AdminPWDSCProfiles from './AdminPages/AdminPWDSCProfiles';
 import AdminRiskMapping from './AdminPages/AdminRiskMapping';
 import AdminNotificationsCenter from './AdminPages/AdminNotificationsCenter';
+import AdminEmergencyAlerts from './AdminPages/AdminEmergencyAlerts';
 
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -81,6 +82,7 @@ const App: React.FC = () => {
         <Route path="/AdminPWDSCProfiles" element={<ProtectedRoute><AdminNavbar><AdminPWDSCProfiles /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminRiskMapping" element={<ProtectedRoute><AdminNavbar><AdminRiskMapping /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminNotificationsCenter" element={<ProtectedRoute><AdminNavbar><AdminNotificationsCenter /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminEmergencyAlerts" element={<ProtectedRoute><AdminNavbar><AdminEmergencyAlerts /></AdminNavbar></ProtectedRoute>} />
 
         {/* 404 Route */}
         <Route path="*" element={
