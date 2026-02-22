@@ -24,6 +24,7 @@ import AdminPWDSCProfiles from './AdminPages/AdminPWDSCProfiles';
 import AdminRiskMapping from './AdminPages/AdminRiskMapping';
 import AdminNotificationsCenter from './AdminPages/AdminNotificationsCenter';
 import AdminEmergencyAlerts from './AdminPages/AdminEmergencyAlerts';
+import AdminBenefitsReliefLedger from './AdminPages/AdminBenefitsReliefLedger';
 
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,6 +84,7 @@ const App: React.FC = () => {
         <Route path="/AdminRiskMapping" element={<ProtectedRoute><AdminNavbar><AdminRiskMapping /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminNotificationsCenter" element={<ProtectedRoute><AdminNavbar><AdminNotificationsCenter /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminEmergencyAlerts" element={<ProtectedRoute><AdminNavbar><AdminEmergencyAlerts /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminBenefitsReliefLedger" element={<ProtectedRoute><AdminNavbar><AdminBenefitsReliefLedger /></AdminNavbar></ProtectedRoute>} />
 
         {/* 404 Route */}
         <Route path="*" element={
