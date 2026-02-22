@@ -26,6 +26,7 @@ import AdminNotificationsCenter from './AdminPages/AdminNotificationsCenter';
 import AdminEmergencyAlerts from './AdminPages/AdminEmergencyAlerts';
 import AdminBenefitsReliefLedger from './AdminPages/AdminBenefitsReliefLedger';
 import AdminEventsCalendar from './AdminPages/AdminEventsCalendar';
+import AdminContentCMS from './AdminPages/AdminContentCMS';
 
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -87,6 +88,7 @@ const App: React.FC = () => {
         <Route path="/AdminEmergencyAlerts" element={<ProtectedRoute><AdminNavbar><AdminEmergencyAlerts /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminBenefitsReliefLedger" element={<ProtectedRoute><AdminNavbar><AdminBenefitsReliefLedger /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminEventsCalendar" element={<ProtectedRoute><AdminNavbar><AdminEventsCalendar /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminContentCMS" element={<ProtectedRoute><AdminNavbar><AdminContentCMS /></AdminNavbar></ProtectedRoute>} />
 
         {/* 404 Route */}
         <Route path="*" element={
