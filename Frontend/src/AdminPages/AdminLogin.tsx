@@ -28,8 +28,8 @@ const UserLogin: React.FC = () => {
       console.log('Login Successful:', user);
 
 
-      window.location.href = '/UserMainPage';
-
+      window.location.href = '/AdminDashboard';
+    
     } catch (err: any) {
       console.error('Login Error:', err);
       // Update the error state to show feedback to the user

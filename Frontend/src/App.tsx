@@ -17,6 +17,8 @@ import UserGuide from './UserPages/UserServiceGuide';
 import UserCRUD from './UserPages/UserCRUD';
 
 import AdminLogin from './AdminPages/AdminLogin';
+import AdminDashboard from './AdminPages/AdminDashboard';
+import AdminNavbar from './components/AdminNavbar';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -67,6 +69,8 @@ const App: React.FC = () => {
         <Route path="/UserAppointments" element={<ProtectedRoute><Navbar><UserAppointments /></Navbar></ProtectedRoute>} />
 
         <Route path="/UserGuide" element={<ProtectedRoute><Navbar><UserGuide /></Navbar></ProtectedRoute>} />
+
+        <Route path="/AdminDashboard" element={<ProtectedRoute><AdminNavbar><AdminDashboard /></AdminNavbar></ProtectedRoute>} />
 
         {/* 404 Route */}
         <Route path="*" element={
