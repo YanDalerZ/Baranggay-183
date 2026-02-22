@@ -16,6 +16,8 @@ import UserAppointments from './UserPages/UserAppointments';
 import UserGuide from './UserPages/UserServiceGuide';
 import UserCRUD from './UserPages/UserCRUD';
 
+import AdminLogin from './AdminPages/AdminLogin';
+
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? <Navigate to="/UserMainPage" replace /> : <>{children}</>;
@@ -32,6 +34,15 @@ const App: React.FC = () => {
           element={
             <PublicRoute>
               <UserLogin />
+            </PublicRoute>
+          }
+        />
+
+                <Route
+          path="/AdminLogin"
+          element={
+            <PublicRoute>
+              <AdminLogin />
             </PublicRoute>
           }
         />
