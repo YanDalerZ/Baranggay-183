@@ -37,13 +37,13 @@ const AdminRBIManagement = () => {
         <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
           RBI Management
         </h2>
-        <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg active:scale-95">
+        <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-black text-white px-6 py-3  font-bold hover:bg-gray-800 transition shadow-lg active:scale-95">
           <Plus size={20} /> Add Resident
         </button>
       </header>
 
       <main>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden">
           
           {/* Table Header Section */}
           <div className="p-4 sm:p-8">
@@ -58,7 +58,7 @@ const AdminRBIManagement = () => {
               <input 
                 type="text" 
                 placeholder="Search by name, ID, or address..." 
-                className="w-full bg-gray-50 border-none rounded-xl py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition"
+                className="w-full bg-gray-50 border-none  py-4 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-100 outline-none transition"
               />
             </div>
 
@@ -84,7 +84,7 @@ const AdminRBIManagement = () => {
                         <div className="text-[10px] text-gray-400 font-mono sm:hidden">{person.id}</div>
                       </td>
                       <td className="py-5">
-                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap ${getTypeStyles(person.type)}`}>
+                        <span className={`px-3 py-1  text-[11px] font-bold whitespace-nowrap ${getTypeStyles(person.type)}`}>
                           {person.type}
                         </span>
                       </td>
@@ -96,7 +96,7 @@ const AdminRBIManagement = () => {
                       </td>
                       <td className="py-5 text-center">
                         {person.isFloodProne ? (
-                          <span className="inline-flex items-center gap-1 bg-red-600 text-white px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-tighter">
+                          <span className="inline-flex items-center gap-1 bg-red-600 text-white px-2 py-1  text-[9px] font-black uppercase tracking-tighter">
                             <AlertCircle size={10} /> Flood
                           </span>
                         ) : (
@@ -105,9 +105,9 @@ const AdminRBIManagement = () => {
                       </td>
                       <td className="py-5 pr-4 sm:pr-0">
                         <div className="flex justify-end gap-2 md:gap-4 text-gray-400">
-                          <button className="p-2 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition"><Eye size={18} /></button>
-                          <button className="p-2 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition"><Edit3 size={18} /></button>
-                          <button className="p-2 hover:bg-green-50 hover:text-green-600 rounded-lg transition"><MapPin size={18} /></button>
+                          <button className="p-2 hover:bg-blue-50 hover:text-blue-600  transition"><Eye size={18} /></button>
+                          <button className="p-2 hover:bg-gray-100 hover:text-gray-900  transition"><Edit3 size={18} /></button>
+                          <button className="p-2 hover:bg-green-50 hover:text-green-600  transition"><MapPin size={18} /></button>
                         </div>
                       </td>
                     </tr>
@@ -120,8 +120,8 @@ const AdminRBIManagement = () => {
             <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-gray-400 font-medium">
               <p>Showing {residents.length} residents</p>
               <div className="flex gap-2">
-                <button className="px-4 py-2 border border-gray-100 rounded-lg hover:bg-gray-50">Prev</button>
-                <button className="px-4 py-2 border border-gray-100 rounded-lg hover:bg-gray-50">Next</button>
+                <button className="px-4 py-2 border border-gray-100  hover:bg-gray-50">Prev</button>
+                <button className="px-4 py-2 border border-gray-100  hover:bg-gray-50">Next</button>
               </div>
             </div>
           </div>
