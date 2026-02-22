@@ -41,9 +41,10 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
     { name: 'PWD & SC Profiles', shortName: 'Profiles', icon: Users, path: '/AdminPWDSCProfiles' },
     { name: 'Applications', shortName: 'Applications', icon: ClipboardList, path: '/AdminApplicationsManagement' },
     { name: 'Risk Mapping', shortName: 'Map', icon: Map, path: '/AdminRiskMapping' },
-    { name: 'Emergencies', shortName: 'Alerts', icon: Megaphone, path: '/AdminEmergencyAlerts' },
-    { name: 'Ledger', shortName: 'Ledger', icon: ClipboardList, path: '/AdminBenefitsReliefLedger' },
-    { name: 'Calendar', shortName: 'Events', icon: Calendar, path: '/AdminEventsCalendar' },
+    { name: 'Notifications Center', shortName: 'Notify', icon: Users, path: '/AdminNotificationsCenter'},
+    { name: 'Alerts', shortName: 'Alerts', icon: Megaphone, path: '/AdminEmergencyAlerts' },
+    { name: 'Benefits & Relief', shortName: 'Ledger', icon: ClipboardList, path: '/AdminBenefitsReliefLedger' },
+    { name: 'Events', shortName: 'Events', icon: Calendar, path: '/AdminEventsCalendar' },
     { name: 'Content CMS', shortName: 'CMS', icon: Settings, path: '/AdminContentCMS' },
   ];
 
