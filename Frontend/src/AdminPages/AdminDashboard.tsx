@@ -30,15 +30,15 @@ const StatCard = ({ title, value, subtext, icon: Icon, iconColor = "text-gray-40
 
 const AdminDashboard = () => {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
       {/* Top Header */}
-      <section>
+      <header>
            <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
             Admin Dashboard</h2>
-        <p className="text-sm text-gray-500 mt-1 font-medium">
+        <p className="text-sm md:text-base text-gray-500 font-medium">
             Management overview and system alerts for Barangay 183.
         </p>        
-      </section>
+      </header>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
