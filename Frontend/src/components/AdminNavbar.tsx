@@ -1,17 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  User, FileText, Bell, LogOut, Sun, Type, Volume2, Menu, X,
-  Home, 
-  Users,         
-  Gift, 
-  UserCheck,    
-  MapPin,             
-  AlertTriangle,      
-  Calendar,          
-  ClipboardCheck
-
+  User as UserIcon, FileText, Bell, LogOut, Sun, Menu, X,
+  Home, Users, Gift, UserCheck, MapPin, AlertTriangle,
+  Calendar, ClipboardCheck, MoreHorizontal
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth'; // Ensure the path is correct
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -19,7 +13,12 @@ interface NavbarProps {
 
 const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  // Get the user data from your useAuth hook
+  const { user, logout } = useAuth();
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -30,19 +29,17 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/Login');
+    // Using the logout function from your useAuth hook for consistency
+    logout();
   };
 
-  // --- UPDATED MENU ITEMS ---
   const menuItems = [
     { name: 'Dashboard', shortName: 'Dash', icon: Home, path: '/AdminDashboard' },
     { name: 'RBI Management', shortName: 'RBI', icon: Users, path: '/AdminRBIManagement' },
     { name: 'PWD & SC Profiles', shortName: 'Profiles', icon: UserCheck, path: '/AdminPWDSCProfiles' },
-    { name: 'Applications', shortName: 'Applications', icon: ClipboardCheck, path: '/AdminApplicationsManagement' },
+    { name: 'Applications', shortName: 'Apps', icon: ClipboardCheck, path: '/AdminApplicationsManagement' },
     { name: 'Risk Mapping', shortName: 'Map', icon: MapPin, path: '/AdminRiskMapping' },
-    { name: 'Notifications Center', shortName: 'Notify', icon: Bell, path: '/AdminNotificationsCenter'},
+    { name: 'Notifications Center', shortName: 'Notify', icon: Bell, path: '/AdminNotificationsCenter' },
     { name: 'Alerts', shortName: 'Alerts', icon: AlertTriangle, path: '/AdminEmergencyAlerts' },
     { name: 'Benefits & Relief', shortName: 'Ledger', icon: Gift, path: '/AdminBenefitsReliefLedger' },
     { name: 'Events', shortName: 'Events', icon: Calendar, path: '/AdminEventsCalendar' },
@@ -50,111 +47,150 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-sans text-black">
-      {/* Top Navbar */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 border-b ${
-        scrolled ? 'bg-white py-2 shadow-sm' : 'bg-white py-4'
-      }`}>
-        <div className="mx-auto px-4 md:px-8 flex items-center justify-between">
-          
-          {/* Logo Section */}
-          <div 
-            className="flex items-center gap-3 cursor-pointer group"
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col lg:flex-row font-sans text-black">
+
+      <aside
+        className={`hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 fixed h-screen z-[70] ${isCollapsed ? 'w-20' : 'w-72'
+          }`}
+      >
+        <div className="p-5 flex items-center justify-between border-b border-gray-50">
+          <div
+            className={`flex items-center gap-3 cursor-pointer transition-opacity duration-300 ${isCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}
             onClick={() => navigate('/AdminDashboard')}
           >
-            <img className="size-10" src="/Logo.png" alt="Logo" />
-            <div className="hidden md:block">
-              <h3 className="text-sm font-bold uppercase tracking-[0.2em] leading-none text-[#00308F]">Barangay 183</h3>
-              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-1">Administration Portal</p>
+            <img className="size-8 shrink-0" src="/Logo.png" alt="Logo" />
+            <div className="whitespace-nowrap">
+              <h3 className="text-[15px] font-bold uppercase tracking-wider text-[#00308F]">Barangay 183</h3>
+              <p className="text-[9px] text-gray-400 font-medium uppercase">Admin Portal</p>
             </div>
           </div>
 
-          {/* Desktop Menu - Adjusted font size for fit */}
-          <div className="hidden lg:flex items-center gap-4">
-            {menuItems.map((item) => (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 ${isCollapsed ? 'mx-auto' : ''}`}
+          >
+            {isCollapsed ? <Menu size={20} /> : <X size={20} />}
+          </button>
+        </div>
+
+        <nav className="flex-1 px-3 space-y-1.5 mt-6 overflow-y-auto no-scrollbar">
+          {menuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className={`text-[10px] font-bold uppercase tracking-wider hover:text-[#00308F] transition-colors whitespace-nowrap ${
-                  location.pathname === item.path ? 'border-b-2 border-[#00308F] pb-1 text-[#00308F]' : 'text-gray-500'
-                }`}
+                className={`w-full flex items-center gap-4 px-3 py-2.5 rounded-xl transition-all group ${isActive
+                  ? 'bg-[#00308F] text-white shadow-lg shadow-blue-100'
+                  : 'text-gray-500 hover:bg-gray-50 hover:text-[#00308F]'
+                  }`}
               >
-                {item.name}
+                <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} className="shrink-0" />
+                {!isCollapsed && (
+                  <span className="text-[11px] font-bold uppercase tracking-wide truncate animate-in fade-in slide-in-from-left-2">
+                    {item.name}
+                  </span>
+                )}
               </button>
-            ))}
+            );
+          })}
+        </nav>
+
+        {/* --- SIDEBAR FOOTER (USER DISPLAY) --- */}
+        <div className="p-4 bg-gray-50/50 border-t border-gray-100 space-y-2">
+          {!isCollapsed && (
+            <div className="flex items-center gap-3 px-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-[#00308F]">
+                <UserIcon size={16} />
+              </div>
+              <div className="flex flex-col overflow-hidden">
+                <span className="text-[10px] font-bold uppercase text-gray-700 truncate">
+                  {user ? `${user.firstname} ${user.lastname}` : 'Loading...'}
+                </span>
+                <span className="text-[8px] font-medium text-gray-400 uppercase tracking-tighter">
+                  Administrator
+                </span>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className={`w-full flex items-center gap-4 px-3 py-3 rounded-xl text-gray-400 hover:bg-red-50 hover:text-red-500 transition-all ${isCollapsed ? 'justify-center' : ''}`}
+          >
+            <LogOut size={20} />
+            {!isCollapsed && <span className="text-[11px] font-bold uppercase tracking-wide">Log Out</span>}
+          </button>
+        </div>
+      </aside>
+
+      {/* --- TOP NAVBAR (Mobile/Tablet Only) --- */}
+      <nav className={`lg:hidden fixed top-0 w-full z-50 transition-all duration-300 border-b bg-white ${scrolled ? 'py-2 shadow-md' : 'py-4'
+        }`}>
+        <div className="px-4 flex items-center justify-between">
+          <div className="flex items-center gap-3" onClick={() => navigate('/AdminDashboard')}>
+            <img className="size-8" src="/Logo.png" alt="Logo" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#00308F]">Barangay 183</h3>
           </div>
 
-          {/* Action Icons */}
-          <div className="flex items-center gap-5">
-            <div className="hidden md:flex items-center gap-4 text-gray-400 mr-2">
-              <button className="hover:text-[#00308F]"><Sun size={18} strokeWidth={1.5} /></button>
-              <button className="hover:text-[#00308F]"><Type size={18} strokeWidth={1.5} /></button>
-              <button className="hover:text-[#00308F] transition-colors"><Volume2 size={18} strokeWidth={1.5} /></button>
-            </div>
-
-            <button className="relative text-black hover:text-[#FF9800] transition-colors">
-              <Bell size={20} strokeWidth={1.5} />
-              <span className="absolute -top-1 -right-1 bg-[#FF9800] text-[8px] text-white w-4 h-4 rounded-full flex items-center justify-center font-bold underline-none">1</span>
-            </button>
-
-            <button
-              onClick={() => navigate('/AdminDashboard')}
-              className="flex items-center gap-2 group"
-            >
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-[#00308F] group-hover:text-white transition-all">
-                <User size={16} strokeWidth={1.5} />
-              </div>
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="hidden md:flex items-center gap-2 text-gray-500 hover:text-[#FF9800] transition-colors"
-              title="Sign Out"
-            >
-              <LogOut size={18} strokeWidth={1.5} />
-            </button>
-
-            <button className="lg:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <div className="flex items-center gap-4">
+            <button className="text-gray-400"><Sun size={18} /></button>
+            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-black">
               {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Mobile Fullscreen Menu */}
+      {/* --- MOBILE FULLSCREEN MENU --- */}
       {isMenuOpen && (
-        <div className="fixed inset-0 bg-white z-[60] pt-24 px-8 lg:hidden animate-in fade-in slide-in-from-top-4 duration-300 overflow-y-auto">
-          <div className="flex flex-col gap-6 pb-20">
+        <div className="fixed inset-0 bg-white z-[60] pt-24 px-6 lg:hidden animate-in fade-in slide-in-from-bottom-5 duration-300 overflow-y-auto">
+          {/* Mobile User Header */}
+          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl mb-6">
+            <div className="w-12 h-12 rounded-full bg-[#00308F] flex items-center justify-center text-white">
+              <UserIcon size={24} />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900">{user?.firstname} {user?.lastname}</h4>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">{user?.role}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 pb-32">
             {menuItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
-                className={`text-lg font-bold tracking-tight text-left border-b border-gray-50 pb-4 flex justify-between items-center ${
-                  location.pathname === item.path ? 'text-[#00308F]' : 'text-gray-800'
-                }`}
+                className={`flex flex-col items-center justify-center p-6 rounded-2xl border transition-all ${location.pathname === item.path
+                  ? 'bg-[#00308F] border-[#00308F] text-white'
+                  : 'bg-white border-gray-100 text-gray-600 shadow-sm'
+                  }`}
               >
-                {item.name}
-                <item.icon className={location.pathname === item.path ? 'text-[#00308F]' : 'text-gray-300'} size={20} />
+                <item.icon size={24} className="mb-2" />
+                <span className="text-[10px] font-bold uppercase text-center">{item.name}</span>
               </button>
             ))}
             <button
               onClick={handleLogout}
-              className="text-[#FF9800] font-black uppercase tracking-widest text-lg mt-4 flex items-center gap-2"
+              className="col-span-2 flex items-center justify-center gap-2 p-5 rounded-2xl bg-red-50 text-red-500 font-bold uppercase text-xs mt-4"
             >
-              <LogOut size={20} />
-              Sign Out
+              <LogOut size={20} /> Log Out
             </button>
           </div>
         </div>
       )}
 
-      {/* Main Content Area */}
-      <main className="pt-24 pb-32 md:pb-12 px-4 md:px-8 max-w-[1600px] mx-auto">
-        {children}
+      {/* --- MAIN CONTENT AREA --- */}
+      <main
+        className={`flex-1 transition-all duration-300 min-h-screen pt-24 lg:pt-10 pb-32 lg:pb-10 px-4 md:px-12 ${!isCollapsed ? 'lg:ml-72' : 'lg:ml-20'
+          }`}
+      >
+        <div className="max-w-[1400px] mx-auto">
+          {children}
+        </div>
       </main>
 
-      {/* Bottom Navigation (Mobile Only) */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-50 px-2 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      {/* --- BOTTOM NAVIGATION (Mobile/Tablet Only) --- */}
+      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-[70] px-2 py-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
         <div className="flex justify-around items-center">
           {menuItems.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.path;
@@ -162,25 +198,26 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-1 min-w-[64px]"
+                className="flex flex-col items-center gap-1.5 min-w-[60px]"
               >
-                <div className={`p-1.5 rounded-lg transition-colors ${isActive ? 'bg-[#00308F]/10 text-[#00308F]' : 'text-gray-400'}`}>
+                <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-[#00308F] text-white scale-110 shadow-md shadow-blue-200' : 'text-gray-400'}`}>
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
                 </div>
-                <span className={`text-[9px] font-bold uppercase tracking-tighter ${isActive ? 'text-[#00308F]' : 'text-gray-400'}`}>
+                <span className={`text-[8px] font-bold uppercase tracking-tighter ${isActive ? 'text-[#00308F]' : 'text-gray-400'}`}>
                   {item.shortName}
                 </span>
               </button>
             );
           })}
+
           <button
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 min-w-[64px] text-gray-400"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex flex-col items-center gap-1.5 min-w-[60px] text-gray-400"
           >
-            <div className="p-1.5">
-              <LogOut size={20} strokeWidth={1.5} />
+            <div className={`p-2 rounded-xl transition-all ${isMenuOpen ? 'bg-orange-500 text-white' : 'bg-gray-50'}`}>
+              {isMenuOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Exit</span>
+            <span className="text-[8px] font-bold uppercase tracking-tighter">{isMenuOpen ? 'Hide' : 'More'}</span>
           </button>
         </div>
       </nav>

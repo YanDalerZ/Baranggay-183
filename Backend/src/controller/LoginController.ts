@@ -75,9 +75,9 @@ class LoginController {
             }
 
             // 1. Check if the user is an admin (Optional: only if this is an Admin Login)
-            if (user.role !== 'admin') {
-                 return res.status(403).json({ message: "Access denied. Admins only." });
-             }
+            if (user.role !== 1) {
+                return res.status(403).json({ message: "Access denied. Admins only." });
+            }
 
             if (user.status !== 'active') {
                 return res.status(403).json({ message: "Account is not active." });
@@ -91,9 +91,9 @@ class LoginController {
 
             // 2. Add 'role' to the JWT token payload
             const token = jwt.sign(
-                { 
-                    id: user.id, 
-                    email: user.email, 
+                {
+                    id: user.id,
+                    email: user.email,
                     role: user.role // Now the token carries the "admin" or "user" status
                 },
                 process.env.JWT_SECRET || 'fallback_secret',

@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  Users, 
-  CreditCard, 
-  AlertTriangle, 
+import {
+  Users,
+  CreditCard,
+  AlertTriangle,
   Calendar
 } from 'lucide-react';
 
@@ -30,14 +30,14 @@ const StatCard = ({ title, value, subtext, icon: Icon, iconColor = "text-gray-40
 
 const AdminDashboard = () => {
   return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
       {/* Top Header */}
       <header>
-           <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-            Admin Dashboard</h2>
+        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+          Admin Dashboard</h2>
         <p className="text-sm md:text-base text-gray-500 font-medium">
-            Management overview and system alerts for Barangay 183.
-        </p>        
+          Management overview and system alerts for Barangay 183.
+        </p>
       </header>
 
       {/* Stats Grid */}
@@ -50,7 +50,7 @@ const AdminDashboard = () => {
 
       {/* Bottom Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* ID Expiration Alerts */}
         <section className="bg-white p-8  border border-gray-100 shadow-sm h-fit">
           <h2 className="text-xl font-bold text-gray-900 mb-6">ID Expiration Alerts</h2>

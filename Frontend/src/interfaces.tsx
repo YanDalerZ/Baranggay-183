@@ -30,3 +30,34 @@ export interface EventData {
     location: string;
     featured?: boolean;
 }
+
+
+
+export type UserType = 'Both' | 'SC' | 'PWD' | '';
+export interface EmergencyContact {
+    id?: number;
+    user_id?: number;
+    name: string;
+    relationship: string;
+    contact: string;
+}
+
+export interface User {
+    id?: number;
+    system_id?: string;
+    firstname: string;
+    lastname: string;
+    gender: string;
+    birthday: string;
+    contact_number: string;
+    email: string;
+    address: string;
+    type: UserType;
+    id_expiry_date: string;
+    disability: string;
+    is_flood_prone: boolean;
+    emergency_id?: number;
+    emergencyContact: EmergencyContact;
+    created_at?: string;
+    updated_at?: string;
+}

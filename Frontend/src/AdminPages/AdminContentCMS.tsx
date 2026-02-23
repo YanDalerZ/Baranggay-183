@@ -43,7 +43,7 @@ const AdminContentCMS = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
-      <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+      <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
         Content Management</h2>
 
 
@@ -232,8 +232,8 @@ const FormRow = ({ form }: { form: InterestForm }) => (
     </td>
     <td className="px-4 py-5 text-right">
       <button className={`px-4 py-1.5  text-xs font-black transition ${form.status === 'Pending' ? 'bg-black text-white hover:bg-gray-800' :
-          form.status === 'Pre-verified' ? 'bg-black text-white hover:bg-gray-800' :
-            'text-green-600 bg-green-50'
+        form.status === 'Pre-verified' ? 'bg-black text-white hover:bg-gray-800' :
+          'text-green-600 bg-green-50'
         }`}>
         {form.status === 'Pending' ? 'Pre-verify' :
           form.status === 'Pre-verified' ? 'Approve' :

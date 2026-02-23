@@ -28,12 +28,12 @@ const residentLocations: ResidentLocation[] = [
 const AdminRiskMapping = () => {
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
-                <div>
-                    <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-                        GIS Interactive Risk Mapping</h2>
-                    <p className="text-sm md:text-base text-gray-500 font-medium">
-                        Location mapping with social vulnerability layers</p>
-                </div>
+            <div>
+                <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                    GIS Interactive Risk Mapping</h2>
+                <p className="text-sm md:text-base text-gray-500 font-medium">
+                    Location mapping with social vulnerability layers</p>
+            </div>
             <main>
 
                 {/* Main Map and Summary Section */}
@@ -118,8 +118,8 @@ const AdminRiskMapping = () => {
                             <div
                                 key={resident.id}
                                 className={`p-5  border transition group cursor-pointer ${resident.isHighRisk
-                                        ? 'bg-red-50/50 border-red-100 hover:bg-red-50'
-                                        : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-blue-50/20'
+                                    ? 'bg-red-50/50 border-red-100 hover:bg-red-50'
+                                    : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-blue-50/20'
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-3">
