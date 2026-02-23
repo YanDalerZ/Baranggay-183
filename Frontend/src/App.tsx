@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import Navbar from './components/Navbar';
+import Navbar from './components/UserNavbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import UserMainPage from './UserPages/UserMainPage';
@@ -14,7 +14,6 @@ import UserHistory from './UserPages/UserHistory';
 import UserApply from './UserPages/UserApplyServices';
 import UserAppointments from './UserPages/UserAppointments';
 import UserGuide from './UserPages/UserServiceGuide';
-import UserCRUD from './UserPages/UserCRUD';
 
 import AdminNavbar from './components/AdminNavbar';
 import AdminLogin from './AdminPages/AdminLogin';
@@ -50,7 +49,7 @@ const App: React.FC = () => {
           }
         />
 
-                <Route
+        <Route
           path="/AdminLogin"
           element={
             <PublicRoute>
@@ -60,8 +59,6 @@ const App: React.FC = () => {
         />
 
         {/* Protected Routes - Only accessible if token exists */}
-        <Route path="/UserCRUD" element={<ProtectedRoute><UserCRUD /></ProtectedRoute>} />
-
         <Route path="/UserMainPage" element={<ProtectedRoute><Navbar><UserMainPage /></Navbar></ProtectedRoute>} />
 
         <Route path="/UserProfile" element={<ProtectedRoute><Navbar><UserProfile /></Navbar></ProtectedRoute>} />

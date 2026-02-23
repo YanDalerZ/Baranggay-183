@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 
 interface User {
     id: number;
+    system_id: string;
     firstname: string;
     lastname: string;
     email: string;
-    role: string; // Add other fields based on your DB
+    role: string;
 }
 
 export const useAuth = () => {

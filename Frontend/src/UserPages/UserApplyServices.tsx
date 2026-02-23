@@ -7,66 +7,66 @@ const UserApplyServices: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ApplicationType>('RBI');
 
   return (
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
-        {/* Header Section */}
-        <section>
-           <h2 className="text-5xl md:text-7xl font-black uppercase leading-[0.9] mb-6 tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-            Services Application Portal</h2>
-          <p className="text-sm text-gray-500 mt-1 font-medium">
-            Apply for barangay services online. All forms are WCAG 2.1 compliant and optimized for accessibility.
-          </p>
-        </section>
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
+      {/* Header Section */}
+      <section>
+        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+          Services Application Portal</h2>
+        <p className="text-sm text-gray-500 mt-1 font-medium">
+          Apply for barangay services online. All forms are WCAG 2.1 compliant and optimized for accessibility.
+        </p>
+      </section>
 
-        {/* Form Selection Tabs */}
-        <div className="flex flex-wrap bg-gray-200/60 p-1  w-fit gap-1">
-          <TabButton active={activeTab === 'RBI'} onClick={() => setActiveTab('RBI')} label="RBI Registration" />
-          <TabButton active={activeTab === 'PWD'} onClick={() => setActiveTab('PWD')} label="PWD ID Application" />
-          <TabButton active={activeTab === 'Senior'} onClick={() => setActiveTab('Senior')} label="Senior Citizen ID" />
-        </div>
-
-        {/* Main Form Container */}
-        <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-8 md:p-12">
-            {activeTab === 'RBI' && <RBIRegistrationForm />}
-            {activeTab === 'PWD' && <PWDApplicationForm />}
-            {activeTab === 'Senior' && <SeniorCitizenForm />}
-
-            {/* Form Actions */}
-            <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-12 mt-12 border-t border-gray-100">
-              <button className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-200  hover:bg-gray-50 transition-all">
-                Save as Draft
-              </button>
-              <button className="px-6 py-2.5 text-sm font-bold text-white bg-[#05051e]  hover:opacity-90 transition-all flex items-center gap-2">
-                <Send size={16} /> Submit Application
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Help Section */}
-        <section className="bg-white  border border-gray-100 shadow-sm p-8">
-          <h4 className="font-bold text-gray-900 mb-6">Need Help?</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <p className="text-xs font-bold text-gray-900 mb-1">Office Hours</p>
-              <p className="text-sm text-gray-500">Monday to Friday<br />8:00 AM - 5:00 PM</p>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-900 mb-1">Contact Number</p>
-              <p className="text-sm text-blue-600 font-medium">(02) 8123-4567</p>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-gray-900 mb-1">Email</p>
-              <p className="text-sm text-blue-600 font-medium">info@barangay183.gov.ph</p>
-            </div>
-          </div>
-          <div className="mt-8 pt-6 border-t border-gray-100">
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              <span className="font-bold text-gray-600">Accessibility Note:</span> This portal is optimized for screen readers and keyboard navigation. Use Tab to navigate between fields, and use the High Contrast mode and Text Size controls in the top toolbar if needed.
-            </p>
-          </div>
-        </section>
+      {/* Form Selection Tabs */}
+      <div className="flex flex-wrap bg-gray-200/60 p-1  w-fit gap-1">
+        <TabButton active={activeTab === 'RBI'} onClick={() => setActiveTab('RBI')} label="RBI Registration" />
+        <TabButton active={activeTab === 'PWD'} onClick={() => setActiveTab('PWD')} label="PWD ID Application" />
+        <TabButton active={activeTab === 'Senior'} onClick={() => setActiveTab('Senior')} label="Senior Citizen ID" />
       </div>
+
+      {/* Main Form Container */}
+      <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-8 md:p-12">
+          {activeTab === 'RBI' && <RBIRegistrationForm />}
+          {activeTab === 'PWD' && <PWDApplicationForm />}
+          {activeTab === 'Senior' && <SeniorCitizenForm />}
+
+          {/* Form Actions */}
+          <div className="flex flex-col sm:flex-row justify-end items-center gap-3 pt-12 mt-12 border-t border-gray-100">
+            <button className="px-6 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-200  hover:bg-gray-50 transition-all">
+              Save as Draft
+            </button>
+            <button className="px-6 py-2.5 text-sm font-bold text-white bg-[#05051e]  hover:opacity-90 transition-all flex items-center gap-2">
+              <Send size={16} /> Submit Application
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Help Section */}
+      <section className="bg-white  border border-gray-100 shadow-sm p-8">
+        <h4 className="font-bold text-gray-900 mb-6">Need Help?</h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div>
+            <p className="text-xs font-bold text-gray-900 mb-1">Office Hours</p>
+            <p className="text-sm text-gray-500">Monday to Friday<br />8:00 AM - 5:00 PM</p>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-900 mb-1">Contact Number</p>
+            <p className="text-sm text-blue-600 font-medium">(02) 8123-4567</p>
+          </div>
+          <div>
+            <p className="text-xs font-bold text-gray-900 mb-1">Email</p>
+            <p className="text-sm text-blue-600 font-medium">info@barangay183.gov.ph</p>
+          </div>
+        </div>
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <p className="text-[11px] text-gray-400 leading-relaxed">
+            <span className="font-bold text-gray-600">Accessibility Note:</span> This portal is optimized for screen readers and keyboard navigation. Use Tab to navigate between fields, and use the High Contrast mode and Text Size controls in the top toolbar if needed.
+          </p>
+        </div>
+      </section>
+    </div>
   );
 };
 

@@ -26,8 +26,7 @@ export default function AdminApplicationsManagement() {
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
-            {/* Header - Made text size responsive */}
-            <h2 className="text-3xl sm:text-5xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-[#00308F] bg-clip-text text-transparent">
+            <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
                 Applications Management
             </h2>
             <p className="text-gray-500 text-sm sm:text-base">

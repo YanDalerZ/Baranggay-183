@@ -1,11 +1,11 @@
 import React from 'react';
-import { 
-  Search, 
-  Eye, 
-  Edit3, 
-  Trash2, 
-  ChevronDown, 
-  AlertCircle 
+import {
+  Search,
+  Eye,
+  Edit3,
+  Trash2,
+  ChevronDown,
+  AlertCircle
 } from 'lucide-react';
 
 // --- Types & Mock Data ---
@@ -31,10 +31,10 @@ const ProfileManagement = () => {
   return (
     /* Unified Max-Width and Padding for the whole page */
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
-      
+
       {/* Header Section: Aligned to container edge */}
       <header className="space-y-2">
-        <h2 className="text-4xl md:text-6xl lg:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+        <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
           PWD & Senior Citizen Profiles
         </h2>
         <p className="text-sm md:text-base text-gray-500 font-medium">
@@ -44,7 +44,7 @@ const ProfileManagement = () => {
 
       {/* Main Content: No extra px-8 or max-w-1600 to ensure alignment */}
       <main className="space-y-8">
-        
+
         {/* Summary Statistics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard title="Total Profiles" value="6" />
@@ -58,14 +58,14 @@ const ProfileManagement = () => {
         <div className="bg-white border border-gray-100 shadow-sm  overflow-hidden">
           <div className="p-4 sm:p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-6">Profile Registry</h2>
-            
+
             {/* Search and Filters */}
             <div className="flex flex-col lg:flex-row gap-4 mb-6">
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Search by ID or Name..." 
+                <input
+                  type="text"
+                  placeholder="Search by ID or Name..."
                   className="w-full bg-gray-50 border-none py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500 outline-none "
                 />
               </div>
@@ -135,7 +135,7 @@ const ProfileManagement = () => {
           <div>
             <h4 className="font-bold text-yellow-900">ID Expiration Alerts</h4>
             <p className="text-sm text-yellow-800 leading-relaxed">
-              2 resident(s) have IDs expiring within 60 days. 2 resident(s) have expired IDs. 
+              2 resident(s) have IDs expiring within 60 days. 2 resident(s) have expired IDs.
               Automatic renewal reminders have been sent via SMS and Email.
             </p>
           </div>
@@ -164,11 +164,10 @@ const FilterDropdown = ({ label }: { label: string }) => (
 );
 
 const ActionButton = ({ icon, variant = 'default' }: { icon: React.ReactNode, variant?: 'default' | 'danger' }) => (
-  <button className={`p-2 border  transition ${
-    variant === 'danger' 
-    ? 'border-red-100 text-red-500 hover:bg-red-50' 
-    : 'border-gray-100 text-gray-400 hover:text-gray-900 hover:bg-gray-50 shadow-sm'
-  }`}>
+  <button className={`p-2 border  transition ${variant === 'danger'
+      ? 'border-red-100 text-red-500 hover:bg-red-50'
+      : 'border-gray-100 text-gray-400 hover:text-gray-900 hover:bg-gray-50 shadow-sm'
+    }`}>
     {icon}
   </button>
 );
