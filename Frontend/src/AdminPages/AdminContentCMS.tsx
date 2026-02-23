@@ -1,10 +1,10 @@
-import React, { useState }  from'react';
-import { 
-  FileText, 
-  Plus, 
-  BookOpen, 
-  Clock, 
-  CheckCircle, 
+import { useState } from 'react';
+import {
+  FileText,
+  Plus,
+  BookOpen,
+  Clock,
+  CheckCircle,
   Info
 } from 'lucide-react';
 
@@ -42,13 +42,13 @@ const AdminContentCMS = () => {
   ];
 
   return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
-            <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-            Content Management</h2>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
+      <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+        Content Management</h2>
 
 
       <main>
-        
+
         {/* Statistics Row */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <StatBox title="Service Guides" value="3" />
@@ -68,13 +68,13 @@ const AdminContentCMS = () => {
           <div className="p-4 md:p-6">
             {/* Responsive Tabs */}
             <div className="bg-gray-50 p-1  flex mb-6 w-full lg:max-w-3xl">
-              <button 
+              <button
                 onClick={() => setActiveTab('guides')}
                 className={`flex-1 py-2.5 text-xs md:text-sm font-bold  transition-all ${activeTab === 'guides' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
               >
                 Services Guide
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('forms')}
                 className={`flex-1 py-2.5 text-xs md:text-sm font-bold  transition-all ${activeTab === 'forms' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
               >
@@ -91,7 +91,7 @@ const AdminContentCMS = () => {
                     <Plus size={18} /> Add New Guide
                   </button>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {guides.map((guide) => (
                     <GuideCard key={guide.id} guide={guide} />
@@ -169,7 +169,7 @@ const AdminContentCMS = () => {
                 <p className="text-[10px] text-green-600 font-bold">All documents verified. Ready for walk-in appointment.</p>
               </div>
               <span className="text-blue-600 flex items-center gap-1 text-[10px] font-black bg-white px-2 py-1  shadow-sm border border-blue-50">
-                <CheckCircle size={12}/> Ready
+                <CheckCircle size={12} /> Ready
               </span>
             </div>
           </div>
@@ -191,13 +191,13 @@ const StatBox = ({ title, value, valueColor = "text-gray-900" }: any) => (
 const GuideCard = ({ guide }: { guide: ServiceGuide }) => (
   <div className="group bg-white p-6  border border-gray-100 hover:border-blue-200 transition-all cursor-pointer relative overflow-hidden">
     <div className="absolute right-0 top-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
-        <BookOpen size={16} className="text-gray-300 group-hover:text-blue-500" />
+      <BookOpen size={16} className="text-gray-300 group-hover:text-blue-500" />
     </div>
     <h4 className="font-black text-gray-900 mb-1 pr-6">{guide.title}</h4>
     <span className="inline-block px-2 py-0.5 bg-gray-100 text-gray-500 text-[9px] font-black uppercase  mb-4">
       {guide.category}
     </span>
-    
+
     <div className="space-y-2.5">
       <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
         <Clock size={14} className="text-gray-300" /> Processing: {guide.processingTime}
@@ -231,14 +231,13 @@ const FormRow = ({ form }: { form: InterestForm }) => (
       </button>
     </td>
     <td className="px-4 py-5 text-right">
-      <button className={`px-4 py-1.5  text-xs font-black transition ${
-        form.status === 'Pending' ? 'bg-black text-white hover:bg-gray-800' :
-        form.status === 'Pre-verified' ? 'bg-black text-white hover:bg-gray-800' :
-        'text-green-600 bg-green-50'
-      }`}>
-        {form.status === 'Pending' ? 'Pre-verify' : 
-         form.status === 'Pre-verified' ? 'Approve' : 
-         form.status === 'Approved' ? 'Completed' : 'Finished'}
+      <button className={`px-4 py-1.5  text-xs font-black transition ${form.status === 'Pending' ? 'bg-black text-white hover:bg-gray-800' :
+          form.status === 'Pre-verified' ? 'bg-black text-white hover:bg-gray-800' :
+            'text-green-600 bg-green-50'
+        }`}>
+        {form.status === 'Pending' ? 'Pre-verify' :
+          form.status === 'Pre-verified' ? 'Approve' :
+            form.status === 'Approved' ? 'Completed' : 'Finished'}
       </button>
     </td>
   </tr>

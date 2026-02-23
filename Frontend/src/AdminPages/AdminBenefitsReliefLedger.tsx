@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  Package, 
-  Plus, 
-  CheckCircle, 
-  Clock, 
-  Lock, 
+import { useState } from 'react';
+import {
+  Package,
+  Plus,
+  CheckCircle,
+  Clock,
+  Lock,
   ShieldAlert
 } from 'lucide-react';
 
@@ -45,14 +45,14 @@ const BenefitsReliefLedger = () => {
   ];
 
   return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
 
-                    <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-            Benefits & Relief Goods Ledger</h2>
+      <h2 className="text-4xl md:text-7xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+        Benefits & Relief Goods Ledger</h2>
 
 
       <main>
-        
+
         {/* Top Statistics Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard title="Total Stock" value="575" subtext="Combined items" />
@@ -71,13 +71,13 @@ const BenefitsReliefLedger = () => {
 
             {/* Tab Toggle */}
             <div className="bg-gray-100 p-1  flex mb-6 max-w-2xl">
-              <button 
+              <button
                 onClick={() => setActiveTab('quantity')}
                 className={`flex-1 py-2 text-sm font-bold  transition-all ${activeTab === 'quantity' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
                 Quantity Management
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('distribution')}
                 className={`flex-1 py-2 text-sm font-bold  transition-all ${activeTab === 'distribution' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
               >
@@ -94,7 +94,7 @@ const BenefitsReliefLedger = () => {
                     <Plus size={16} /> Add New Item
                   </button>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
                     <thead>
@@ -120,8 +120,8 @@ const BenefitsReliefLedger = () => {
                           <td className="py-4 min-w-[120px]">
                             <div className="flex items-center gap-2">
                               <div className="flex-1 h-1.5 bg-gray-100  overflow-hidden">
-                                <div 
-                                  className="h-full bg-green-500" 
+                                <div
+                                  className="h-full bg-green-500"
                                   style={{ width: `${(item.allocated / item.total) * 100}%` }}
                                 />
                               </div>
@@ -170,10 +170,9 @@ const BenefitsReliefLedger = () => {
                           <td className="py-4 text-gray-600">{claim.item}</td>
                           <td className="py-4 font-medium">{claim.qty}</td>
                           <td className="py-4">
-                            <span className={`px-2 py-1  text-[10px] font-bold flex items-center gap-1 w-fit ${
-                              claim.status === 'Claimed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                            }`}>
-                              {claim.status === 'Claimed' ? <CheckCircle size={10}/> : <Clock size={10}/>}
+                            <span className={`px-2 py-1  text-[10px] font-bold flex items-center gap-1 w-fit ${claim.status === 'Claimed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                              }`}>
+                              {claim.status === 'Claimed' ? <CheckCircle size={10} /> : <Clock size={10} />}
                               {claim.status}
                             </span>
                           </td>
@@ -181,7 +180,7 @@ const BenefitsReliefLedger = () => {
                           <td className="py-4 text-right">
                             {claim.status === 'Claimed' ? (
                               <span className="text-xs font-bold text-gray-300 flex items-center justify-end gap-1">
-                                <Lock size={12}/> Locked
+                                <Lock size={12} /> Locked
                               </span>
                             ) : (
                               <button className="bg-black text-white px-3 py-1  text-xs font-bold hover:bg-gray-800 transition">
@@ -204,7 +203,7 @@ const BenefitsReliefLedger = () => {
             <div>
               <h4 className="text-sm font-bold text-purple-900">Anti-Duplicate Logic</h4>
               <p className="text-xs text-purple-800 leading-relaxed max-w-4xl">
-                Once a resident is marked as "Claimed" for a specific item in a distribution batch, the status is locked to prevent duplicate claims. 
+                Once a resident is marked as "Claimed" for a specific item in a distribution batch, the status is locked to prevent duplicate claims.
                 The same resident cannot claim the same goods twice within the same batch, ensuring fair distribution.
               </p>
             </div>
@@ -255,10 +254,10 @@ const SummaryItem = ({ label, subtext, claimed, pending }: any) => (
     </div>
     <div className="flex gap-4">
       <div className="flex items-center gap-1.5 text-green-600 font-bold text-xs">
-        <CheckCircle size={14}/> {claimed}
+        <CheckCircle size={14} /> {claimed}
       </div>
       <div className="flex items-center gap-1.5 text-orange-500 font-bold text-xs">
-        <Clock size={14}/> {pending}
+        <Clock size={14} /> {pending}
       </div>
     </div>
   </div>
@@ -272,7 +271,7 @@ const ActivityItem = ({ name, action, date }: any) => (
     </div>
     <div className="text-right">
       <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] font-bold  flex items-center gap-1 mb-1">
-        <CheckCircle size={10}/> Claimed
+        <CheckCircle size={10} /> Claimed
       </span>
       <p className="text-[10px] text-gray-400 font-mono">{date}</p>
     </div>
