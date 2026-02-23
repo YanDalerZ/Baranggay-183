@@ -16,6 +16,19 @@ import UserAppointments from './UserPages/UserAppointments';
 import UserGuide from './UserPages/UserServiceGuide';
 import UserCRUD from './UserPages/UserCRUD';
 
+import AdminNavbar from './components/AdminNavbar';
+import AdminLogin from './AdminPages/AdminLogin';
+import AdminDashboard from './AdminPages/AdminDashboard';
+import AdminRBIManagement from './AdminPages/AdminRBIManagement';
+import AdminPWDSCProfiles from './AdminPages/AdminPWDSCProfiles';
+import AdminRiskMapping from './AdminPages/AdminRiskMapping';
+import AdminNotificationsCenter from './AdminPages/AdminNotificationsCenter';
+import AdminEmergencyAlerts from './AdminPages/AdminEmergencyAlerts';
+import AdminBenefitsReliefLedger from './AdminPages/AdminBenefitsReliefLedger';
+import AdminEventsCalendar from './AdminPages/AdminEventsCalendar';
+import AdminContentCMS from './AdminPages/AdminContentCMS';
+
+
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem('token');
   return token ? <Navigate to="/UserMainPage" replace /> : <>{children}</>;
@@ -32,6 +45,15 @@ const App: React.FC = () => {
           element={
             <PublicRoute>
               <UserLogin />
+            </PublicRoute>
+          }
+        />
+
+                <Route
+          path="/AdminLogin"
+          element={
+            <PublicRoute>
+              <AdminLogin />
             </PublicRoute>
           }
         />
@@ -56,6 +78,17 @@ const App: React.FC = () => {
         <Route path="/UserAppointments" element={<ProtectedRoute><Navbar><UserAppointments /></Navbar></ProtectedRoute>} />
 
         <Route path="/UserGuide" element={<ProtectedRoute><Navbar><UserGuide /></Navbar></ProtectedRoute>} />
+
+
+        <Route path="/AdminDashboard" element={<ProtectedRoute><AdminNavbar><AdminDashboard /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminRBIManagement" element={<ProtectedRoute><AdminNavbar><AdminRBIManagement /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminPWDSCProfiles" element={<ProtectedRoute><AdminNavbar><AdminPWDSCProfiles /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminRiskMapping" element={<ProtectedRoute><AdminNavbar><AdminRiskMapping /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminNotificationsCenter" element={<ProtectedRoute><AdminNavbar><AdminNotificationsCenter /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminEmergencyAlerts" element={<ProtectedRoute><AdminNavbar><AdminEmergencyAlerts /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminBenefitsReliefLedger" element={<ProtectedRoute><AdminNavbar><AdminBenefitsReliefLedger /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminEventsCalendar" element={<ProtectedRoute><AdminNavbar><AdminEventsCalendar /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminContentCMS" element={<ProtectedRoute><AdminNavbar><AdminContentCMS /></AdminNavbar></ProtectedRoute>} />
 
         {/* 404 Route */}
         <Route path="*" element={
