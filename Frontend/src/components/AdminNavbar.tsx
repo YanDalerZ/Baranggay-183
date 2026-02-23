@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, FileText, Bell, LogOut, Sun, Type, Volume2, Menu, X,
-  LayoutDashboard, // For Dashboard
-  Users,           // For Profiles
-  ClipboardList,   // For Applications/Ledger
-  Map,             // For Risk Mapping
-  Megaphone,       // For Emergency Alerts
-  Settings,        // For CMS
-  Calendar          
+  Home, 
+  Users,         
+  Gift, 
+  UserCheck,    
+  MapPin,             
+  AlertTriangle,      
+  Calendar,          
+  ClipboardCheck
 
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -36,16 +37,16 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
 
   // --- UPDATED MENU ITEMS ---
   const menuItems = [
-    { name: 'Dashboard', shortName: 'Dash', icon: LayoutDashboard, path: '/AdminDashboard' },
-    { name: 'RBI Management', shortName: 'RBI', icon: FileText, path: '/AdminRBIManagement' },
-    { name: 'PWD & SC Profiles', shortName: 'Profiles', icon: Users, path: '/AdminPWDSCProfiles' },
-    { name: 'Applications', shortName: 'Applications', icon: ClipboardList, path: '/AdminApplicationsManagement' },
-    { name: 'Risk Mapping', shortName: 'Map', icon: Map, path: '/AdminRiskMapping' },
-    { name: 'Notifications Center', shortName: 'Notify', icon: Users, path: '/AdminNotificationsCenter'},
-    { name: 'Alerts', shortName: 'Alerts', icon: Megaphone, path: '/AdminEmergencyAlerts' },
-    { name: 'Benefits & Relief', shortName: 'Ledger', icon: ClipboardList, path: '/AdminBenefitsReliefLedger' },
+    { name: 'Dashboard', shortName: 'Dash', icon: Home, path: '/AdminDashboard' },
+    { name: 'RBI Management', shortName: 'RBI', icon: Users, path: '/AdminRBIManagement' },
+    { name: 'PWD & SC Profiles', shortName: 'Profiles', icon: UserCheck, path: '/AdminPWDSCProfiles' },
+    { name: 'Applications', shortName: 'Applications', icon: ClipboardCheck, path: '/AdminApplicationsManagement' },
+    { name: 'Risk Mapping', shortName: 'Map', icon: MapPin, path: '/AdminRiskMapping' },
+    { name: 'Notifications Center', shortName: 'Notify', icon: Bell, path: '/AdminNotificationsCenter'},
+    { name: 'Alerts', shortName: 'Alerts', icon: AlertTriangle, path: '/AdminEmergencyAlerts' },
+    { name: 'Benefits & Relief', shortName: 'Ledger', icon: Gift, path: '/AdminBenefitsReliefLedger' },
     { name: 'Events', shortName: 'Events', icon: Calendar, path: '/AdminEventsCalendar' },
-    { name: 'Content CMS', shortName: 'CMS', icon: Settings, path: '/AdminContentCMS' },
+    { name: 'Content CMS', shortName: 'CMS', icon: FileText, path: '/AdminContentCMS' },
   ];
 
   return (

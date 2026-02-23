@@ -21,6 +21,7 @@ import AdminLogin from './AdminPages/AdminLogin';
 import AdminDashboard from './AdminPages/AdminDashboard';
 import AdminRBIManagement from './AdminPages/AdminRBIManagement';
 import AdminPWDSCProfiles from './AdminPages/AdminPWDSCProfiles';
+import AdminApplicationsManagement from './AdminPages/AdminApplicationsManagement';
 import AdminRiskMapping from './AdminPages/AdminRiskMapping';
 import AdminNotificationsCenter from './AdminPages/AdminNotificationsCenter';
 import AdminEmergencyAlerts from './AdminPages/AdminEmergencyAlerts';
@@ -83,6 +84,7 @@ const App: React.FC = () => {
         <Route path="/AdminDashboard" element={<ProtectedRoute><AdminNavbar><AdminDashboard /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminRBIManagement" element={<ProtectedRoute><AdminNavbar><AdminRBIManagement /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminPWDSCProfiles" element={<ProtectedRoute><AdminNavbar><AdminPWDSCProfiles /></AdminNavbar></ProtectedRoute>} />
+        <Route path="/AdminApplicationsManagement" element={<ProtectedRoute><AdminNavbar><AdminApplicationsManagement /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminRiskMapping" element={<ProtectedRoute><AdminNavbar><AdminRiskMapping /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminNotificationsCenter" element={<ProtectedRoute><AdminNavbar><AdminNotificationsCenter /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminEmergencyAlerts" element={<ProtectedRoute><AdminNavbar><AdminEmergencyAlerts /></AdminNavbar></ProtectedRoute>} />
