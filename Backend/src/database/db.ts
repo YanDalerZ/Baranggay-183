@@ -10,17 +10,12 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    timezone: '+08:00', // Tells the driver how to parse dates
+    timezone: '+08:00',
     ssl: {
         rejectUnauthorized: false
     }
 });
 
-/**
- * Fix: The 'connection' object here is a standard mysql2 Connection, 
- * not the promise-wrapped one. We use a standard callback function 
- * instead of .then() to set the timezone.
- */
 pool.on('connection', (connection) => {
     connection.query("SET time_zone = '+08:00';", (err: { message: any; }) => {
         if (err) {
