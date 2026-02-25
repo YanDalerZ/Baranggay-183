@@ -8,5 +8,6 @@ router.get('/:system_id', UserController.fetchUserBySystemId);
 router.post('/', UserController.AddNewUser);
 
 router.put('/:system_id', UserController.updateUser);
+router.delete('/:system_id', UserController.DeleteUserBySystemId);
 
 export default router;

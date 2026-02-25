@@ -1,6 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-import { Search, Plus, Eye, Edit3, MapPin, AlertCircle, Loader2 } from 'lucide-react';
+import {
+    Search, Eye, Edit3,
+    Loader2, Trash2, ChevronDown, Info,
+    Plus
+} from 'lucide-react';
 import AddResidentForm from './AdminComponents/RBIForm';
 import ViewUserDetails from './AdminComponents/UserDetails';
 import { type User, API_BASE_URL } from '../interfaces';
@@ -30,18 +34,45 @@ const AdminRBIManagement = () => {
         fetchResidents();
     }, []);
 
+    // --- Calculated Statistics based on Database Data ---
+    const stats = useMemo(() => {
+        const now = new Date();
+        const sixtyDaysFromNow = new Date();
+        sixtyDaysFromNow.setDate(now.getDate() + 60);
+
+        return residents.reduce((acc, curr) => {
+            acc.total++;
+
+            // Logic for Expiration (assuming curr.id_expiry_date exists in your DB)
+            if (curr.id_expiry_date) {
+                const expDate = new Date(curr.id_expiry_date);
+                if (expDate < now) acc.expired++;
+                else if (expDate <= sixtyDaysFromNow) acc.expiringSoon++;
+            }
+
+            if (curr.is_flood_prone) acc.floodProne++;
+            if (curr.is_flood_prone === true) {
+                acc.highVulnerability++;
+            }
+
+            return acc;
+        }, { total: 0, expiringSoon: 0, expired: 0, floodProne: 0, highVulnerability: 0 });
+    }, [residents]);
+
     const filteredResidents = residents.filter(person =>
         `${person.firstname} ${person.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.system_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.address?.toLowerCase().includes(searchTerm.toLowerCase())
+        person.system_id?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const calculateAge = (birthday: string) => {
-        if (!birthday) return 'N/A';
-        const ageDifMs = Date.now() - new Date(birthday).getTime();
-        const ageDate = new Date(ageDifMs);
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
+    const handleDelete = async (id: string) => {
+        if (window.confirm("Are you sure you want to delete this profile?")) {
+            try {
+                await axios.delete(`${API_BASE_URL}/api/user/${id}`);
+                fetchResidents();
+            } catch (err) {
+                console.error("Delete failed:", err);
+            }
+        }
     };
 
     const handleAddClick = () => {
@@ -59,31 +90,19 @@ const AdminRBIManagement = () => {
         setIsModalOpen(true);
     };
 
-    const handleCloseViewModal = () => {
-        setIsViewDetailsOpen(false);
-        setSelectedUser(null);
-    };
-
-    const handleCloseFormModal = () => {
-        setIsModalOpen(false);
-        setSelectedUser(null);
-        fetchResidents();
-    };
-
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8 bg-[#F8FAFC] min-h-screen">
             <AddResidentForm
                 isOpen={isModalOpen}
                 initialData={selectedUser}
-                onClose={handleCloseFormModal}
+                onClose={() => { setIsModalOpen(false); fetchResidents(); }}
             />
 
             <ViewUserDetails
                 isOpen={isViewDetailsOpen}
-                onClose={handleCloseViewModal}
+                onClose={() => setIsViewDetailsOpen(false)}
                 user={selectedUser}
             />
-
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
@@ -94,120 +113,158 @@ const AdminRBIManagement = () => {
                     </p>
                 </div>
             </header>
+            {/* --- 1. Top Summary Stats --- */}
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <StatCard title="TOTAL PROFILES" count={stats.total} color="text-gray-900" />
+                <StatCard title="EXPIRING SOON" count={stats.expiringSoon} sub="Within 60 days" color="text-orange-500" />
+                <StatCard title="EXPIRED IDS" count={stats.expired} color="text-red-600" />
+                <StatCard title="FLOOD-PRONE" count={stats.floodProne} color="text-orange-600" />
+                <StatCard title="HIGH VULNERABILITY" count={stats.highVulnerability} sub="Bedridden/Wheelchair" color="text-purple-600" />
+            </div>
+            {/* --- 4. Expiration Alert Banner --- */}
+            <div className="bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-3 rounded-sm">
+                <div className="bg-yellow-400 p-1 rounded-full">
+                    <Info size={16} className="text-white" />
+                </div>
+                <div>
+                    <h4 className="text-sm font-bold text-yellow-900">ID Expiration Alerts</h4>
+                    <p className="text-sm text-yellow-800">
+                        {stats.expiringSoon} resident(s) have IDs expiring within 60 days. {stats.expired} resident(s) have expired IDs.
+                        Automatic renewal reminders have been sent via SMS and Email.
+                    </p>
+                </div>
+            </div>
+            <div className="space-y-4">
 
-            <main className="bg-white border border-gray-200 shadow-sm overflow-hidden">
-                <div className="p-4 border-b border-gray-100 flex items-center gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search by name, ID, or address..."
-                            className="w-full bg-gray-50 border border-gray-200 py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-50 focus:border-blue-400 outline-none transition"
-                        />
+                <main className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+                    <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
+                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            Profile Registry
+                        </h2>
+                        <button
+                            onClick={handleAddClick}
+                            className="flex items-center gap-2 bg-[#0F172A] text-white px-4 py-2 text-sm font-semibold hover:bg-black transition shadow-sm active:scale-95 whitespace-nowrap"
+                        >
+                            <Plus size={18} /> Add Resident
+                        </button>
+                    </div>
+                    <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-4">
+                        <div className="relative flex-1 min-w-[300px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search by ID or Name..."
+                                className="w-full bg-gray-50 border border-gray-200 py-2 pl-10 pr-4 text-sm outline-none focus:border-blue-400"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <FilterDropdown label="Categories" />
+                            <FilterDropdown label="Status" />
+                        </div>
                     </div>
 
-                    <button
-                        onClick={handleAddClick}
-                        className="flex items-center gap-2 bg-[#0F172A] text-white px-4 py-2 text-sm font-semibold hover:bg-black transition shadow-sm active:scale-95 whitespace-nowrap"
-                    >
-                        <Plus size={18} /> Add Resident
-                    </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                            <Loader2 className="animate-spin mb-2" size={32} />
-                            <p className="text-sm">Fetching inhabitants...</p>
-                        </div>
-                    ) : (
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="text-[12px] font-semibold text-gray-500 uppercase tracking-wider bg-gray-50/50 border-b border-gray-100">
-                                    <th className="px-6 py-4">System ID</th>
-                                    <th className="px-6 py-4">Name</th>
-                                    <th className="px-6 py-4">Type</th>
-                                    <th className="px-6 py-4">Age</th>
-                                    <th className="px-6 py-4">Gender</th>
-                                    <th className="px-6 py-4">Address</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {filteredResidents.map((person) => (
-                                    <tr key={person.id} className="hover:bg-gray-50/50 transition-colors">
-                                        <td className="px-6 py-4 text-sm font-bold text-gray-900">
-                                            {person.system_id}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-700 font-medium">
-                                            {person.firstname} {person.lastname}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 text-[11px] font-bold ${getTypeStyles(person.type)}`}>
-                                                {person.type}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {calculateAge(person.birthday)}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600">
-                                            {person.gender}
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate">
-                                            {person.address}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {person.is_flood_prone ? (
-                                                <span className="inline-flex items-center gap-1.5 bg-[#E11D48] text-white px-3 py-1 text-[10px] font-bold uppercase tracking-tight">
-                                                    <AlertCircle size={12} /> Flood Prone
-                                                </span>
-                                            ) : null}
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-3 text-gray-400">
-                                                <button
-                                                    onClick={() => handleViewClick(person)}
-                                                    className="p-1 hover:text-blue-600 transition"
-                                                    title="View Profile"
-                                                >
-                                                    <Eye size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleEditClick(person)}
-                                                    className="p-1 hover:text-gray-900 transition"
-                                                    title="Edit Profile"
-                                                >
-                                                    <Edit3 size={18} />
-                                                </button>
-                                                <button className="p-1 hover:text-gray-900 transition" title="View Location">
-                                                    <MapPin size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
+                    <div className="overflow-x-auto">
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                                <Loader2 className="animate-spin mb-2" size={32} />
+                                <p>Loading Registry...</p>
+                            </div>
+                        ) : (
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                                        <th className="px-6 py-4">System ID</th>
+                                        <th className="px-6 py-4">Full Name</th>
+                                        <th className="px-6 py-4">Category</th>
+                                        <th className="px-6 py-4">Disability Type</th>
+                                        <th className="px-6 py-4">ID Status</th>
+                                        <th className="px-6 py-4">Vulnerability</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredResidents.map((person) => (
+                                        <tr key={person.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">{person.system_id}</td>
+                                            <td className="px-6 py-4 text-sm text-gray-700">{person.firstname} {person.lastname}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${getTypeStyles(person.type)}`}>
+                                                    {person.type}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">{person.disability || 'N/A'}</td>
+                                            <td className="px-6 py-4">
+                                                <IDStatusBadge date={person.id_expiry_date} />
+                                            </td>
+                                            <td className="px-6 py-4 flex gap-1">
+                                                {person.is_flood_prone && (
+                                                    <span className="bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-bold rounded">Flood-Prone</span>
+                                                )}
+                                                {person.is_flood_prone && (
+                                                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 text-[10px] font-bold rounded">{person.is_flood_prone}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-end gap-2">
+                                                    <ActionButton icon={<Eye size={16} />} onClick={() => handleViewClick(person)} />
+                                                    <ActionButton icon={<Edit3 size={16} />} onClick={() => handleEditClick(person)} />
+                                                    <ActionButton icon={<Trash2 size={16} />} onClick={() => handleDelete(person.system_id!)} color="text-red-400 hover:text-red-600" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </main>
 
-                <div className="p-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
-                    <p>Showing {filteredResidents.length} of {residents.length} residents</p>
-                </div>
-            </main>
+
+            </div>
         </div>
     );
 };
 
+
+const StatCard = ({ title, count, sub, color }: any) => (
+    <div className="bg-white p-5 border border-gray-200 shadow-sm rounded-sm">
+        <p className="text-[10px] font-bold text-gray-500 tracking-wider mb-1">{title}</p>
+        <p className={`text-4xl font-black ${color}`}>{count}</p>
+        {sub && <p className="text-[10px] text-gray-400 mt-1">{sub}</p>}
+    </div>
+);
+
+const FilterDropdown = ({ label }: { label: string }) => (
+    <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-700">
+        {label} <ChevronDown size={14} />
+    </button>
+);
+
+const ActionButton = ({ icon, onClick, color = "text-gray-400 hover:text-gray-900" }: any) => (
+    <button onClick={onClick} className={`p-1.5 border border-gray-200 rounded hover:bg-white transition ${color}`}>
+        {icon}
+    </button>
+);
+
+const IDStatusBadge = ({ date }: { date?: string }) => {
+    if (!date) return <span className="text-gray-300 text-xs italic">No Date</span>;
+    const now = new Date();
+    const exp = new Date(date);
+    const diff = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diff < 0) return <span className="bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-bold rounded">Expired</span>;
+    if (diff < 60) return <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 text-[10px] font-bold rounded">Near Expiration</span>;
+    return <span className="bg-green-100 text-green-700 px-2 py-0.5 text-[10px] font-bold rounded">Active</span>;
+};
+
 const getTypeStyles = (type: string) => {
-    switch (type) {
-        case 'Both': return 'bg-purple-100 text-purple-700';
-        case 'SC': return 'bg-green-100 text-green-700';
-        case 'PWD': return 'bg-blue-100 text-blue-700';
-        default: return 'bg-gray-100 text-gray-600';
+    switch (type?.toUpperCase()) {
+        case 'BOTH': return 'bg-purple-50 text-purple-600 border border-purple-100';
+        case 'SENIOR CITIZEN': case 'SC': return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
+        case 'PWD': return 'bg-blue-50 text-blue-600 border border-blue-100';
+        default: return 'bg-gray-50 text-gray-600';
     }
 };
 

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
   User as UserIcon, FileText, Bell, LogOut, Sun, Menu, X,
-  Home, Users, Gift, UserCheck, MapPin, AlertTriangle,
+  Home, Users, Gift, MapPin, AlertTriangle,
   Calendar, ClipboardCheck, MoreHorizontal
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth'; // Ensure the path is correct
+import { useAuth } from '../hooks/useAuth';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -16,7 +16,6 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Get the user data from your useAuth hook
   const { user, logout } = useAuth();
 
   const navigate = useNavigate();
@@ -29,14 +28,12 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
   }, []);
 
   const handleLogout = () => {
-    // Using the logout function from your useAuth hook for consistency
     logout();
   };
 
   const menuItems = [
     { name: 'Dashboard', shortName: 'Dash', icon: Home, path: '/AdminDashboard' },
     { name: 'RBI Management', shortName: 'RBI', icon: Users, path: '/AdminRBIManagement' },
-    { name: 'PWD & SC Profiles', shortName: 'Profiles', icon: UserCheck, path: '/AdminPWDSCProfiles' },
     { name: 'Applications', shortName: 'Apps', icon: ClipboardCheck, path: '/AdminApplicationsManagement' },
     { name: 'Risk Mapping', shortName: 'Map', icon: MapPin, path: '/AdminRiskMapping' },
     { name: 'Notifications Center', shortName: 'Notify', icon: Bell, path: '/AdminNotificationsCenter' },

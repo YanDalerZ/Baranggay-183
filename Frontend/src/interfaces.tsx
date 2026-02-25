@@ -61,3 +61,45 @@ export interface User {
     created_at?: string;
     updated_at?: string;
 }
+
+
+export interface InventoryItem {
+    id: string;
+    name: string;
+    category: string;
+    total: number;
+    allocated: number;
+    unit: string;
+}
+
+export interface DistributionRecord {
+    date_claimed: string;
+    resident: string;
+    resident_id: string;
+    system_id: string;
+    resident_type: 'SC' | 'PWD';
+    item_description: string;
+    status: 'Claimed' | 'To Claim';
+    date: string;
+    batch_id: string;
+    batch_name?: string;
+}
+
+export interface Batch {
+    id: string;
+    batch_name: string;
+    target_group: 'SC' | 'PWD' | 'BOTH';
+    created_at: string;
+    resident_count: number;
+    items_summary: string;
+}
+
+export interface BatchData {
+    batchName: string;
+    targetGroup: 'SC' | 'PWD' | 'BOTH';
+    selectedItems: {
+        id: string;
+        name: string;
+        qty: number;
+    }[];
+}

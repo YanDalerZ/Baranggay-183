@@ -48,7 +48,11 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         }
         return age;
     };
-
+    const formatDate = (dateString: string | undefined) => {
+        if (!dateString) return 'N/A';
+        // split('T')[0] takes "1956-12-28T16:00:00.000Z" and returns "1956-12-28"
+        return dateString.split('T')[0];
+    };
     return (
         <div className="fixed inset-0 z-50 flex h-[100vh] items-center justify-center bg-black/50 backdrop-blur-sm p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[95vh] max-w-xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
@@ -70,7 +74,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                         <h3 className="font-semibold text-gray-900">Personal Information</h3>
                         <DetailItem label="Name" value={`${displayData.firstname} ${displayData.lastname}`} />
                         <DetailItem label="System ID" value={displayData.system_id!} />
-                        <DetailItem label="Birthday" value={displayData.birthday} />
+                        <DetailItem label="Birthday" value={formatDate(displayData.birthday)} />
                         <DetailItem label="Age" value={`${calculateAge(displayData.birthday)} years old`} />
                         <DetailItem label="Gender" value={displayData.gender} />
                         <div>
