@@ -39,6 +39,7 @@ app.use(cookieParser());
 app.use('/api/login', AllRoutes.LoginRoute);
 app.use('/api/user', AllRoutes.UserRoute);
 app.use('/api/benefits', AllRoutes.BenefitsRoute);
+app.use('/api/events', AllRoutes.EventsRoute);
 
 const frontendPath = path.join(__dirname, '../../Frontend/dist');
 app.use(express.static(frontendPath));
@@ -49,6 +50,10 @@ app.listen(PORT, '0.0.0.0', async () => {
     try {
         const conn = await pool.getConnection();
         console.log(`✅ Server running on port ${PORT} & Connected to Aiven.`);
+        const [rows] = await pool.execute('SELECT NOW() as currentTime, @@session.time_zone as tz');
+        console.log(rows);
+
+
         conn.release();
     } catch (err) {
         console.error('❌ Database connection failed.');

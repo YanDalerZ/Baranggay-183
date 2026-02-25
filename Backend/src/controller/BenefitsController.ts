@@ -133,29 +133,50 @@ class LedgerController {
     public generateBatch = async (req: Request, res: Response): Promise<Response> => {
         const { batchName, targetGroup, selectedItems } = req.body;
         const connection = await pool.getConnection();
+
         try {
             await connection.beginTransaction();
+
+            // 1. Create items summary
             const itemsSummary = selectedItems.map((i: any) => `${i.qty} ${i.name}`).join(', ');
+
+            // 2. Insert the main batch record
             const [batch]: any = await connection.execute(
                 `INSERT INTO distribution_batches (batch_name, target_group, items_summary) VALUES (?, ?, ?)`,
                 [batchName, targetGroup, itemsSummary]
             );
             const batchId = batch.insertId;
 
-            let userQuery = `SELECT id FROM users WHERE status = 'Active' AND `;
-            if (targetGroup === 'BOTH') {
-                userQuery += `(type = 'SC' OR type = 'PWD')`;
-            } else {
-                userQuery += `type = ?`;
-            }
+            /**
+             * 3. Build User Query
+             * Logic:
+             * - If Target is SC: Fetch users where type is 'SC' OR type is 'BOTH'
+             * - If Target is PWD: Fetch users where type is 'PWD' OR type is 'BOTH'
+             * - If Target is BOTH: Fetch users where type is 'SC', 'PWD', OR 'BOTH'
+             */
+            let userQuery = `SELECT id FROM users WHERE status = 'Active' AND (`;
+            let queryParams: any[] = [];
 
-            const queryParams = targetGroup === 'BOTH' ? [] : [targetGroup];
+            if (targetGroup === 'BOTH') {
+                userQuery += `type = 'SC' OR type = 'PWD' OR type = 'BOTH'`;
+            } else if (targetGroup === 'SC') {
+                userQuery += `type = 'SC' OR type = 'BOTH'`;
+            } else if (targetGroup === 'PWD') {
+                userQuery += `type = 'PWD' OR type = 'BOTH'`;
+            } else {
+                // Fallback for other types
+                userQuery += `type = ?`;
+                queryParams.push(targetGroup);
+            }
+            userQuery += `)`;
+
             const [users]: any = await connection.execute(userQuery, queryParams);
 
             if (users.length === 0) {
                 throw new Error(`No active residents found for target group: ${targetGroup}`);
             }
 
+            // 4. Prepare bulk insert for distribution table
             const distValues: any[] = [];
             users.forEach((u: any) => {
                 selectedItems.forEach((si: any) => {
@@ -169,6 +190,7 @@ class LedgerController {
                 });
             });
 
+            // 5. Bulk Insert
             await connection.query(
                 `INSERT INTO distribution (batch_id, resident_id, inventory_id, qty, status) VALUES ?`,
                 [distValues]
@@ -181,11 +203,11 @@ class LedgerController {
             });
 
         } catch (error: any) {
-            await connection.rollback();
+            if (connection) await connection.rollback();
             console.error("Batch Generation Error:", error);
             return res.status(500).json({ message: error.message });
         } finally {
-            connection.release();
+            if (connection) connection.release();
         }
     };
     public claimBenefit = async (req: Request, res: Response): Promise<Response> => {

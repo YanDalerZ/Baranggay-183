@@ -121,8 +121,6 @@ class UserController {
         try {
             await connection.beginTransaction();
 
-            // 2. Initial Insert 
-            // We provide 'TEMP' for system_id to satisfy the NOT NULL constraint in your DB.
             const [userResult]: any = await connection.execute(
                 `INSERT INTO users (
                 system_id, firstname, lastname, email, password, contact_number, 
@@ -138,8 +136,6 @@ class UserController {
 
             const newIdFromDB = userResult.insertId;
 
-            // 3. Custom System ID Logic
-            // This handles your specific requirement for 'Both' category.
             let prefix = 'PWD';
             if (type === 'Both') {
                 prefix = 'SC-PWD';
@@ -149,8 +145,6 @@ class UserController {
 
             const system_id = `${prefix}-${newIdFromDB.toString().padStart(3, '0')}`;
 
-            // 4. Generate Hashed Password
-            // Default: system_id + lastname (e.g., SC-PWD-015santos)
             const cleanLastName = lastname.replace(/\s+/g, '').toLowerCase();
             const rawPassword = `${system_id}${cleanLastName}`;
             const hashedPassword = await bcrypt.hash(rawPassword, 10);

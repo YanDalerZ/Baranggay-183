@@ -2,12 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import {
     Search, Eye, Edit3,
-    Loader2, Trash2, ChevronDown, Info,
-    Plus
+    Loader2, Trash2, Info,
+    Plus, ArrowUpDown, ArrowUp, ArrowDown
 } from 'lucide-react';
 import AddResidentForm from './AdminComponents/RBIForm';
 import ViewUserDetails from './AdminComponents/UserDetails';
 import { type User, API_BASE_URL } from '../interfaces';
+
+type SortConfig = {
+    key: keyof User | 'days_left' | null;
+    direction: 'asc' | 'desc';
+};
 
 const AdminRBIManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -17,6 +22,9 @@ const AdminRBIManagement = () => {
 
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
+
+    // --- State for Sorting ---
+    const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
 
     const fetchResidents = async () => {
         try {
@@ -34,7 +42,33 @@ const AdminRBIManagement = () => {
         fetchResidents();
     }, []);
 
-    // --- Calculated Statistics based on Database Data ---
+    // --- Logic for Sorting ---
+    const requestSort = (key: keyof User | 'days_left') => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: keyof User | 'days_left') => {
+        if (sortConfig.key !== key) return <ArrowUpDown size={12} className="ml-1 opacity-30" />;
+        return sortConfig.direction === 'asc'
+            ? <ArrowUp size={12} className="ml-1 text-blue-600" />
+            : <ArrowDown size={12} className="ml-1 text-blue-600" />;
+    };
+
+    // Helper to calculate days remaining
+    const calculateDaysLeft = (expiryDate?: string) => {
+        if (!expiryDate) return null;
+        const now = new Date();
+        const exp = new Date(expiryDate);
+        const diffTime = exp.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    };
+
+    // --- Calculated Statistics ---
     const stats = useMemo(() => {
         const now = new Date();
         const sixtyDaysFromNow = new Date();
@@ -42,27 +76,48 @@ const AdminRBIManagement = () => {
 
         return residents.reduce((acc, curr) => {
             acc.total++;
-
-            // Logic for Expiration (assuming curr.id_expiry_date exists in your DB)
             if (curr.id_expiry_date) {
                 const expDate = new Date(curr.id_expiry_date);
                 if (expDate < now) acc.expired++;
                 else if (expDate <= sixtyDaysFromNow) acc.expiringSoon++;
             }
-
             if (curr.is_flood_prone) acc.floodProne++;
             if (curr.is_flood_prone === true) {
                 acc.highVulnerability++;
             }
-
             return acc;
         }, { total: 0, expiringSoon: 0, expired: 0, floodProne: 0, highVulnerability: 0 });
     }, [residents]);
 
-    const filteredResidents = residents.filter(person =>
-        `${person.firstname} ${person.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        person.system_id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // --- Filter AND Sort Logic ---
+    const filteredAndSortedResidents = useMemo(() => {
+        // First, Filter
+        let result = residents.filter(person =>
+            `${person.firstname} ${person.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            person.system_id?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+
+        // Second, Sort
+        if (sortConfig.key !== null) {
+            result.sort((a, b) => {
+                let aValue: any;
+                let bValue: any;
+
+                if (sortConfig.key === 'days_left') {
+                    aValue = calculateDaysLeft(a.id_expiry_date) ?? -9999;
+                    bValue = calculateDaysLeft(b.id_expiry_date) ?? -9999;
+                } else {
+                    aValue = a[sortConfig.key as keyof User] ?? '';
+                    bValue = b[sortConfig.key as keyof User] ?? '';
+                }
+
+                if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+        return result;
+    }, [residents, searchTerm, sortConfig]);
 
     const handleDelete = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this profile?")) {
@@ -113,7 +168,7 @@ const AdminRBIManagement = () => {
                     </p>
                 </div>
             </header>
-            {/* --- 1. Top Summary Stats --- */}
+
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <StatCard title="TOTAL PROFILES" count={stats.total} color="text-gray-900" />
                 <StatCard title="EXPIRING SOON" count={stats.expiringSoon} sub="Within 60 days" color="text-orange-500" />
@@ -121,7 +176,7 @@ const AdminRBIManagement = () => {
                 <StatCard title="FLOOD-PRONE" count={stats.floodProne} color="text-orange-600" />
                 <StatCard title="HIGH VULNERABILITY" count={stats.highVulnerability} sub="Bedridden/Wheelchair" color="text-purple-600" />
             </div>
-            {/* --- 4. Expiration Alert Banner --- */}
+
             <div className="bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-3 rounded-sm">
                 <div className="bg-yellow-400 p-1 rounded-full">
                     <Info size={16} className="text-white" />
@@ -134,8 +189,8 @@ const AdminRBIManagement = () => {
                     </p>
                 </div>
             </div>
-            <div className="space-y-4">
 
+            <div className="space-y-4">
                 <main className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
                     <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
                         <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -159,10 +214,6 @@ const AdminRBIManagement = () => {
                                 className="w-full bg-gray-50 border border-gray-200 py-2 pl-10 pr-4 text-sm outline-none focus:border-blue-400"
                             />
                         </div>
-                        <div className="flex gap-2">
-                            <FilterDropdown label="Categories" />
-                            <FilterDropdown label="Status" />
-                        </div>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -175,58 +226,69 @@ const AdminRBIManagement = () => {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
-                                        <th className="px-6 py-4">System ID</th>
-                                        <th className="px-6 py-4">Full Name</th>
-                                        <th className="px-6 py-4">Category</th>
-                                        <th className="px-6 py-4">Disability Type</th>
-                                        <th className="px-6 py-4">ID Status</th>
+                                        <th onClick={() => requestSort('system_id')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center">System ID {getSortIcon('system_id')}</div>
+                                        </th>
+                                        <th onClick={() => requestSort('firstname')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center">Full Name {getSortIcon('firstname')}</div>
+                                        </th>
+                                        <th onClick={() => requestSort('type')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center">Category {getSortIcon('type')}</div>
+                                        </th>
+                                        <th onClick={() => requestSort('id_expiry_date')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center">ID Status {getSortIcon('id_expiry_date')}</div>
+                                        </th>
+                                        <th onClick={() => requestSort('days_left')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
+                                            <div className="flex items-center">Days Left {getSortIcon('days_left')}</div>
+                                        </th>
                                         <th className="px-6 py-4">Vulnerability</th>
                                         <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {filteredResidents.map((person) => (
-                                        <tr key={person.id} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4 text-sm font-bold text-gray-900">{person.system_id}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-700">{person.firstname} {person.lastname}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${getTypeStyles(person.type)}`}>
-                                                    {person.type}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-gray-500">{person.disability || 'N/A'}</td>
-                                            <td className="px-6 py-4">
-                                                <IDStatusBadge date={person.id_expiry_date} />
-                                            </td>
-                                            <td className="px-6 py-4 flex gap-1">
-                                                {person.is_flood_prone && (
-                                                    <span className="bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-bold rounded">Flood-Prone</span>
-                                                )}
-                                                {person.is_flood_prone && (
-                                                    <span className="bg-purple-100 text-purple-700 px-2 py-0.5 text-[10px] font-bold rounded">{person.is_flood_prone}</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex justify-end gap-2">
-                                                    <ActionButton icon={<Eye size={16} />} onClick={() => handleViewClick(person)} />
-                                                    <ActionButton icon={<Edit3 size={16} />} onClick={() => handleEditClick(person)} />
-                                                    <ActionButton icon={<Trash2 size={16} />} onClick={() => handleDelete(person.system_id!)} color="text-red-400 hover:text-red-600" />
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {filteredAndSortedResidents.map((person) => {
+                                        const daysLeft = calculateDaysLeft(person.id_expiry_date);
+                                        return (
+                                            <tr key={person.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="px-6 py-4 text-sm font-bold text-gray-900">{person.system_id}</td>
+                                                <td className="px-6 py-4 text-sm text-gray-700">{person.firstname} {person.lastname}</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${getTypeStyles(person.type)}`}>
+                                                        {person.type}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <IDStatusBadge date={person.id_expiry_date} />
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`text-sm font-medium ${daysLeft !== null && daysLeft <= 0 ? 'text-red-600 font-bold' : daysLeft !== null && daysLeft <= 60 ? 'text-orange-600' : 'text-gray-600'}`}>
+                                                        {daysLeft === null ? 'N/A' : daysLeft <= 0 ? 'EXPIRED' : `${daysLeft} days`}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 flex gap-1">
+                                                    {person.is_flood_prone && (
+                                                        <span className="bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-bold rounded">Flood-Prone</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex justify-end gap-2">
+                                                        <ActionButton icon={<Eye size={16} />} onClick={() => handleViewClick(person)} />
+                                                        <ActionButton icon={<Edit3 size={16} />} onClick={() => handleEditClick(person)} />
+                                                        <ActionButton icon={<Trash2 size={16} />} onClick={() => handleDelete(person.system_id!)} color="text-red-400 hover:text-red-600" />
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         )}
                     </div>
                 </main>
-
-
             </div>
         </div>
     );
 };
-
 
 const StatCard = ({ title, count, sub, color }: any) => (
     <div className="bg-white p-5 border border-gray-200 shadow-sm rounded-sm">
@@ -234,12 +296,6 @@ const StatCard = ({ title, count, sub, color }: any) => (
         <p className={`text-4xl font-black ${color}`}>{count}</p>
         {sub && <p className="text-[10px] text-gray-400 mt-1">{sub}</p>}
     </div>
-);
-
-const FilterDropdown = ({ label }: { label: string }) => (
-    <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-200 text-sm font-semibold text-gray-700">
-        {label} <ChevronDown size={14} />
-    </button>
 );
 
 const ActionButton = ({ icon, onClick, color = "text-gray-400 hover:text-gray-900" }: any) => (

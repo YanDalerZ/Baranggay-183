@@ -103,3 +103,13 @@ export interface BatchData {
         qty: number;
     }[];
 }
+export interface Event {
+    id: string;
+    title: string;
+    type: 'Health Mission' | 'Community Event' | 'Relief Distribution' | 'Vaccination' | 'Birthday';
+    event_date: string;
+    event_time: string;
+    location: string;
+    attendees: string;
+    description: string;
+}
