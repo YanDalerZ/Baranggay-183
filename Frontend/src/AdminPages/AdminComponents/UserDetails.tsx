@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
-import { X, AlertTriangle, Calendar, Clock } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
 
 interface ViewUserDetailsProps {
@@ -135,8 +135,8 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                 <div>
                                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Remaining Validity</p>
                                     <p className={`text-sm font-bold mt-0.5 ${daysLeft === null ? 'text-gray-400' :
-                                            daysLeft <= 0 ? 'text-red-600' :
-                                                daysLeft <= 60 ? 'text-orange-600' : 'text-green-600'
+                                        daysLeft <= 0 ? 'text-red-600' :
+                                            daysLeft <= 60 ? 'text-orange-600' : 'text-green-600'
                                         }`}>
                                         {daysLeft === null ? 'No data' : daysLeft <= 0 ? 'EXPIRED' : `${daysLeft} days remaining`}
                                     </p>
