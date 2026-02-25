@@ -7,7 +7,7 @@ import {
   Calendar,
   Loader2
 } from 'lucide-react';
-import { type User, API_BASE_URL } from '../interfaces';
+import { type User, API_BASE_URL, type DistributionRecord } from '../interfaces';
 
 // --- Types ---
 interface StatCardProps {
@@ -19,9 +19,10 @@ interface StatCardProps {
   valueColor?: string;
 }
 
+
 // --- Components ---
 const StatCard = ({ title, value, subtext, icon: Icon, iconColor = "text-gray-400", valueColor = "text-gray-900" }: StatCardProps) => (
-  <div className="bg-white p-6 border border-gray-100 shadow-sm">
+  <div className="bg-white p-6 border border-gray-100 shadow-sm rounded-sm">
     <div className="flex justify-between items-start mb-4">
       <h3 className="text-gray-700 font-semibold">{title}</h3>
       <Icon className={iconColor} size={20} />
@@ -33,14 +34,21 @@ const StatCard = ({ title, value, subtext, icon: Icon, iconColor = "text-gray-40
 
 const AdminDashboard = () => {
   const [residents, setResidents] = useState<User[]>([]);
+  const [allDistributionRecords, setAllDistributionRecords] = useState<DistributionRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${API_BASE_URL}/api/user/`);
-        setResidents(response.data);
+        // Using Promise.all to fetch both endpoints simultaneously
+        const [usersRes, benefitsRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/user/`),
+          axios.get(`${API_BASE_URL}/api/benefits/distribution/all`)
+        ]);
+
+        setResidents(usersRes.data);
+        setAllDistributionRecords(benefitsRes.data);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -59,10 +67,14 @@ const AdminDashboard = () => {
     return residents.reduce((acc, curr) => {
       // 1. Total & Category Counts
       acc.total++;
-      if (curr.type === 'SC' || curr.disability === 'Senior Citizen') acc.sc++;
-      if (curr.type === 'PWD') acc.pwd++;
-      if (curr.type === 'Both') { acc.sc++; acc.pwd++; }
 
+      // Normalize type check
+      const userType = curr.type?.toUpperCase();
+      if (userType === 'SC' || curr.disability === 'Senior Citizen') acc.sc++;
+      if (userType === 'PWD') acc.pwd++;
+      if (userType === 'BOTH') { acc.sc++; acc.pwd++; }
+
+      // 2. ID Expiration Logic
       if (curr.id_expiry_date) {
         const expDate = new Date(curr.id_expiry_date);
         if (expDate > now && expDate <= sixtyDays) {
@@ -75,6 +87,7 @@ const AdminDashboard = () => {
         }
       }
 
+      // 3. Flood Prone
       if (curr.is_flood_prone) acc.floodProne++;
 
       return acc;
@@ -83,6 +96,16 @@ const AdminDashboard = () => {
       expiringSoon: [] as any[]
     });
   }, [residents]);
+
+  // Helper to format claim dates
+  const formatClaimDate = (dateString: string) => {
+    if (!dateString) return '';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   if (loading) {
     return (
@@ -141,12 +164,15 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
         {/* Dynamic ID Expiration Alerts */}
-        <section className="bg-white p-8 border border-gray-100 shadow-sm h-fit">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">ID Expiration Alerts</h2>
+        <section className="bg-white p-8 border border-gray-100 shadow-sm h-full rounded-sm">
+          <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <CreditCard className="text-orange-500" size={20} />
+            ID Expiration Alerts
+          </h2>
           <div className="space-y-4">
             {stats.expiringSoon.length > 0 ? (
               stats.expiringSoon.slice(0, 5).map((alert, i) => (
-                <div key={i} className="flex justify-between items-center p-5 bg-orange-50/50 border border-orange-100">
+                <div key={i} className="flex justify-between items-center p-5 bg-orange-50/50 border border-orange-100 rounded-sm">
                   <div>
                     <div className="font-bold text-gray-900">{alert.name}</div>
                     <div className="text-sm text-gray-500">{alert.id}</div>
@@ -158,35 +184,51 @@ const AdminDashboard = () => {
                 </div>
               ))
             ) : (
-              <p className="text-gray-400 text-sm py-4 text-center">No IDs expiring within 60 days.</p>
+              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100">
+                <p className="text-gray-400 text-sm">No IDs expiring within 60 days.</p>
+              </div>
             )}
           </div>
         </section>
 
-        {/* Recent Claims - Note: Connect this to your 'approvals' table next */}
-        <section className="bg-white p-8 border border-gray-100 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Recent Claims</h2>
+        {/* Recent Claims Section */}
+        <div className="bg-white border border-gray-100 rounded-sm p-8 shadow-sm h-full">
+          <h4 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-tight">
+            Recent Activities
+          </h4>
           <div className="space-y-4">
-            {/* You can replace this dummy data by fetching your /api/claims or /api/approvals endpoint */}
-            {[
-              { name: "Maria Santos", type: "Senior Citizen Monthly Pension", status: "Claimed", color: "bg-green-100 text-green-700" },
-              { name: "Maria Santos", type: "Relief Goods Package", status: "Claimed", color: "bg-green-100 text-green-700" },
-              { name: "Pedro Reyes", type: "Senior Citizen Monthly Pension", status: "Claimed", color: "bg-green-100 text-green-700" },
-              { name: "Rosa Cruz", type: "PWD Discount Card", status: "Approved", color: "bg-blue-100 text-blue-700" },
-            ].map((claim, i) => (
-              <div key={i} className="flex justify-between items-center p-4 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition ">
-                <div>
-                  <div className="font-bold text-gray-900">{claim.name}</div>
-                  <div className="text-sm text-gray-500">{claim.type}</div>
-                </div>
-                <span className={`px-4 py-1 text-xs font-bold ${claim.color}`}>
-                  {claim.status}
-                </span>
+            {allDistributionRecords && allDistributionRecords.filter(r => r.status === 'Claimed').length > 0 ? (
+              allDistributionRecords
+                .filter(r => r.status === 'Claimed')
+                .slice(0, 5) // Increased to 5 for better visibility
+                .map((act, idx) => (
+                  <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-sm border-l-4 border-green-500">
+                    <div>
+                      <p className="text-[10px] font-black text-blue-600 uppercase mb-0.5">
+                        {act.batch_name || 'Relief Batch'}
+                      </p>
+                      <p className="text-sm font-bold text-gray-900">{act.resident}</p>
+                      <p className="text-[10px] text-gray-500 truncate max-w-[200px]">
+                        {act.item_description}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                        Claimed
+                      </span>
+                      <p className="text-[9px] text-gray-400 mt-2">
+                        {formatClaimDate(act.date_claimed)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-100">
+                <p className="text-xs text-gray-400 italic">No recent claims recorded.</p>
               </div>
-            ))}
+            )}
           </div>
-        </section>
-
+        </div>
       </div>
     </div>
   );
