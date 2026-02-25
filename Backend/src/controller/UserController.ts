@@ -111,54 +111,90 @@ class UserController {
             disability, is_flood_prone, emergencyContact
         } = req.body;
 
+        // 1. Validation
+        if (!firstname || !lastname || !type) {
+            return res.status(400).json({ message: "Required fields (Firstname, Lastname, Type) are missing." });
+        }
+
+        const connection = await pool.getConnection();
+
         try {
-            if (!firstname || !lastname || !type) {
-                return res.status(400).json({ message: "Firstname, Lastname, and Type are required." });
-            }
+            await connection.beginTransaction();
 
-            const [tableStatus]: any = await pool.execute(
-                `SELECT AUTO_INCREMENT FROM information_schema.TABLES 
-                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'`
-            );
-            const nextId = tableStatus[0].AUTO_INCREMENT;
-            const system_id = `${type === 'SC' ? 'SC' : 'PWD'}-${nextId.toString().padStart(3, '0')}`;
-
-            const rawPassword = `${system_id}${lastname}`;
-            const hashedPassword = await bcrypt.hash(rawPassword, 10);
-
-            const [userResult]: any = await pool.execute(
+            // 2. Initial Insert 
+            // We provide 'TEMP' for system_id to satisfy the NOT NULL constraint in your DB.
+            const [userResult]: any = await connection.execute(
                 `INSERT INTO users (
-                    system_id, firstname, lastname, email, password, contact_number, 
-                    gender, birthday, address, type, id_expiry_date, 
-                    disability, is_flood_prone, role, status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 2, 'active')`,
+                system_id, firstname, lastname, email, password, contact_number, 
+                gender, birthday, address, type, id_expiry_date, 
+                disability, is_flood_prone, role, status
+            ) VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 2, 'active')`,
                 [
-                    system_id, firstname, lastname, email || null, hashedPassword, contact_number,
+                    firstname, lastname, email || null, 'TEMPORARY_PASS', contact_number,
                     gender, birthday, address, type, id_expiry_date || null,
                     disability || 'N/A', is_flood_prone ? 1 : 0
                 ]
             );
 
-            const newUserId = userResult.insertId;
+            const newIdFromDB = userResult.insertId;
 
-            if (emergencyContact && emergencyContact.name) {
-                await this.saveEmergencyContact(newUserId, emergencyContact);
+            // 3. Custom System ID Logic
+            // This handles your specific requirement for 'Both' category.
+            let prefix = 'PWD';
+            if (type === 'Both') {
+                prefix = 'SC-PWD';
+            } else if (type === 'Senior Citizen' || type === 'SC') {
+                prefix = 'SC';
             }
 
+            const system_id = `${prefix}-${newIdFromDB.toString().padStart(3, '0')}`;
+
+            // 4. Generate Hashed Password
+            // Default: system_id + lastname (e.g., SC-PWD-015santos)
+            const cleanLastName = lastname.replace(/\s+/g, '').toLowerCase();
+            const rawPassword = `${system_id}${cleanLastName}`;
+            const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
+            // 5. Update the record with final system_id and password
+            await connection.execute(
+                `UPDATE users SET system_id = ?, password = ? WHERE id = ?`,
+                [system_id, hashedPassword, newIdFromDB]
+            );
+
+            // 6. Handle Emergency Contacts
+            if (emergencyContact && emergencyContact.name) {
+                await this.saveEmergencyContact(newIdFromDB, emergencyContact, connection);
+            }
+
+            await connection.commit();
+
             return res.status(201).json({
+                success: true,
                 message: "Resident registered successfully!",
-                system_id,
-                generated_password: rawPassword
+                data: {
+                    system_id,
+                    generated_password: rawPassword
+                }
             });
 
-        } catch (error) {
-            console.error("Registration Error:", error);
+        } catch (error: any) {
+            await connection.rollback();
+            console.error("Registration Error:", error.message);
+
+            // Handling the "Data Truncated" error if the 'type' column is still too short
+            if (error.code === 'WARN_DATA_TRUNCATED' || error.errno === 1265) {
+                return res.status(400).json({
+                    message: "Database Error: The 'type' field is too long. Please ensure your 'users' table 'type' column is VARCHAR(50)."
+                });
+            }
+
             return res.status(500).json({ message: "Internal server error." });
+        } finally {
+            connection.release();
         }
     };
-
     public updateUser = async (req: Request, res: Response): Promise<Response> => {
-        const { system_id } = req.params;
+        const { system_id } = req.params; // The current ID (e.g., PWD-015)
         const {
             firstname, lastname, email, contact_number,
             gender, birthday, address, type, id_expiry_date,
@@ -170,62 +206,149 @@ class UserController {
         try {
             await connection.beginTransaction();
 
-            const [updateResult]: any = await connection.execute(
+            // 1. Get the existing User's numeric ID
+            const [userRow]: any = await connection.execute(
+                "SELECT id FROM users WHERE system_id = ?",
+                [system_id]
+            );
+
+            if (userRow.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({ message: "Resident not found." });
+            }
+
+            const userId = userRow[0].id;
+
+            // 2. Generate the NEW system_id based on the (potentially new) Category
+            // This ensures if they change from PWD to 'Both', the ID updates to SC-PWD-
+            let prefix = 'PWD';
+            if (type === 'Both') {
+                prefix = 'SC-PWD';
+            } else if (type === 'Senior Citizen' || type === 'SC') {
+                prefix = 'SC';
+            }
+
+            const newSystemId = `${prefix}-${userId.toString().padStart(3, '0')}`;
+
+            // 3. Update the User record
+            await connection.execute(
                 `UPDATE users SET 
-                    firstname = ?, lastname = ?, email = ?, 
-                    contact_number = ?, gender = ?, birthday = ?, 
-                    address = ?, type = ?, id_expiry_date = ?, 
-                    disability = ?, is_flood_prone = ?
-                WHERE system_id = ?`,
+                system_id = ?,
+                firstname = ?, lastname = ?, email = ?, 
+                contact_number = ?, gender = ?, birthday = ?, 
+                address = ?, type = ?, id_expiry_date = ?, 
+                disability = ?, is_flood_prone = ?
+            WHERE id = ?`,
                 [
+                    newSystemId,
                     firstname, lastname, email || null, contact_number,
                     gender, birthday, address, type, id_expiry_date || null,
-                    disability || 'N/A', is_flood_prone ? 1 : 0, system_id
+                    disability || 'N/A', is_flood_prone ? 1 : 0,
+                    userId
                 ]
             );
 
             if (emergencyContact && emergencyContact.name) {
-                const [userRow]: any = await connection.execute(
-                    "SELECT id FROM users WHERE system_id = ?",
-                    [system_id]
+                await connection.execute(
+                    `INSERT INTO emergency_contacts (user_id, name, relationship, contact) 
+                 VALUES (?, ?, ?, ?) 
+                 ON DUPLICATE KEY UPDATE 
+                    name = VALUES(name), 
+                    relationship = VALUES(relationship), 
+                    contact = VALUES(contact)`,
+                    [
+                        userId,
+                        emergencyContact.name,
+                        emergencyContact.relationship || 'N/A',
+                        emergencyContact.contact_number || emergencyContact.contact
+                    ]
                 );
-
-                if (userRow.length > 0) {
-                    const userId = userRow[0].id;
-
-                    await connection.execute(
-                        `INSERT INTO emergency_contacts (user_id, name, relationship, contact) 
-                         VALUES (?, ?, ?, ?) 
-                         ON DUPLICATE KEY UPDATE 
-                            name = VALUES(name), 
-                            relationship = VALUES(relationship), 
-                            contact = VALUES(contact)`,
-                        [userId, emergencyContact.name, emergencyContact.relationship, emergencyContact.contact]
-                    );
-                }
             }
 
             await connection.commit();
-            return res.status(200).json({ message: "Resident and Contact updated successfully!" });
+            return res.status(200).json({
+                message: "Resident updated successfully!",
+                new_system_id: newSystemId
+            });
 
-        } catch (error) {
+        } catch (error: any) {
             await connection.rollback();
-            console.error("Update Error:", error);
+            console.error("Update Error:", error.message);
+
+            if (error.code === 'WARN_DATA_TRUNCATED' || error.errno === 1265) {
+                return res.status(400).json({
+                    message: "Data too long. Check if 'type' or 'system_id' column lengths are sufficient."
+                });
+            }
+
             return res.status(500).json({ message: "Internal server error." });
         } finally {
             connection.release();
         }
     };
+    public DeleteUserBySystemId = async (req: Request, res: Response): Promise<Response> => {
+        const { system_id } = req.params;
 
-    private saveEmergencyContact = async (userId: number, contactData: any): Promise<void> => {
+        if (!system_id) {
+            return res.status(400).json({ message: "System ID is required for deletion." });
+        }
+
+        const connection = await pool.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            const [rows]: any = await connection.execute(
+                `SELECT id FROM users WHERE system_id = ?`,
+                [system_id]
+            );
+
+            if (rows.length === 0) {
+                await connection.rollback();
+                return res.status(404).json({ message: "User not found." });
+            }
+
+            const userId = rows[0].id;
+
+            await connection.execute(
+                `DELETE FROM emergency_contacts WHERE user_id = ?`,
+                [userId]
+            );
+
+            const [deleteResult]: any = await connection.execute(
+                `DELETE FROM users WHERE id = ?`,
+                [userId]
+            );
+
+            if (deleteResult.affectedRows === 0) {
+                throw new Error("Failed to delete user record.");
+            }
+
+            await connection.commit();
+
+            return res.status(200).json({
+                message: `User with System ID ${system_id} has been deleted successfully.`
+            });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error("Deletion Error:", error);
+            return res.status(500).json({ message: "Internal server error during deletion." });
+        } finally {
+            connection.release();
+        }
+    };
+
+    private saveEmergencyContact = async (userId: number, contactData: any, connection: any): Promise<void> => {
         const { name, relationship, contact } = contactData;
-        await pool.execute(
+
+        await connection.execute(
             `INSERT INTO emergency_contacts (user_id, name, relationship, contact) 
-             VALUES (?, ?, ?, ?) 
-             ON DUPLICATE KEY UPDATE 
-                name = VALUES(name), 
-                relationship = VALUES(relationship), 
-                contact = VALUES(contact)`,
+         VALUES (?, ?, ?, ?) 
+         ON DUPLICATE KEY UPDATE 
+            name = VALUES(name), 
+            relationship = VALUES(relationship), 
+            contact = VALUES(contact)`,
             [userId, name, relationship, contact]
         );
     };

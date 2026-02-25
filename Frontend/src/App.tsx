@@ -19,7 +19,6 @@ import AdminNavbar from './components/AdminNavbar';
 import AdminLogin from './AdminPages/AdminLogin';
 import AdminDashboard from './AdminPages/AdminDashboard';
 import AdminRBIManagement from './AdminPages/AdminRBIManagement';
-import AdminPWDSCProfiles from './AdminPages/AdminPWDSCProfiles';
 import AdminApplicationsManagement from './AdminPages/AdminApplicationsManagement';
 import AdminRiskMapping from './AdminPages/AdminRiskMapping';
 import AdminNotificationsCenter from './AdminPages/AdminNotificationsCenter';
@@ -58,29 +57,19 @@ const App: React.FC = () => {
           }
         />
 
-        {/* Protected Routes - Only accessible if token exists */}
         <Route path="/UserMainPage" element={<ProtectedRoute><Navbar><UserMainPage /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserProfile" element={<ProtectedRoute><Navbar><UserProfile /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserBenefits" element={<ProtectedRoute><Navbar><UserBenefits /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserAlerts" element={<ProtectedRoute><Navbar><UserAlert /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserEvents" element={<ProtectedRoute><Navbar><UserEvents /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserHistory" element={<ProtectedRoute><Navbar><UserHistory /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserApply" element={<ProtectedRoute><Navbar><UserApply /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserAppointments" element={<ProtectedRoute><Navbar><UserAppointments /></Navbar></ProtectedRoute>} />
-
         <Route path="/UserGuide" element={<ProtectedRoute><Navbar><UserGuide /></Navbar></ProtectedRoute>} />
 
 
         <Route path="/AdminDashboard" element={<ProtectedRoute><AdminNavbar><AdminDashboard /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminRBIManagement" element={<ProtectedRoute><AdminNavbar><AdminRBIManagement /></AdminNavbar></ProtectedRoute>} />
-        <Route path="/AdminPWDSCProfiles" element={<ProtectedRoute><AdminNavbar><AdminPWDSCProfiles /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminApplicationsManagement" element={<ProtectedRoute><AdminNavbar><AdminApplicationsManagement /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminRiskMapping" element={<ProtectedRoute><AdminNavbar><AdminRiskMapping /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminNotificationsCenter" element={<ProtectedRoute><AdminNavbar><AdminNotificationsCenter /></AdminNavbar></ProtectedRoute>} />
@@ -89,7 +78,7 @@ const App: React.FC = () => {
         <Route path="/AdminEventsCalendar" element={<ProtectedRoute><AdminNavbar><AdminEventsCalendar /></AdminNavbar></ProtectedRoute>} />
         <Route path="/AdminContentCMS" element={<ProtectedRoute><AdminNavbar><AdminContentCMS /></AdminNavbar></ProtectedRoute>} />
 
-        {/* 404 Route */}
+
         <Route path="*" element={
           <div style={{ padding: '50px', textAlign: 'center' }}>
             <h2 style={{ color: '#00308F', fontWeight: 'bold' }}>404: Page Not Found</h2>
