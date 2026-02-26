@@ -9,9 +9,20 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
+    timezone: '+08:00',
     ssl: {
         rejectUnauthorized: false
     }
+});
+pool.on('connection', (connection) => {
+    connection.query("SET time_zone = '+08:00';", (err) => {
+        if (err) {
+            console.error("❌ Failed to set session timezone:", err.message);
+        }
+        else {
+            console.log("✅ Database session timezone synchronized to Manila (+08:00)");
+        }
+    });
 });
 export default pool;
 //# sourceMappingURL=db.js.map

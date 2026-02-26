@@ -47,6 +47,7 @@ export interface User {
     system_id?: string;
     firstname: string;
     lastname: string;
+    status: 'active' | 'inactive';
     gender: string;
     birthday: string;
     contact_number: string;

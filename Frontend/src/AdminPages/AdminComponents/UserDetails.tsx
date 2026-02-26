@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
 import { X, AlertTriangle } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
@@ -12,13 +13,19 @@ interface ViewUserDetailsProps {
 const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user }) => {
     const [details, setDetails] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
-
+    const token = useAuth().token;
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
     const fetchResidentById = useCallback(async () => {
         if (!user?.system_id) return;
 
         try {
+            if (!token) return;
             setLoading(true);
-            const response = await axios.get(`${API_BASE_URL}/api/user/${user.system_id}`);
+            const response = await axios.get(`${API_BASE_URL}/api/user/${user.system_id}`, config);
             setDetails(response.data);
         } catch (err) {
             console.error('Error fetching resident details:', err);
@@ -54,7 +61,6 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         return dateString.split('T')[0];
     };
 
-    // --- Logic for Days Remaining ---
     const getDaysLeft = (dateString: string | undefined) => {
         if (!dateString) return null;
         const now = new Date();

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
 import {
     Search, Eye, Edit3,
@@ -23,13 +24,18 @@ const AdminRBIManagement = () => {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isViewDetailsOpen, setIsViewDetailsOpen] = useState(false);
 
-    // --- State for Sorting ---
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
-
+    const { token } = useAuth();
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
     const fetchResidents = async () => {
         try {
+            if (!token) return;
             setLoading(true);
-            const response = await axios.get(`${API_BASE_URL}/api/user/`);
+            const response = await axios.get(`${API_BASE_URL}/api/user/`, config);
             setResidents(response.data);
         } catch (err) {
             console.error('Error fetching residents:', err);
@@ -42,7 +48,6 @@ const AdminRBIManagement = () => {
         fetchResidents();
     }, []);
 
-    // --- Logic for Sorting ---
     const requestSort = (key: keyof User | 'days_left') => {
         let direction: 'asc' | 'desc' = 'asc';
         if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -89,15 +94,12 @@ const AdminRBIManagement = () => {
         }, { total: 0, expiringSoon: 0, expired: 0, floodProne: 0, highVulnerability: 0 });
     }, [residents]);
 
-    // --- Filter AND Sort Logic ---
     const filteredAndSortedResidents = useMemo(() => {
-        // First, Filter
         let result = residents.filter(person =>
             `${person.firstname} ${person.lastname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
             person.system_id?.toLowerCase().includes(searchTerm.toLowerCase())
         );
 
-        // Second, Sort
         if (sortConfig.key !== null) {
             result.sort((a, b) => {
                 let aValue: any;
@@ -120,9 +122,10 @@ const AdminRBIManagement = () => {
     }, [residents, searchTerm, sortConfig]);
 
     const handleDelete = async (id: string) => {
+        if (!token) return;
         if (window.confirm("Are you sure you want to delete this profile?")) {
             try {
-                await axios.delete(`${API_BASE_URL}/api/user/${id}`);
+                await axios.delete(`${API_BASE_URL}/api/user/${id}`, config);
                 fetchResidents();
             } catch (err) {
                 console.error("Delete failed:", err);

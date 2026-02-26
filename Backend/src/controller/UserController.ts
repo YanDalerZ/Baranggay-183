@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../database/db.js';
-
+import EmailService from '../services/EmailService.js';
 class UserController {
 
     public async fetchAllUsers(req: Request, res: Response): Promise<Response> {
@@ -149,18 +149,21 @@ class UserController {
             const rawPassword = `${system_id}${cleanLastName}`;
             const hashedPassword = await bcrypt.hash(rawPassword, 10);
 
-            // 5. Update the record with final system_id and password
             await connection.execute(
                 `UPDATE users SET system_id = ?, password = ? WHERE id = ?`,
                 [system_id, hashedPassword, newIdFromDB]
             );
 
-            // 6. Handle Emergency Contacts
             if (emergencyContact && emergencyContact.name) {
                 await this.saveEmergencyContact(newIdFromDB, emergencyContact, connection);
             }
 
             await connection.commit();
+
+            if (email) {
+                const fullName = `${firstname} ${lastname}`;
+                EmailService.sendRegistrationEmail(email, fullName, system_id, rawPassword);
+            }
 
             return res.status(201).json({
                 success: true,

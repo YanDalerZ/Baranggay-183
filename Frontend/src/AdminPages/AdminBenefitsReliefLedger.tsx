@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
 import {
   Plus, CheckCircle, Clock, Lock, X, Search, Users, Loader2, ChevronRight, ArrowLeft, Layers, Info, Edit2, Trash2
@@ -21,20 +22,24 @@ const BenefitsReliefLedger = () => {
   const [isGeneratingBatch, setIsGeneratingBatch] = useState(false);
 
   const [newItem, setNewItem] = useState({ name: '', category: 'Food', total: 0, unit: 'pcs' });
+  const { token, user } = useAuth();
 
   const [batchData, setBatchData] = useState<BatchData>({
     batchName: '',
     targetGroup: 'SC',
     selectedItems: []
   });
-
+  const config = {
+    headers: { Authorization: `Bearer ${token}` }
+  };
   const loadInitialData = async () => {
     setLoading(true);
     try {
+      if (!token) return;
       const [invRes, batchRes, distRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/benefits/inventory`),
-        axios.get(`${API_BASE_URL}/api/benefits/batches`),
-        axios.get(`${API_BASE_URL}/api/benefits/distribution/all`)
+        axios.get(`${API_BASE_URL}/api/benefits/inventory`, config),
+        axios.get(`${API_BASE_URL}/api/benefits/batches`, config),
+        axios.get(`${API_BASE_URL}/api/benefits/distribution/all`, config)
       ]);
       setInventory(Array.isArray(invRes.data) ? invRes.data : []);
       setBatches(Array.isArray(batchRes.data) ? batchRes.data : []);
@@ -51,7 +56,8 @@ const BenefitsReliefLedger = () => {
   const viewBatchDetails = async (batchId: string) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/benefits/distribution/${batchId}`);
+      if (!token) return;
+      const res = await axios.get(`${API_BASE_URL}/api/benefits/distribution/${batchId}`, config);
       setResidentsInBatch(res.data);
       setSelectedBatchId(batchId);
     } catch (error) {
@@ -64,10 +70,11 @@ const BenefitsReliefLedger = () => {
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!token) return;
       if (editingItem) {
-        await axios.put(`${API_BASE_URL}/api/benefits/inventory/${editingItem.id}`, newItem);
+        await axios.put(`${API_BASE_URL}/api/benefits/inventory/${editingItem.id}`, newItem, config);
       } else {
-        await axios.post(`${API_BASE_URL}/api/benefits/inventory`, newItem);
+        await axios.post(`${API_BASE_URL}/api/benefits/inventory`, newItem, config);
       }
       setIsAddingItem(false);
       setEditingItem(null);
@@ -81,7 +88,9 @@ const BenefitsReliefLedger = () => {
   const handleDeleteItem = async (id: string) => {
     if (!confirm("Are you sure you want to delete this item? This may affect distribution records.")) return;
     try {
-      await axios.delete(`${API_BASE_URL}/api/benefits/inventory/${id}`);
+      if (!token) return;
+
+      await axios.delete(`${API_BASE_URL}/api/benefits/inventory/${id}`, config);
       loadInitialData();
     } catch (error) {
       alert("Failed to delete item.");
@@ -99,29 +108,24 @@ const BenefitsReliefLedger = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/benefits/distribution/batch-generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      if (!token) return;
+
+      const response = await axios.post(
+        `${API_BASE_URL}/api/benefits/distribution/batch-generate`,
+        {
           batchName: batchData.batchName,
           targetGroup: batchData.targetGroup,
           selectedItems: batchData.selectedItems
-        })
-      });
+        }, config);
 
-      const data = await response.json();
+      alert(`Success ${user?.fullname}! ${response.data.message}`);
 
-      if (response.ok) {
-        alert(data.message);
-        setIsGeneratingBatch(false);
-        setBatchData({ batchName: '', targetGroup: 'SC', selectedItems: [] });
-        loadInitialData();
-      } else {
-        alert(data.message || "Error generating batch.");
-      }
-    } catch (error) {
-      console.error("Fetch error:", error);
-      alert("Failed to connect to the server.");
+      setIsGeneratingBatch(false);
+      setBatchData({ batchName: '', targetGroup: 'SC', selectedItems: [] });
+      loadInitialData();
+
+    } catch (error: any) {
+      console.error("Axios error:", error);
     }
   };
 
@@ -133,7 +137,7 @@ const BenefitsReliefLedger = () => {
       await axios.patch(`${API_BASE_URL}/api/benefits/claim`, {
         batchId: selectedBatchId,
         residentId: residentId
-      });
+      }, config);
       viewBatchDetails(selectedBatchId);
       loadInitialData();
     } catch (error: any) {
