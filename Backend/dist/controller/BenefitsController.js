@@ -222,6 +222,30 @@ class LedgerController {
             connection.release();
         }
     };
+    fetchUserBenefitsById = async (req, res) => {
+        const { userId } = req.params;
+        try {
+            const query = `
+            SELECT 
+                d.batch_id,
+                db.batch_name,
+                db.target_group,
+                db.items_summary,
+                d.status,
+                d.date_claimed,
+                DATE_FORMAT(db.created_at, '%Y-%m-%d') as date_posted
+            FROM distribution d
+            JOIN distribution_batches db ON d.batch_id = db.id
+            WHERE d.resident_id = ?
+            ORDER BY db.created_at DESC`;
+            const [rows] = await pool.execute(query, [userId]);
+            return res.status(200).json(rows);
+        }
+        catch (error) {
+            console.error(error);
+            return res.status(500).json({ message: "Error fetching user benefits." });
+        }
+    };
 }
 export default new LedgerController();
 //# sourceMappingURL=BenefitsController.js.map

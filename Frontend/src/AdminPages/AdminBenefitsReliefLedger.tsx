@@ -131,13 +131,21 @@ const BenefitsReliefLedger = () => {
 
   const handleClaim = async (residentId: string) => {
     if (!selectedBatchId) return;
+
+    const currentBatch = batches.find(b => b.id === selectedBatchId);
+
+    const itemsToClaim = currentBatch?.items_summary || [];
+
     if (!confirm("Confirm claim? This will deduct stocks from inventory.")) return;
 
     try {
+
       await axios.patch(`${API_BASE_URL}/api/benefits/claim`, {
         batchId: selectedBatchId,
-        residentId: residentId
+        residentId: residentId,
+        selectedItems: itemsToClaim
       }, config);
+
       viewBatchDetails(selectedBatchId);
       loadInitialData();
     } catch (error: any) {
@@ -356,7 +364,7 @@ const BenefitsReliefLedger = () => {
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-xs font-bold text-gray-900">
-                            {batch.resident_count} pax
+                            {batch.total_eligible} pax
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
