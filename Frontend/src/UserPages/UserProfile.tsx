@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Bell, ShieldAlert, ArrowRight, MapPin, Phone, Heart, Loader2 } from 'lucide-react';
+import { Bell, ShieldAlert, ArrowRight, MapPin, Phone, Heart, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
 import { API_BASE_URL, type User } from '../interfaces';
