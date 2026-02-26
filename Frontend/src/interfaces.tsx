@@ -91,7 +91,7 @@ export interface Batch {
     batch_name: string;
     target_group: 'SC' | 'PWD' | 'BOTH';
     created_at: string;
-    resident_count: number;
+    total_eligible: number;
     items_summary: string;
 }
 
