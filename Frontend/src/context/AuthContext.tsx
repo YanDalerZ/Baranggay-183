@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 
 interface User {
     id: number;
@@ -23,23 +23,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
+        const initializeAuth = () => {
+            const storedUser = localStorage.getItem('user');
+            const storedToken = localStorage.getItem('token');
 
-        if (storedUser && storedToken) {
-            try {
-                setUser(JSON.parse(storedUser));
-                setToken(storedToken);
-            } catch (error) {
-                console.error("Auth initialization failed", error);
-                logout();
+            if (storedUser && storedToken) {
+                try {
+                    setUser(JSON.parse(storedUser));
+                    setToken(storedToken);
+                } catch (error) {
+                    console.error("Auth initialization failed:", error);
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                }
             }
-        }
-        setLoading(false);
+            setLoading(false);
+        };
+
+        initializeAuth();
     }, []);
 
     const login = (newToken: string, userData: User) => {
@@ -49,13 +54,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(userData);
     };
 
-    const logout = () => {
+    const logout = useCallback(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        setUser(null);
         setToken(null);
-        window.location.href = '/Login';
-    };
+        setUser(null);
+
+    }, []);
 
     const value = {
         user,
@@ -66,7 +71,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading
     };
 
-    return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+    return (
+        <AuthContext.Provider value={value}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => {

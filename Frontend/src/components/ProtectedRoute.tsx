@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { useAuth } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
     children: React.ReactElement;
@@ -16,7 +17,11 @@ interface DecodedToken {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
-    const token = localStorage.getItem('token');
+    const { token, logout, loading, user } = useAuth();
+
+    if (loading) {
+        return null;
+    }
 
     if (!token) {
         return <Navigate to="/Login" replace />;
@@ -27,23 +32,22 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
         const currentTime = Date.now() / 1000;
 
         if (decoded.exp < currentTime) {
-            console.warn("Token expired. Logging out.");
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            console.warn("Session expired. Logging out.");
+            logout();
             return <Navigate to="/Login" replace />;
         }
 
-        if (requiredRole !== undefined && decoded.role !== requiredRole) {
+        if (requiredRole !== undefined && user?.role !== requiredRole) {
             console.error("Access denied: Insufficient permissions.");
-            return <Navigate to="/" replace />;
+            const fallback = user?.role === 1 ? "/AdminDashboard" : "/UserMainPage";
+            return <Navigate to={fallback} replace />;
         }
 
         return children;
 
     } catch (error) {
-        console.error("Invalid token format:", error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        console.error("Authentication error:", error);
+        logout();
         return <Navigate to="/Login" replace />;
     }
 };
