@@ -114,3 +114,38 @@ export interface Event {
     attendees: string;
     description: string;
 }
+
+export interface Notification {
+    id: number;
+    sender_id: string;
+    target_group: 'all' | 'pwd' | 'sc' | 'flood_prone';
+    title: string;
+    message: string;
+    recipient_count: number;
+    created_at: string | Date;
+}
+
+
+export interface NotificationRead {
+    notification_id: number;
+    user_id: string;
+    read_at: string | Date;
+}
+
+
+export interface NotificationHistoryItem {
+    id: number;
+    title: string;
+    desc: string;
+    recipients: number;
+    date: string;
+    target_group: string[];
+    channels?: string[];
+    message: string;
+}
+
+export interface NotificationStats {
+    sentToday: number;
+    totalRecipients: number;
+    deliveryRate: string;
+}

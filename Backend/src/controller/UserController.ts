@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../database/db.js';
-import EmailService from '../services/EmailService.js';
+import EmailService from '../services/NotificationService.js';
 class UserController {
 
     public async fetchAllUsers(req: Request, res: Response): Promise<Response> {
@@ -111,7 +111,6 @@ class UserController {
             disability, is_flood_prone, emergencyContact
         } = req.body;
 
-        // 1. Validation
         if (!firstname || !lastname || !type) {
             return res.status(400).json({ message: "Required fields (Firstname, Lastname, Type) are missing." });
         }
@@ -191,7 +190,7 @@ class UserController {
         }
     };
     public updateUser = async (req: Request, res: Response): Promise<Response> => {
-        const { system_id } = req.params; // The current ID (e.g., PWD-015)
+        const { system_id } = req.params;
         const {
             firstname, lastname, email, contact_number,
             gender, birthday, address, type, id_expiry_date,
@@ -203,7 +202,6 @@ class UserController {
         try {
             await connection.beginTransaction();
 
-            // 1. Get the existing User's numeric ID
             const [userRow]: any = await connection.execute(
                 "SELECT id FROM users WHERE system_id = ?",
                 [system_id]
@@ -216,8 +214,6 @@ class UserController {
 
             const userId = userRow[0].id;
 
-            // 2. Generate the NEW system_id based on the (potentially new) Category
-            // This ensures if they change from PWD to 'Both', the ID updates to SC-PWD-
             let prefix = 'PWD';
             if (type === 'Both') {
                 prefix = 'SC-PWD';
@@ -227,7 +223,6 @@ class UserController {
 
             const newSystemId = `${prefix}-${userId.toString().padStart(3, '0')}`;
 
-            // 3. Update the User record
             await connection.execute(
                 `UPDATE users SET 
                 system_id = ?,
@@ -349,8 +344,51 @@ class UserController {
             [userId, name, relationship, contact]
         );
     };
+    public async getPriority(req: Request, res: Response): Promise<Response> {
+        try {
+            const sql = `
+                SELECT 
+                    id, 
+                    CONCAT(firstname, ' ', lastname) as name, 
+                    address, 
+                    contact_number as phone, 
+                    CASE 
+                        WHEN type = 'PWD' THEN 1 
+                        WHEN type = 'SC' THEN 2 
+                        ELSE 3 
+                    END as priority,
+                    is_flood_prone,
+                    type
+                FROM users
+                WHERE is_flood_prone = 1 OR type IN ('PWD', 'SC')
+                ORDER BY priority ASC
+                LIMIT 50
+            `;
 
+            const [rows]: any = await pool.query(sql);
 
+            const formattedResidents = rows.map((row: any) => {
+                const tags = [];
+                if (row.is_flood_prone) tags.push('Flood-Prone');
+                if (row.type === 'PWD') tags.push('PWD');
+                if (row.type === 'SC') tags.push('Senior Citizen');
+
+                return {
+                    id: row.id.toString(),
+                    name: row.name,
+                    address: row.address,
+                    phone: row.phone,
+                    priority: row.priority,
+                    tags: tags
+                };
+            });
+
+            return res.status(200).json(formattedResidents);
+        } catch (error) {
+            console.error("Error fetching priority residents:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
 }
 
 export default new UserController();
