@@ -56,14 +56,45 @@ class LedgerController {
     public fetchBatches = async (req: Request, res: Response): Promise<Response> => {
         try {
             const query = `
-                SELECT 
-                    b.*, 
-                    (SELECT COUNT(DISTINCT resident_id) FROM distribution WHERE batch_id = b.id) as resident_count
-                FROM distribution_batches b 
-                ORDER BY created_at DESC`;
+            SELECT 
+                b.id,
+                b.batch_name,
+                b.target_group,
+                b.items_summary,
+                b.created_at,
+                -- Count actual claims from the distribution table
+                COALESCE((
+                    SELECT COUNT(DISTINCT resident_id) 
+                    FROM distribution 
+                    WHERE batch_id = b.id AND status = 'Claimed'
+                ), 0) as claimed_count,
+                
+                -- Dynamic count of eligible users based on target_group
+                COALESCE((
+                    SELECT COUNT(*) 
+                    FROM users u 
+                    WHERE u.status = 'Active' AND (
+                        -- Case 1: Batch is for BOTH groups
+                        (b.target_group = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
+                        
+                        -- Case 2: Batch is for SC (Residents marked BOTH are also SC)
+                        (b.target_group = 'SC' AND u.type IN ('SC', 'BOTH')) OR
+                        
+                        -- Case 3: Batch is for PWD (Residents marked BOTH are also PWD)
+                        (b.target_group = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
+                        
+                        -- Case 4: Direct match for any other custom types
+                        (u.type = b.target_group)
+                    )
+                ), 0) as total_eligible
+            FROM distribution_batches b 
+            ORDER BY b.created_at DESC`;
+
             const [rows]: any = await pool.execute(query);
-            return res.status(200).json(rows);
+
+            return res.status(200).json(rows || []);
         } catch (error) {
+            console.error("Fetch Batches Error:", error);
             return res.status(500).json({ message: "Error fetching batches list." });
         }
     };
@@ -71,32 +102,33 @@ class LedgerController {
     public fetchAllDistributions = async (req: Request, res: Response): Promise<Response> => {
         try {
             const query = `
-        SELECT 
-            CONCAT(u.firstname, ' ', u.lastname) AS resident,
-            u.id AS resident_id,
-            d.batch_id,
-            d.status,
-            -- We pull the name from the batches table to ensure it's never null
-            db.batch_name AS batch_name, 
-            DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
-            GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description
-        FROM distribution d
-        JOIN users u ON d.resident_id = u.id
-        JOIN inventory i ON d.inventory_id = i.id
-        -- Join the source of truth for batch names
-        JOIN distribution_batches db ON d.batch_id = db.id 
-        GROUP BY 
-            u.id, 
-            d.batch_id, 
-            d.status, 
-            d.date_claimed,
-            db.batch_name -- Added to Group By for SQL Strict Mode compliance
-        ORDER BY d.date_claimed DESC, d.batch_id DESC`;
+            SELECT 
+                CONCAT(u.firstname, ' ', u.lastname) AS resident,
+                u.id AS resident_id,
+                u.system_id,
+                d.batch_id,
+                d.status,
+                db.batch_name, 
+                DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
+                GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description
+            FROM distribution d
+            JOIN users u ON d.resident_id = u.id
+            JOIN inventory i ON d.inventory_id = i.id
+            JOIN distribution_batches db ON d.batch_id = db.id 
+            WHERE d.status = 'Claimed' -- Only show actual hand-offs
+            GROUP BY 
+                u.id, 
+                d.batch_id, 
+                d.status, 
+                d.date_claimed,
+                db.batch_name,
+                u.system_id
+            ORDER BY d.date_claimed DESC`;
 
             const [rows]: any = await pool.execute(query);
             return res.status(200).json(rows);
         } catch (error) {
-            console.error("Database Error:", error);
+            console.error("Global Distribution Error:", error);
             return res.status(500).json({ message: "Error fetching global distribution data." });
         }
     };
@@ -104,28 +136,59 @@ class LedgerController {
     public fetchDistributionByBatch = async (req: Request, res: Response): Promise<Response> => {
         const { batchId } = req.params;
         try {
-            const query = `
-        SELECT 
-            CONCAT(u.firstname, ' ', u.lastname) AS resident,
-            u.id AS resident_id,
-            u.system_id AS system_id,
-            u.type AS resident_type,
-            GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description,
-            d.status,
-            DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
-            db.batch_name -- Removed the trailing comma that was before the FROM clause
-        FROM distribution d
-        JOIN users u ON d.resident_id = u.id
-        JOIN inventory i ON d.inventory_id = i.id
-        JOIN distribution_batches db ON d.batch_id = db.id
-        WHERE d.batch_id = ?
-        GROUP BY u.id, d.status, d.date_claimed, db.batch_name
-        ORDER BY u.lastname ASC`;
+            // 1. First, get the batch details to know the target group
+            const [batch]: any = await pool.execute(
+                `SELECT target_group, batch_name, items_summary FROM distribution_batches WHERE id = ?`,
+                [batchId]
+            );
 
-            const [rows]: any = await pool.execute(query, [batchId]);
+            if (!batch.length) {
+                return res.status(404).json({ message: "Batch not found" });
+            }
+
+            const { target_group, batch_name, items_summary } = batch[0];
+
+            const query = `
+            SELECT 
+                CONCAT(u.firstname, ' ', u.lastname) AS resident,
+                u.id AS resident_id,
+                u.system_id AS system_id,
+                u.type AS resident_type,
+                -- If they haven't claimed, show the batch's default items summary
+                COALESCE(
+                    GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', '), 
+                    ? 
+                ) AS item_description,
+                -- If there is no record in distribution, status is 'To Claim'
+                COALESCE(d.status, 'To Claim') AS status,
+                DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
+                ? AS batch_name
+            FROM users u
+            LEFT JOIN distribution d ON u.id = d.resident_id AND d.batch_id = ?
+            LEFT JOIN inventory i ON d.inventory_id = i.id
+            WHERE u.status = 'Active' AND (
+                (? = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
+                (? = 'SC' AND u.type IN ('SC', 'BOTH')) OR
+                (? = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
+                (u.type = ?)
+            )
+            GROUP BY u.id, d.status, d.date_claimed
+            ORDER BY u.lastname ASC
+        `;
+
+            const [rows]: any = await pool.execute(query, [
+                items_summary,
+                batch_name,
+                batchId,
+                target_group,
+                target_group,
+                target_group,
+                target_group
+            ]);
+
             return res.status(200).json(rows);
         } catch (error) {
-            console.error("Database Error:", error);
+            console.error("Database Error in fetchDistributionByBatch:", error);
             return res.status(500).json({ message: "Error fetching residents in batch." });
         }
     };
@@ -137,122 +200,121 @@ class LedgerController {
         try {
             await connection.beginTransaction();
 
-            // 1. Create items summary
             const itemsSummary = selectedItems.map((i: any) => `${i.qty} ${i.name}`).join(', ');
 
-            // 2. Insert the main batch record
+            // 1. Insert the main batch record
             const [batch]: any = await connection.execute(
                 `INSERT INTO distribution_batches (batch_name, target_group, items_summary) VALUES (?, ?, ?)`,
                 [batchName, targetGroup, itemsSummary]
             );
             const batchId = batch.insertId;
 
-            /**
-             * 3. Build User Query
-             * Logic:
-             * - If Target is SC: Fetch users where type is 'SC' OR type is 'BOTH'
-             * - If Target is PWD: Fetch users where type is 'PWD' OR type is 'BOTH'
-             * - If Target is BOTH: Fetch users where type is 'SC', 'PWD', OR 'BOTH'
-             */
-            let userQuery = `SELECT id FROM users WHERE status = 'Active' AND (`;
-            let queryParams: any[] = [];
-
-            if (targetGroup === 'BOTH') {
-                userQuery += `type = 'SC' OR type = 'PWD' OR type = 'BOTH'`;
-            } else if (targetGroup === 'SC') {
-                userQuery += `type = 'SC' OR type = 'BOTH'`;
-            } else if (targetGroup === 'PWD') {
-                userQuery += `type = 'PWD' OR type = 'BOTH'`;
-            } else {
-                // Fallback for other types
-                userQuery += `type = ?`;
-                queryParams.push(targetGroup);
-            }
-            userQuery += `)`;
-
-            const [users]: any = await connection.execute(userQuery, queryParams);
-
-            if (users.length === 0) {
-                throw new Error(`No active residents found for target group: ${targetGroup}`);
-            }
-
-            // 4. Prepare bulk insert for distribution table
-            const distValues: any[] = [];
-            users.forEach((u: any) => {
-                selectedItems.forEach((si: any) => {
-                    distValues.push([
-                        batchId,
-                        u.id,
-                        si.id,
-                        si.qty,
-                        'To Claim'
-                    ]);
-                });
-            });
-
-            // 5. Bulk Insert
+            // 2. Save the items linked to this batch (The "Recipe")
+            const batchItemValues = selectedItems.map((si: any) => [batchId, si.id, si.qty]);
             await connection.query(
-                `INSERT INTO distribution (batch_id, resident_id, inventory_id, qty, status) VALUES ?`,
-                [distValues]
+                `INSERT INTO batch_items (batch_id, inventory_id, qty) VALUES ?`,
+                [batchItemValues]
             );
 
             await connection.commit();
-
-            return res.status(201).json({
-                message: `Successfully generated "${batchName}" for ${users.length} residents.`
-            });
+            return res.status(201).json({ message: `Batch "${batchName}" generated.` });
 
         } catch (error: any) {
             if (connection) await connection.rollback();
-            console.error("Batch Generation Error:", error);
-            return res.status(500).json({ message: error.message });
-        } finally {
-            if (connection) connection.release();
-        }
-    };
-    public claimBenefit = async (req: Request, res: Response): Promise<Response> => {
-        const { batchId, residentId } = req.body;
-        const connection = await pool.getConnection();
-        try {
-            await connection.beginTransaction();
-
-            const [items]: any = await connection.execute(
-                `SELECT inventory_id, qty FROM distribution WHERE batch_id = ? AND resident_id = ? AND status = 'To Claim'`,
-                [batchId, residentId]
-            );
-
-            if (items.length === 0) {
-                throw new Error("Distribution record not found or already claimed.");
-            }
-
-            for (const item of items) {
-                const [check]: any = await connection.execute(
-                    `SELECT (total - allocated) as available FROM inventory WHERE id = ?`,
-                    [item.inventory_id]
-                );
-
-                if (check[0].available < item.qty) {
-                    throw new Error(`Insufficient stock for item ID: ${item.inventory_id}`);
-                }
-
-                await connection.execute(
-                    `UPDATE inventory SET allocated = allocated + ? WHERE id = ?`,
-                    [item.qty, item.inventory_id]
-                );
-            }
-
-            await connection.execute(
-                `UPDATE distribution SET status = 'Claimed', date_claimed = NOW() WHERE batch_id = ? AND resident_id = ?`,
-                [batchId, residentId]
-            );
-
-            await connection.commit();
-            return res.status(200).json({ message: "Goods released and inventory updated." });
-        } catch (error: any) {
-            await connection.rollback();
             return res.status(500).json({ message: error.message });
         } finally {
             connection.release();
+        }
+    };
+
+    public claimBenefit = async (req: Request, res: Response): Promise<Response> => {
+        const { batchId, residentId } = req.body;
+        const connection = await pool.getConnection();
+
+        try {
+            await connection.beginTransaction();
+
+            // 1. Get the items assigned to this batch from our new table
+            const [batchItems]: any = await connection.execute(
+                `SELECT inventory_id, qty FROM batch_items WHERE batch_id = ?`,
+                [batchId]
+            );
+
+            if (batchItems.length === 0) {
+                throw new Error("No items found for this batch configuration.");
+            }
+
+            // 2. Check if already claimed
+            const [existing]: any = await connection.execute(
+                `SELECT id FROM distribution WHERE batch_id = ? AND resident_id = ? LIMIT 1`,
+                [batchId, residentId]
+            );
+            if (existing.length > 0) throw new Error("Already claimed.");
+
+            // 3. Process Inventory and Record Claim
+            for (const item of batchItems) {
+                // Update Inventory (Deduct from Total, add to Allocated)
+                const [update]: any = await connection.execute(
+                    `UPDATE inventory SET allocated = allocated + ? 
+                 WHERE id = ? AND (total - allocated) >= ?`,
+                    [item.qty, item.inventory_id, item.qty]
+                );
+
+                if (update.affectedRows === 0) {
+                    throw new Error("Insufficient stock in inventory.");
+                }
+
+                // Insert into distribution
+                await connection.execute(
+                    `INSERT INTO distribution (batch_id, resident_id, inventory_id, qty, status, date_claimed) 
+                 VALUES (?, ?, ?, ?, 'Claimed', NOW())`,
+                    [batchId, residentId, item.inventory_id, item.qty]
+                );
+            }
+
+            await connection.commit();
+            return res.status(200).json({ message: "Claim successful!" });
+        } catch (error: any) {
+            if (connection) await connection.rollback();
+            return res.status(500).json({ message: error.message });
+        } finally {
+            connection.release();
+        }
+    };
+
+
+    public fetchUserBenefitsById = async (req: Request, res: Response): Promise<Response> => {
+        const { userId } = req.params;
+        try {
+            const [user]: any = await pool.execute(`SELECT type FROM users WHERE id = ?`, [userId]);
+            if (!user.length) return res.status(404).json([]);
+
+            const userType = user[0].type;
+
+            const query = `
+                SELECT 
+                    db.id AS batch_id,
+                    db.batch_name,
+                    db.items_summary,
+                    db.target_group,
+                    IF(d.id IS NULL, 'To Claim', d.status) AS status,
+                    DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') as date_claimed,
+                    DATE_FORMAT(db.created_at, '%Y-%m-%d') as date_posted
+                FROM distribution_batches db
+                LEFT JOIN distribution d ON d.batch_id = db.id AND d.resident_id = ?
+                WHERE 
+                    (db.target_group = 'BOTH' AND ? IN ('SC', 'PWD', 'BOTH')) OR
+                    (db.target_group = 'SC' AND ? IN ('SC', 'BOTH')) OR
+                    (db.target_group = 'PWD' AND ? IN ('PWD', 'BOTH')) OR
+                    (db.target_group = ?)
+                ORDER BY db.created_at DESC;
+            `;
+
+            const [rows]: any = await pool.execute(query, [userId, userType, userType, userType, userType]);
+            return res.status(200).json(rows);
+        } catch (error) {
+            console.error("Fetch User Benefits Error:", error);
+            return res.status(500).json([]);
         }
     };
 }
