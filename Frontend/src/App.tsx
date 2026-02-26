@@ -34,27 +34,45 @@ import AdminBenefitsReliefLedger from './AdminPages/AdminBenefitsReliefLedger';
 import AdminEventsCalendar from './AdminPages/AdminEventsCalendar';
 import AdminContentCMS from './AdminPages/AdminContentCMS';
 
-
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, loading } = useAuth();
 
-  if (isAuthenticated) {
-    return <Navigate to={user?.role === 1 ? "/AdminDashboard" : "/UserMainPage"} replace />;
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Loading session...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && user) {
+    return <Navigate to={user.role === 1 ? "/AdminDashboard" : "/UserMainPage"} replace />;
   }
 
   return <>{children}</>;
 };
 
 const AppContent: React.FC = () => {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <p>Please wait...</p>
+      </div>
+    );
+  }
+
   return (
     <Routes>
+      {/* Root path redirects to Login */}
       <Route path="/" element={<Navigate to="/Login" replace />} />
 
       {/* --- PUBLIC ROUTES --- */}
       <Route path="/Login" element={<PublicRoute><UserLogin /></PublicRoute>} />
       <Route path="/AdminLogin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
 
-      {/* --- USER PROTECTED ROUTES (Role check is optional here) --- */}
+      {/* --- USER PROTECTED ROUTES --- */}
       <Route path="/UserMainPage" element={<ProtectedRoute><Navbar><UserMainPage /></Navbar></ProtectedRoute>} />
       <Route path="/UserProfile" element={<ProtectedRoute><Navbar><UserProfile /></Navbar></ProtectedRoute>} />
       <Route path="/UserBenefits" element={<ProtectedRoute><Navbar><UserBenefits /></Navbar></ProtectedRoute>} />
@@ -65,7 +83,7 @@ const AppContent: React.FC = () => {
       <Route path="/UserAppointments" element={<ProtectedRoute><Navbar><UserAppointments /></Navbar></ProtectedRoute>} />
       <Route path="/UserGuide" element={<ProtectedRoute><Navbar><UserGuide /></Navbar></ProtectedRoute>} />
 
-      {/* --- ADMIN PROTECTED ROUTES (Using requiredRole={1}) --- */}
+      {/* --- ADMIN PROTECTED ROUTES (Required Role: 1) --- */}
       <Route path="/AdminDashboard" element={<ProtectedRoute requiredRole={1}><AdminNavbar><AdminDashboard /></AdminNavbar></ProtectedRoute>} />
       <Route path="/AdminRBIManagement" element={<ProtectedRoute requiredRole={1}><AdminNavbar><AdminRBIManagement /></AdminNavbar></ProtectedRoute>} />
       <Route path="/AdminApplicationsManagement" element={<ProtectedRoute requiredRole={1}><AdminNavbar><AdminApplicationsManagement /></AdminNavbar></ProtectedRoute>} />
@@ -82,7 +100,15 @@ const AppContent: React.FC = () => {
           <h2 style={{ color: '#00308F', fontWeight: 'bold' }}>404: Page Not Found</h2>
           <button
             onClick={() => window.location.href = '/'}
-            style={{ marginTop: '20px', color: '#00308F', fontWeight: 'bold', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer' }}
+            style={{
+              marginTop: '20px',
+              color: '#00308F',
+              fontWeight: 'bold',
+              textDecoration: 'underline',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer'
+            }}
           >
             Go Back Home
           </button>

@@ -138,43 +138,46 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
         </div>
       </nav>
 
-      {/* --- MOBILE FULLSCREEN MENU --- */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 bg-white z-[60] pt-24 px-6 lg:hidden animate-in fade-in slide-in-from-bottom-5 duration-300 overflow-y-auto">
-          {/* Mobile User Header */}
-          <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl mb-6">
-            <div className="w-12 h-12 rounded-full bg-[#00308F] flex items-center justify-center text-white">
-              <UserIcon size={24} />
-            </div>
-            <div>
-              <h4 className="font-bold text-slate-900">{user?.firstname} {user?.lastname}</h4>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">{user?.role}</p>
-            </div>
+      <div className={`fixed inset-0 bg-white z-[60] pt-24 px-8 lg:hidden transition-all duration-500 ease-in-out transform overflow-y-auto ${isMenuOpen
+        ? 'translate-y-0 opacity-100 visible'
+        : '-translate-y-full opacity-0 invisible'
+        }`}>
+        <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl mb-6">
+          <div className="w-12 h-12 rounded-full bg-[#00308F] flex items-center justify-center text-white">
+            <UserIcon size={24} />
           </div>
-
-          <div className="grid grid-cols-2 gap-4 pb-32">
-            {menuItems.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
-                className={`flex flex-col items-center justify-center p-6 rounded-2xl border transition-all ${location.pathname === item.path
-                  ? 'bg-[#00308F] border-[#00308F] text-white'
-                  : 'bg-white border-gray-100 text-gray-600 shadow-sm'
-                  }`}
-              >
-                <item.icon size={24} className="mb-2" />
-                <span className="text-[10px] font-bold uppercase text-center">{item.name}</span>
-              </button>
-            ))}
-            <button
-              onClick={handleLogout}
-              className="col-span-2 flex items-center justify-center gap-2 p-5 rounded-2xl bg-red-50 text-red-500 font-bold uppercase text-xs mt-4"
-            >
-              <LogOut size={20} /> Log Out
-            </button>
+          <div>
+            <h4 className="font-bold text-slate-900">{user?.firstname} {user?.lastname}</h4>
+            <p className="text-xs text-slate-500 uppercase tracking-wider">{user?.role}</p>
           </div>
         </div>
-      )}
+        <div className="grid grid-cols-2 gap-4 pb-32">
+          {menuItems.map((item, index) => (
+            <button
+              key={item.name}
+              onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
+              style={{ transitionDelay: isMenuOpen ? `${index * 100}ms` : '0ms' }}
+              className={`flex flex-col items-center justify-center p-6 rounded-2xl border transition-all duration-300 transform ${isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+                } ${location.pathname === item.path
+                  ? 'bg-[#00308F] border-[#00308F] text-white'
+                  : 'bg-white border-gray-100 text-gray-600 shadow-sm active:scale-95'
+                }`}
+            >
+              <item.icon size={24} className="mb-2" />
+              <span className="text-[10px] font-bold uppercase text-center tracking-wider">{item.name}</span>
+            </button>
+          ))}
+
+          <button
+            onClick={handleLogout}
+            style={{ transitionDelay: isMenuOpen ? `${menuItems.length * 100}ms` : '0ms' }}
+            className={`col-span-2 flex items-center justify-center gap-2 p-5 rounded-2xl bg-red-50 text-red-500 font-bold uppercase text-xs transition-all transform duration-500 ${isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+              }`}
+          >
+            <LogOut size={20} /> Log Out
+          </button>
+        </div>
+      </div>
 
       {/* --- MAIN CONTENT AREA --- */}
       <main
@@ -194,7 +197,7 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
             return (
               <button
                 key={item.name}
-                onClick={() => navigate(item.path)}
+                onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
                 className="flex flex-col items-center gap-1.5 min-w-[60px]"
               >
                 <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-[#00308F] text-white scale-110 shadow-md shadow-blue-200' : 'text-gray-400'}`}>
