@@ -608,21 +608,51 @@ const BenefitsReliefLedger = () => {
           <h4 className="text-sm font-bold text-gray-900 mb-6">Distribution Summary</h4>
           <div className="space-y-6">
             {inventory.length > 0 ? inventory.slice(0, 4).map(item => {
-              const claimedCount = allDistributionRecords.filter(r => r.item_description.includes(item.name) && r.status === 'Claimed').length;
-              const toClaimCount = allDistributionRecords.filter(r => r.item_description.includes(item.name) && r.status === 'To Claim').length;
+              // 1. Get actual claims for this item name
+              const claimedCount = allDistributionRecords.filter(r =>
+                r.item_description.includes(item.name) &&
+                r.status === 'Claimed'
+              ).length;
+
+              // 2. Sum up the "Total Potential" from all batches containing this item
+              // We check items_summary to see if this inventory item is part of that batch
+              const totalPotential = batches
+                .filter(b => b.items_summary.includes(item.name))
+                .reduce((sum, b) => sum + (Number(b.total_eligible) || 0), 0);
+
+              // 3. Pending = Total who COULD claim - Total who HAVE claimed
+              const pendingCount = Math.max(0, totalPotential - claimedCount);
+
               return (
-                <div key={item.id} className="flex justify-between items-center">
+                <div key={item.id} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
                   <div>
-                    <p className="text-sm font-bold">{item.name}</p>
-                    <p className="text-xs text-gray-400">{item.allocated} {item.unit} currently out</p>
+                    <p className="text-sm font-bold text-gray-700">{item.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {item.allocated} {item.unit} released to residents
+                    </p>
                   </div>
                   <div className="flex gap-4 text-xs font-bold">
-                    <span className="text-green-600 flex items-center gap-1"><CheckCircle size={14} /> {claimedCount}</span>
-                    <span className="text-orange-500 flex items-center gap-1"><Clock size={14} /> {toClaimCount}</span>
+                    {/* Claimed Stat */}
+                    <div className="flex flex-col items-end">
+                      <span className="text-green-600 flex items-center gap-1">
+                        <CheckCircle size={14} /> {claimedCount}
+                      </span>
+                      <span className="text-[10px] text-gray-400 uppercase">Claimed</span>
+                    </div>
+
+                    {/* Pending Stat */}
+                    <div className="flex flex-col items-end">
+                      <span className="text-orange-500 flex items-center gap-1">
+                        <Clock size={14} /> {pendingCount}
+                      </span>
+                      <span className="text-[10px] text-gray-400 uppercase">To Claim</span>
+                    </div>
                   </div>
                 </div>
               );
-            }) : <p className="text-xs text-gray-400 italic">No inventory data available.</p>}
+            }) : (
+              <p className="text-xs text-gray-400 italic">No inventory data available.</p>
+            )}
           </div>
         </div>
 
