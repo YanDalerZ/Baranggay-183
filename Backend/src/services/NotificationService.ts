@@ -3,14 +3,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-interface MailOptions {
-    fromName: string;
-    fromEmail: string;
-    subject: string;
+
+interface BulkNotifyOptions {
+    recipientEmail: string;
+    recipientName: string;
+    title: string;
     message: string;
 }
 
-class EmailService {
+
+class NotificationService {
     private transporter;
 
     constructor() {
@@ -24,35 +26,6 @@ class EmailService {
             },
         });
     }
-
-    async sendContactEmail({ fromName, fromEmail, subject, message }: MailOptions) {
-        try {
-            const mailOptions = {
-                from: `"${fromName}" <${process.env.EMAIL_USER}>`,
-                to: 'tejaresdale@gmail.com',
-                replyTo: fromEmail,
-                subject: `Portfolio Contact: ${subject}`,
-                html: `
-          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #2563eb;">New Portfolio Message</h2>
-            <p><strong>Name:</strong> ${fromName}</p>
-            <p><strong>Email:</strong> ${fromEmail}</p>
-            <p><strong>Subject:</strong> ${subject}</p>
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-            <p style="white-space: pre-wrap; color: #444; line-height: 1.6;">${message}</p>
-          </div>
-        `,
-            };
-
-            const info = await this.transporter.sendMail(mailOptions);
-            return { success: true };
-        } catch (error) {
-            console.error("Mail Error:", error);
-            throw new Error("Failed to send email");
-        }
-    }
-
-    // Add this method to your EmailService class in ../services/EmailService.ts
 
     async sendRegistrationEmail(userEmail: string, fullName: string, systemId: string, rawPassword: string) {
         try {
@@ -83,6 +56,38 @@ class EmailService {
             console.error("Failed to send registration email:", error);
         }
     }
+
+    async sendBroadcastNotification({ recipientEmail, recipientName, title, message }: BulkNotifyOptions) {
+        try {
+            const mailOptions = {
+                from: `"Community Alerts" <${process.env.EMAIL_USER}>`,
+                to: recipientEmail,
+                subject: `📢 ${title}`,
+                html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 0; max-width: 600px; margin: auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+                <div style="background-color: #00308F; padding: 20px; text-align: center;">
+                    <h1 style="color: white; margin: 0; font-size: 20px; text-transform: uppercase;">Official Notification</h1>
+                </div>
+                <div style="padding: 30px; background-color: #ffffff;">
+                    <p style="font-size: 16px; color: #111827;">Hello <strong>${recipientName}</strong>,</p>
+                    <h2 style="color: #111827; font-size: 18px; margin-top: 20px;">${title}</h2>
+                    <p style="color: #4b5563; line-height: 1.6; font-size: 15px; white-space: pre-wrap;">${message}</p>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #f3f4f6;">
+                        <p style="font-size: 12px; color: #9ca3af; text-align: center;">
+                            This is an automated system alert. Please do not reply directly to this email.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            `
+            };
+            return await this.transporter.sendMail(mailOptions);
+        } catch (error) {
+            console.error(`Failed to send notification to ${recipientEmail}:`, error);
+            return null;
+        }
+    }
 }
 
-export default new EmailService();
+export default new NotificationService();
