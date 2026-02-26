@@ -4,9 +4,26 @@ import jwt from 'jsonwebtoken';
 import pool from '../database/db.js';
 import { RowDataPacket } from 'mysql2';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
+
 class LoginController {
 
-    public async UserLogin(req: Request, res: Response): Promise<Response> {
+    private generateToken = (user: any): string => {
+        const fullName = `${user.firstname} ${user.lastname}`.trim();
+
+        return jwt.sign(
+            {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                fullname: fullName
+            },
+            JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+    };
+
+    public UserLogin = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
 
         try {
@@ -21,27 +38,18 @@ class LoginController {
 
             const user = rows[0];
 
-            if (!user) {
-                return res.status(401).json({ message: "Invalid credentials." });
+            if (!user || !(await bcrypt.compare(password, user.password))) {
+                return res.status(401).json({ message: "Invalid email or password." });
             }
 
             if (user.status !== 'active') {
                 return res.status(403).json({ message: "Account is not active." });
             }
 
-            const isMatch = await bcrypt.compare(password, user.password);
-
-            if (!isMatch) {
-                return res.status(401).json({ message: "Invalid credentials." });
-            }
-
-            const token = jwt.sign(
-                { id: user.id, email: user.email },
-                process.env.JWT_SECRET || 'fallback_secret',
-                { expiresIn: '1h' }
-            );
+            const token = this.generateToken(user);
 
             const { password: _, ...userData } = user;
+            userData.fullname = `${user.firstname} ${user.lastname}`.trim();
 
             return res.status(200).json({
                 message: "Login successful",
@@ -53,9 +61,9 @@ class LoginController {
             console.error("Login Error:", error);
             return res.status(500).json({ message: "Internal server error." });
         }
-    }
+    };
 
-    public async AdminLogin(req: Request, res: Response): Promise<Response> {
+    public AdminLogin = async (req: Request, res: Response): Promise<Response> => {
         const { email, password } = req.body;
 
         try {
@@ -70,49 +78,44 @@ class LoginController {
 
             const user = rows[0];
 
-            if (!user) {
-                return res.status(401).json({ message: "Invalid credentials." });
-            }
-
-            // 1. Check if the user is an admin (Optional: only if this is an Admin Login)
-            if (user.role !== 1) {
-                return res.status(403).json({ message: "Access denied. Admins only." });
+            if (!user || user.role !== 1 || !(await bcrypt.compare(password, user.password))) {
+                return res.status(401).json({ message: "Invalid admin credentials." });
             }
 
             if (user.status !== 'active') {
-                return res.status(403).json({ message: "Account is not active." });
+                return res.status(403).json({ message: "Account is inactive." });
             }
 
-            const isMatch = await bcrypt.compare(password, user.password);
-
-            if (!isMatch) {
-                return res.status(401).json({ message: "Invalid credentials." });
-            }
-
-            // 2. Add 'role' to the JWT token payload
-            const token = jwt.sign(
-                {
-                    id: user.id,
-                    email: user.email,
-                    role: user.role // Now the token carries the "admin" or "user" status
-                },
-                process.env.JWT_SECRET || 'fallback_secret',
-                { expiresIn: '1h' }
-            );
+            const token = this.generateToken(user);
 
             const { password: _, ...userData } = user;
+            userData.fullname = `${user.firstname} ${user.lastname}`.trim();
 
             return res.status(200).json({
-                message: "Login successful",
+                message: "Admin login successful",
                 token,
-                user: userData // userData now includes the 'role' field automatically
+                user: userData
             });
 
         } catch (error) {
-            console.error("Login Error:", error);
+            console.error("Admin Login Error:", error);
             return res.status(500).json({ message: "Internal server error." });
         }
-    }
+    };
+
+    public VerifyToken = async (req: Request, res: Response): Promise<Response> => {
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1];
+
+        if (!token) return res.status(401).json({ message: "No token provided." });
+
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            return res.status(200).json({ valid: true, user: decoded });
+        } catch (error) {
+            return res.status(401).json({ valid: false, message: "Token expired or invalid." });
+        }
+    };
 }
 
 export default new LoginController();

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
 import { type User, API_BASE_URL } from '../../interfaces';
 
@@ -12,7 +13,12 @@ interface ResidentModalProps {
 const ResidentModal = ({ isOpen, onClose, initialData }: ResidentModalProps) => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
-
+    const token = useAuth().token;
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
     const [formData, setFormData] = useState<User>({
         firstname: '',
         lastname: '',
@@ -88,11 +94,12 @@ const ResidentModal = ({ isOpen, onClose, initialData }: ResidentModalProps) => 
         setMessage({ type: '', text: '' });
 
         try {
+            if (!token) return;
             if (initialData && initialData.system_id) {
-                await axios.put(`${API_BASE_URL}/api/user/${initialData.system_id}`, formData);
+                await axios.put(`${API_BASE_URL}/api/user/${initialData.system_id}`, formData, config);
                 setMessage({ type: 'success', text: 'Resident updated successfully!' });
             } else {
-                await axios.post(`${API_BASE_URL}/api/user`, formData);
+                await axios.post(`${API_BASE_URL}/api/user`, formData, config);
                 setMessage({ type: 'success', text: 'Resident registered successfully!' });
             }
 

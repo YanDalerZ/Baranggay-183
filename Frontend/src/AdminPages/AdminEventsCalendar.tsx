@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
 import { ChevronLeft, ChevronRight, Plus, Gift, Clock, MapPin, Info, X } from 'lucide-react';
 import { API_BASE_URL, type Event } from '../interfaces';
@@ -11,7 +12,12 @@ const AdminEventsCalendar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [viewDate, setViewDate] = useState(new Date());
-
+  const { token } = useAuth();
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  };
   const [formData, setFormData] = useState({
     title: '',
     type: 'Community Event',
@@ -45,9 +51,10 @@ const AdminEventsCalendar = () => {
   // Fetch Events and Birthdays on Load
   const fetchData = async () => {
     try {
+      if (!token) return;
       const [eventsRes, birthdayRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/events`),
-        axios.get(`${API_BASE_URL}/api/events/birthdays`)
+        axios.get(`${API_BASE_URL}/api/events`, config),
+        axios.get(`${API_BASE_URL}/api/events/birthdays`, config)
       ]);
       setEvents(eventsRes.data);
       setBirthdays(birthdayRes.data);
@@ -68,7 +75,8 @@ const AdminEventsCalendar = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_BASE_URL}/api/events/create`, formData);
+      if (!token) return;
+      await axios.post(`${API_BASE_URL}/api/events/create`, formData, config);
       setIsModalOpen(false);
       setFormData({
         title: '',
@@ -89,14 +97,12 @@ const AdminEventsCalendar = () => {
     return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // --- Filtering Logic for Sidebar (ONLY TODAY) ---
   const today = new Date();
   const celebrantsToday = birthdays.filter(b => {
     const bDate = new Date(b.event_date);
     return bDate.getDate() === today.getDate() && bDate.getMonth() === today.getMonth();
   });
 
-  // Generate the grid days
   const totalDays = daysInMonth(currentYear, currentMonth);
   const startDay = firstDayOfMonth(currentYear, currentMonth);
   const blanks = Array.from({ length: startDay });
@@ -162,7 +168,6 @@ const AdminEventsCalendar = () => {
               </div>
             </header>
 
-            {/* Calendar Grid */}
             <div className="hidden md:grid grid-cols-7 gap-px bg-gray-100 border border-gray-100 overflow-hidden">
               {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                 <div key={day} className="bg-gray-50 py-3 text-center text-[10px] font-black uppercase text-gray-400 tracking-widest">{day}</div>

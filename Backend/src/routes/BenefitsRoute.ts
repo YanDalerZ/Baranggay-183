@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import LedgerController from '../controller/BenefitsController.js';
+import { authenticateToken, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = Router();
+router.use(authenticateToken);
 
-router.get('/inventory', LedgerController.fetchInventory);
-router.post('/inventory', LedgerController.addNewItem);
-router.put('/inventory/:id', LedgerController.editItem);
-router.delete('/inventory/:id', LedgerController.deleteItem);
+router.get('/inventory', isAdmin, LedgerController.fetchInventory);
+router.post('/inventory', isAdmin, LedgerController.addNewItem);
+router.put('/inventory/:id', isAdmin, LedgerController.editItem);
+router.delete('/inventory/:id', isAdmin, LedgerController.deleteItem);
 
 router.get('/batches', LedgerController.fetchBatches);
 router.get('/distribution/all', LedgerController.fetchAllDistributions);
