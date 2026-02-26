@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import {
   Users,
@@ -36,15 +37,20 @@ const AdminDashboard = () => {
   const [residents, setResidents] = useState<User[]>([]);
   const [allDistributionRecords, setAllDistributionRecords] = useState<DistributionRecord[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const { token } = useAuth();
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         // Using Promise.all to fetch both endpoints simultaneously
         const [usersRes, benefitsRes] = await Promise.all([
-          axios.get(`${API_BASE_URL}/api/user/`),
-          axios.get(`${API_BASE_URL}/api/benefits/distribution/all`)
+          axios.get(`${API_BASE_URL}/api/user/`, config),
+          axios.get(`${API_BASE_URL}/api/benefits/distribution/all`, config)
         ]);
 
         setResidents(usersRes.data);

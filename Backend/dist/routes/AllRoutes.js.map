@@ -1,1 +1,1 @@
-{"version":3,"file":"AllRoutes.js","sourceRoot":"","sources":["../../src/routes/AllRoutes.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,IAAI,UAAU,EAAE,MAAM,iBAAiB,CAAC;AACxD,OAAO,EAAE,OAAO,IAAI,SAAS,EAAE,MAAM,gBAAgB,CAAC"}
+{"version":3,"file":"AllRoutes.js","sourceRoot":"","sources":["../../src/routes/AllRoutes.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,IAAI,UAAU,EAAE,MAAM,iBAAiB,CAAC;AACxD,OAAO,EAAE,OAAO,IAAI,SAAS,EAAE,MAAM,gBAAgB,CAAC;AACtD,OAAO,EAAE,OAAO,IAAI,aAAa,EAAE,MAAM,oBAAoB,CAAC;AAC9D,OAAO,EAAE,OAAO,IAAI,WAAW,EAAE,MAAM,kBAAkB,CAAC"}

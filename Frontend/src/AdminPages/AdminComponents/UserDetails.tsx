@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
-import { X, AlertTriangle, Calendar, Clock } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
 
 interface ViewUserDetailsProps {
@@ -12,13 +13,19 @@ interface ViewUserDetailsProps {
 const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user }) => {
     const [details, setDetails] = useState<User | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
-
+    const token = useAuth().token;
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
     const fetchResidentById = useCallback(async () => {
         if (!user?.system_id) return;
 
         try {
+            if (!token) return;
             setLoading(true);
-            const response = await axios.get(`${API_BASE_URL}/api/user/${user.system_id}`);
+            const response = await axios.get(`${API_BASE_URL}/api/user/${user.system_id}`, config);
             setDetails(response.data);
         } catch (err) {
             console.error('Error fetching resident details:', err);
@@ -54,7 +61,6 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         return dateString.split('T')[0];
     };
 
-    // --- Logic for Days Remaining ---
     const getDaysLeft = (dateString: string | undefined) => {
         if (!dateString) return null;
         const now = new Date();
@@ -135,8 +141,8 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                 <div>
                                     <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Remaining Validity</p>
                                     <p className={`text-sm font-bold mt-0.5 ${daysLeft === null ? 'text-gray-400' :
-                                            daysLeft <= 0 ? 'text-red-600' :
-                                                daysLeft <= 60 ? 'text-orange-600' : 'text-green-600'
+                                        daysLeft <= 0 ? 'text-red-600' :
+                                            daysLeft <= 60 ? 'text-orange-600' : 'text-green-600'
                                         }`}>
                                         {daysLeft === null ? 'No data' : daysLeft <= 0 ? 'EXPIRED' : `${daysLeft} days remaining`}
                                     </p>

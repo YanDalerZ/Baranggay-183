@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   User, FileText, Gift, History, Bell,
   LogOut, Sun, Type, Volume2, Menu, X,
-  Newspaper, Calendar, BookOpen
+  Newspaper, Calendar, BookOpen,
+  MoreHorizontal
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -21,11 +24,8 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Helper function for Logout
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    logout();
     navigate('/Login');
   };
 
@@ -91,7 +91,6 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
               </div>
             </button>
 
-            {/* Desktop Logout Button */}
             <button
               onClick={handleLogout}
               className="hidden md:flex items-center gap-2 text-gray-500 hover:text-[#FF9800] transition-colors"
@@ -107,61 +106,70 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
         </div>
       </nav>
 
-      {isMenuOpen && (
-        <div className="fixed inset-0 bg-white z-[60] pt-24 px-8 lg:hidden animate-in fade-in slide-in-from-top-4 duration-300 overflow-y-auto">
-          <div className="flex flex-col gap-6 pb-20">
-            {menuItems.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
-                className={`text-xl font-bold tracking-tight text-left border-b border-gray-50 pb-4 flex justify-between items-center ${location.pathname === item.path ? 'text-[#00308F]' : 'text-gray-800'}`}
-              >
-                {item.name}
-                <item.icon className={location.pathname === item.path ? 'text-[#00308F]' : 'text-gray-300'} size={20} />
-              </button>
-            ))}
+      <div className={`fixed inset-0 bg-white z-[60] pt-24 px-8 lg:hidden transition-all duration-500 ease-in-out transform overflow-y-auto ${isMenuOpen
+        ? 'translate-y-0 opacity-100 visible'
+        : '-translate-y-full opacity-0 invisible'
+        }`}>
+        <div className="grid grid-cols-2 gap-4 pb-32">
+          {menuItems.map((item, index) => (
             <button
-              onClick={handleLogout}
-              className="text-[#FF9800] font-black uppercase tracking-widest text-lg mt-4 flex items-center gap-2"
+              key={item.name}
+              onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
+              style={{ transitionDelay: isMenuOpen ? `${index * 100}ms` : '0ms' }}
+              className={`flex flex-col items-center justify-center p-6 rounded-2xl border transition-all duration-300 transform ${isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+                } ${location.pathname === item.path
+                  ? 'bg-[#00308F] border-[#00308F] text-white'
+                  : 'bg-white border-gray-100 text-gray-600 shadow-sm active:scale-95'
+                }`}
             >
-              <LogOut size={20} />
-              Sign Out
+              <item.icon size={24} className="mb-2" />
+              <span className="text-[10px] font-bold uppercase text-center tracking-wider">{item.name}</span>
             </button>
-          </div>
+          ))}
+
+          <button
+            onClick={handleLogout}
+            style={{ transitionDelay: isMenuOpen ? `${menuItems.length * 100}ms` : '0ms' }}
+            className={`col-span-2 flex items-center justify-center gap-2 p-5 rounded-2xl bg-red-50 text-red-500 font-bold uppercase text-xs transition-all transform duration-500 ${isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'
+              }`}
+          >
+            <LogOut size={20} /> Log Out
+          </button>
         </div>
-      )}
+      </div>
 
       <main className="pt-18 pb-32 md:pb-12 mx-auto">
         {children}
       </main>
 
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-50 px-2 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-[70] px-2 py-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
         <div className="flex justify-around items-center">
           {menuItems.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <button
                 key={item.name}
-                onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-1 min-w-[64px]"
+                onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
+                className="flex flex-col items-center gap-1.5 min-w-[60px]"
               >
-                <div className={`p-1.5 rounded-lg transition-colors ${isActive ? 'bg-[#00308F]/10 text-[#00308F]' : 'text-gray-400'}`}>
+                <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-[#00308F] text-white scale-110 shadow-md shadow-blue-200' : 'text-gray-400'}`}>
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
                 </div>
-                <span className={`text-[9px] font-bold uppercase tracking-tighter ${isActive ? 'text-[#00308F]' : 'text-gray-400'}`}>
+                <span className={`text-[8px] font-bold uppercase tracking-tighter ${isActive ? 'text-[#00308F]' : 'text-gray-400'}`}>
                   {item.shortName}
                 </span>
               </button>
             );
           })}
+
           <button
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 min-w-[64px] text-gray-400 hover:text-[#FF9800]"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex flex-col items-center gap-1.5 min-w-[60px] text-gray-400"
           >
-            <div className="p-1.5">
-              <LogOut size={20} strokeWidth={1.5} />
+            <div className={`p-2 rounded-xl transition-all ${isMenuOpen ? 'bg-orange-500 text-white' : 'bg-gray-50'}`}>
+              {isMenuOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
             </div>
-            <span className="text-[9px] font-bold uppercase tracking-tighter">Exit</span>
+            <span className="text-[8px] font-bold uppercase tracking-tighter">{isMenuOpen ? 'Hide' : 'More'}</span>
           </button>
         </div>
       </nav>
