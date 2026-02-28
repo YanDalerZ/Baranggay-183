@@ -26,19 +26,21 @@ const AdminNotificationCenter = () => {
     const [loading, setLoading] = useState<boolean>(true);
     const [sending, setSending] = useState<boolean>(false);
 
+    // Default channels: Matches the backend ['Email', 'SMS', 'Web']
     const [formData, setFormData] = useState({
         target_groups: [] as string[],
         title: '',
         message: '',
-        channels: ['Web Notification'] as string[]
+        channels: ['Web'] as string[]
     });
 
     const { token, user } = useAuth();
 
+    // Standardized IDs to match backend expectations
     const channelOptions = [
-        { id: 'SMS', label: 'SMS', icon: <Smartphone size={18} /> },
         { id: 'Email', label: 'Email', icon: <Mail size={18} /> },
-        { id: 'Web Notification', label: 'Web Notification', icon: <Globe size={18} /> },
+        { id: 'SMS', label: 'SMS', icon: <Smartphone size={18} /> },
+        { id: 'Web', label: 'Web Alert', icon: <Globe size={18} /> },
     ];
 
     const targetOptions = [
@@ -98,7 +100,7 @@ const AdminNotificationCenter = () => {
 
     const handleSendNotification = async () => {
         if (!formData.title || !formData.message || formData.target_groups.length === 0 || formData.channels.length === 0) {
-            alert("Please fill in all fields.");
+            alert("Please fill in all fields and select at least one channel.");
             return;
         }
 
@@ -108,15 +110,16 @@ const AdminNotificationCenter = () => {
                 title: formData.title,
                 message: formData.message,
                 target_groups: formData.target_groups,
-                channels: formData.channels,
+                channels: formData.channels, // Sends array like ['Email', 'SMS']
                 sender_id: user?.id
             }, config);
 
-            setFormData({ target_groups: [], title: '', message: '', channels: ['Web Notification'] });
+            // Reset form but keep Web checked by default
+            setFormData({ target_groups: [], title: '', message: '', channels: ['Web'] });
             fetchData();
-            alert("Notification dispatched!");
+            alert("Broadcast started successfully!");
         } catch (error) {
-            alert("Failed to send notification.");
+            alert("Failed to initiate broadcast.");
         } finally {
             setSending(false);
         }
@@ -145,11 +148,11 @@ const AdminNotificationCenter = () => {
                         <div className="bg-white shadow-sm border border-gray-100 p-6 h-full rounded-xl">
                             <div className="mb-6">
                                 <h2 className="text-xl font-bold text-gray-800">Send Notification</h2>
-                                <p className="text-sm text-gray-600">Multi-channel notification gateway</p>
+                                <p className="text-sm text-gray-600">Select channels and target audience</p>
                             </div>
 
                             <div className="space-y-5">
-                                {/* RECIPIENT GROUPS AS CHECKBOXES */}
+                                {/* RECIPIENT GROUPS */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-3">Recipient Groups</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -157,9 +160,9 @@ const AdminNotificationCenter = () => {
                                             <div
                                                 key={opt.id}
                                                 onClick={() => handleGroupToggle(opt.id)}
-                                                className="flex items-center gap-3 cursor-pointer group"
+                                                className="flex items-center gap-3 cursor-pointer group p-2 hover:bg-gray-50 rounded-md transition-colors"
                                             >
-                                                <div className={`w-5 h-5 border flex items-center justify-center transition-colors ${formData.target_groups.includes(opt.id) ? 'bg-black border-black' : 'bg-white border-gray-300'}`}>
+                                                <div className={`w-5 h-5 border flex items-center justify-center transition-colors ${formData.target_groups.includes(opt.id) ? 'bg-[#00308F] border-[#00308F]' : 'bg-white border-gray-300'}`}>
                                                     {formData.target_groups.includes(opt.id) && <div className="w-2 h-2 bg-white" />}
                                                 </div>
                                                 <span className="text-sm font-medium text-gray-700">{opt.label}</span>
@@ -171,7 +174,7 @@ const AdminNotificationCenter = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">Notification Title</label>
                                     <input
-                                        placeholder="Enter notification title"
+                                        placeholder="Emergency Alert / General Announcement"
                                         value={formData.title}
                                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                                         className="w-full bg-gray-50 border border-gray-200 p-3 outline-none focus:ring-2 focus:ring-blue-500/20 rounded-lg"
@@ -179,19 +182,20 @@ const AdminNotificationCenter = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Message Content</label>
                                     <textarea
                                         rows={4}
-                                        placeholder="Enter your message"
+                                        placeholder="Type your announcement here..."
                                         value={formData.message}
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                                         className="w-full bg-gray-50 border border-gray-200 p-4 outline-none focus:ring-2 focus:ring-blue-500/20 resize-none rounded-lg"
                                     />
                                 </div>
 
+                                {/* CHANNELS SELECTION */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-3">Notification Channels</label>
-                                    <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-3">Delivery Channels</label>
+                                    <div className="flex flex-wrap gap-6">
                                         {channelOptions.map((ch) => (
                                             <div
                                                 key={ch.id}
@@ -216,7 +220,7 @@ const AdminNotificationCenter = () => {
                                     className="w-full bg-[#05050F] text-white font-bold py-4 flex justify-center items-center gap-3 hover:bg-gray-800 transition-all rounded-lg disabled:opacity-50"
                                 >
                                     {sending ? <Loader2 className="animate-spin" /> : <Send size={18} />}
-                                    <span>Send Notification</span>
+                                    <span>{sending ? 'Processing Broadcast...' : 'Dispatch Notification'}</span>
                                 </button>
                             </div>
                         </div>
@@ -225,33 +229,33 @@ const AdminNotificationCenter = () => {
                     {/* RIGHT: STATS SECTION */}
                     <div className="space-y-6">
                         <div className="bg-white shadow-sm border border-gray-100 p-6 rounded-xl">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Delivery Stats</h3>
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Real-time Stats</h3>
                             <div className="space-y-6">
                                 <div>
-                                    <p className="text-sm text-gray-600 mb-1">Sent Today</p>
+                                    <p className="text-sm text-gray-600 mb-1">Alerts Today</p>
                                     <p className="text-3xl font-bold text-gray-900">{stats.sentToday}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-600 mb-1">Total Recipients</p>
+                                    <p className="text-sm text-gray-600 mb-1">Total Impacted Residents</p>
                                     <p className="text-3xl font-bold text-gray-900">{stats.totalRecipients}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-600 mb-1">Delivery Rate</p>
+                                    <p className="text-sm text-gray-600 mb-1">Successful Delivery</p>
                                     <p className="text-3xl font-bold text-green-500">{stats.deliveryRate}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="bg-white shadow-sm border border-gray-100 p-6 rounded-xl">
-                            <h3 className="text-lg font-bold text-gray-800 mb-6">Channel Performance</h3>
+                            <h3 className="text-lg font-bold text-gray-800 mb-6">Channel Health</h3>
                             <div className="space-y-4">
                                 {channelOptions.map(ch => (
                                     <div key={ch.id} className="flex items-center justify-between">
                                         <div className="flex items-center gap-3 text-gray-600">
                                             {ch.icon}
-                                            <span className="text-sm font-medium">{ch.label === 'Web Notification' ? 'Web' : ch.label}</span>
+                                            <span className="text-sm font-medium">{ch.label}</span>
                                         </div>
-                                        <span className="bg-gray-100 text-gray-800 text-[11px] font-bold px-2 py-1 rounded">100%</span>
+                                        <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded">Active</span>
                                     </div>
                                 ))}
                             </div>
@@ -261,41 +265,49 @@ const AdminNotificationCenter = () => {
 
                 {/* HISTORY SECTION */}
                 <section className="bg-white shadow-sm border border-gray-100 overflow-hidden rounded-xl">
-                    <header className="p-6 border-b border-gray-50">
-                        <h2 className="text-xl font-bold text-gray-800">Notification History</h2>
+                    <header className="p-6 border-b border-gray-50 flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-gray-800">Dispatch Log</h2>
+                        <button onClick={fetchData} className="text-xs text-blue-600 font-bold hover:underline">Refresh List</button>
                     </header>
                     <div className="p-6 space-y-4">
                         {loading ? (
                             <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>
                         ) : history.length === 0 ? (
-                            <div className="text-center py-10 text-gray-600">No history found</div>
+                            <div className="text-center py-10 text-gray-400 italic">No broadcast records available</div>
                         ) : (
                             history.map((item) => (
                                 <div key={item.id} className="group relative border border-gray-100 p-5 hover:border-gray-200 hover:bg-gray-50/50 transition-all rounded-lg">
                                     <div className="flex flex-col md:flex-row justify-between gap-4">
                                         <div className="space-y-1">
-                                            <h4 className="text-lg font-bold text-gray-900">{item.title}</h4>
-                                            <p className="text-sm text-gray-500 leading-relaxed">{item.desc || item.message}</p>
+                                            <div className="flex items-center gap-2">
+                                                <h4 className="text-lg font-bold text-gray-900">{item.title}</h4>
+                                                <span className="text-[10px] bg-gray-100 px-2 py-0.5 rounded text-gray-500 font-mono">#{item.id}</span>
+                                            </div>
+                                            <p className="text-sm text-gray-500 leading-relaxed max-w-2xl">{item.desc || item.message}</p>
                                             <div className="flex items-center gap-4 mt-4">
-                                                <span className="text-xs text-gray-600 uppercase ">Recipient Group: {item.target_group}</span>
-                                                <span className="text-xs text-gray-600">{item.recipients} recipients</span>
-                                                <span className="text-xs text-gray-600">•</span>
-                                                <span className="text-xs text-gray-600">{item.date}</span>
+                                                <span className="text-xs font-semibold text-[#00308F] uppercase ">Target: {item.target_group}</span>
+                                                <span className="text-xs text-gray-400">•</span>
+                                                <span className="text-xs text-gray-600">{item.recipients} residents</span>
+                                                <span className="text-xs text-gray-400">•</span>
+                                                <span className="text-xs text-gray-600">{new Date(item.date).toLocaleDateString()}</span>
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end justify-between gap-4">
-                                            <div className="flex items-center gap-2">
-                                                <span className="bg-blue-50 text-blue-600 text-[10px] font-bold px-3 py-1 flex items-center gap-1 rounded">
-                                                    Sent
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-2">
+                                            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold px-3 py-1 rounded-full">
+                                                Dispatched
+                                            </span>
+                                            <div className="flex gap-2 items-center">
+                                                {/* Logic to show icons based on bitmask or channels array */}
                                                 {item.channels?.map(ch => (
-                                                    <span key={ch} className="bg-white border border-gray-200 text-gray-600 text-[10px] font-semibold px-2 py-1 shadow-sm rounded">
-                                                        {ch.replace(' Notification', '')}
+                                                    <span key={ch} className="bg-white border border-gray-200 text-gray-600 text-[9px] font-bold px-2 py-1 shadow-sm rounded uppercase">
+                                                        {ch}
                                                     </span>
                                                 ))}
-                                                <button onClick={() => handleDelete(item.id)} className="ml-2 cursor-pointer text-red-500 transition-colors">
+                                                <button
+                                                    onClick={() => handleDelete(item.id)}
+                                                    className="ml-2 p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors rounded-lg"
+                                                    title="Delete Log"
+                                                >
                                                     <Trash2 size={16} />
                                                 </button>
                                             </div>

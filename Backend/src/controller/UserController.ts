@@ -424,45 +424,49 @@ class UserController {
         }
     };
 
-    private saveEmergencyContact = async (userId: number, contactData: any, connection: any): Promise<void> => {
-        const { name, relationship, contact } = contactData;
-
-        await connection.execute(
-            `INSERT INTO emergency_contacts (user_id, name, relationship, contact) 
-         VALUES (?, ?, ?, ?) 
-         ON DUPLICATE KEY UPDATE 
-            name = VALUES(name), 
-            relationship = VALUES(relationship), 
-            contact = VALUES(contact)`,
-            [userId, name, relationship, contact]
-        );
-    };
     public async getPriority(req: Request, res: Response): Promise<Response> {
         try {
             const sql = `
-                SELECT 
-                    id, 
-                    CONCAT(firstname, ' ', lastname) as name, 
-                    address, 
-                    contact_number as phone, 
-                    CASE 
-                        WHEN type = 'PWD' THEN 1 
-                        WHEN type = 'SC' THEN 2 
-                        ELSE 3 
-                    END as priority,
-                    is_flood_prone,
-                    type
-                FROM users
-                WHERE is_flood_prone = 1 OR type IN ('PWD', 'SC')
-                ORDER BY priority ASC
-                LIMIT 50
-            `;
+            SELECT 
+                id, 
+                CONCAT(firstname, ' ', lastname) as name, 
+                CONCAT(house_no, ' ', street, ' ', barangay) as address, 
+                contact_number as phone, 
+                CASE 
+                    -- Highest Priority: Both SC/PWD AND Flood Prone
+                    WHEN type = 'BOTH' AND is_flood_prone = 1 THEN 1
+                    -- Mid Priority: Just Flood Prone
+                    WHEN is_flood_prone = 1 THEN 2
+                    -- Lowest Priority: Just BOTH (not flood prone)
+                    WHEN type = 'BOTH' THEN 3
+                    ELSE 4 
+                END as priority_level,
+                is_flood_prone,
+                type
+            FROM users
+            WHERE is_flood_prone = 1 OR type = 'BOTH'
+            ORDER BY priority_level ASC
+            LIMIT 50
+        `;
 
+            // Note: Using pool.query or db.query depending on your setup
             const [rows]: any = await pool.query(sql);
 
             const formattedResidents = rows.map((row: any) => {
-                const tags = [];
+                const tags: string[] = [];
+                let priorityLabel = "";
+
+                // 1. Determine the Label (High, Mid, or None)
+                if (row.priority_level === 1) {
+                    priorityLabel = "High Priority";
+                } else if (row.priority_level === 2) {
+                    priorityLabel = "Mid Priority";
+                }
+
+                // 2. Determine Tags
                 if (row.is_flood_prone) tags.push('Flood-Prone');
+                if (row.type === 'BOTH') tags.push('SC/PWD');
+                // If you still use 'PWD' or 'SC' individual types elsewhere:
                 if (row.type === 'PWD') tags.push('PWD');
                 if (row.type === 'SC') tags.push('Senior Citizen');
 
@@ -471,7 +475,8 @@ class UserController {
                     name: row.name,
                     address: row.address,
                     phone: row.phone,
-                    priority: row.priority,
+                    priority: row.priority_level, // Changed from row.priority to priority_level
+                    priorityLabel: priorityLabel, // Pass this to the frontend
                     tags: tags
                 };
             });
