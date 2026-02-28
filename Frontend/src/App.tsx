@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 // Navbars
 import Navbar from './components/UserNavbar';
 import AdminNavbar from './components/AdminNavbar';
+import SuperAdminNavbar from './components/SuperAdminNavbar';
 
 // User Pages
 import UserMainPage from './UserPages/UserMainPage';
@@ -34,6 +35,15 @@ import AdminBenefitsReliefLedger from './AdminPages/AdminBenefitsReliefLedger';
 import AdminEventsCalendar from './AdminPages/AdminEventsCalendar';
 import AdminContentCMS from './AdminPages/AdminContentCMS';
 
+//SuperAdmin Pages
+import SuperAdminDashboard from './SuperAdminPages/SuperAdminDashboard';
+import SuperAdminLogin from './SuperAdminPages/SuperAdminLogin';
+import SuperAdminRBAC from './SuperAdminPages/SuperAdminRBAC';
+import SuperAdminAuditTrail from './SuperAdminPages/SuperAdminAuditTrail';
+import SuperAdminConfiguration from './SuperAdminPages/SuperAdminConfiguration';
+import SuperAdminDatabase from './SuperAdminPages/SuperAdminDatabase';
+import SuperAdminCompliance from './SuperAdminPages/SuperAdminCompliance';
+
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
@@ -45,8 +55,8 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  if (isAuthenticated && user) {
-    return <Navigate to={user.role === 1 ? "/AdminDashboard" : "/UserMainPage"} replace />;
+    if (isAuthenticated && user) {
+    return <Navigate to={user.role === 3 ? "/SuperAdminDashboard" : user.role === 1 ? "/AdminDashboard" : "/UserMainPage"} replace />;
   }
 
   return <>{children}</>;
@@ -71,6 +81,7 @@ const AppContent: React.FC = () => {
       {/* --- PUBLIC ROUTES --- */}
       <Route path="/Login" element={<PublicRoute><UserLogin /></PublicRoute>} />
       <Route path="/AdminLogin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
+      <Route path="/SuperAdminLogin" element={<PublicRoute><SuperAdminLogin /></PublicRoute>} />
 
       {/* --- USER PROTECTED ROUTES --- */}
       <Route path="/UserMainPage" element={<ProtectedRoute><Navbar><UserMainPage /></Navbar></ProtectedRoute>} />
@@ -93,6 +104,15 @@ const AppContent: React.FC = () => {
       <Route path="/AdminBenefitsReliefLedger" element={<ProtectedRoute requiredRole={1}><AdminNavbar><AdminBenefitsReliefLedger /></AdminNavbar></ProtectedRoute>} />
       <Route path="/AdminEventsCalendar" element={<ProtectedRoute requiredRole={1}><AdminNavbar><AdminEventsCalendar /></AdminNavbar></ProtectedRoute>} />
       <Route path="/AdminContentCMS" element={<ProtectedRoute requiredRole={1}><AdminNavbar><AdminContentCMS /></AdminNavbar></ProtectedRoute>} />
+
+      {/* --- SUPER ADMIN PROTECTED ROUTES (Required Role: 3) --- */}
+      <Route path="/SuperAdminDashboard" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminDashboard /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminRBAC" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminRBAC /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminAuditTrail" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminAuditTrail /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminConfiguration" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminConfiguration /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminDatabase" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminDatabase /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminCompliance" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminCompliance /></SuperAdminNavbar></ProtectedRoute>} />
+
 
       {/* --- 404 PAGE --- */}
       <Route path="*" element={
