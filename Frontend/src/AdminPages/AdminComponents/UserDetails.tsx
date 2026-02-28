@@ -71,7 +71,9 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
     const profilePic = displayData.attachments?.find((a: any) => a.file_type === 'photo_2x2');
 
     return (
+
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            {loading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">Loading...</div>}
             <div className="bg-white shadow-2xl w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
 
                 {/* TOP HEADER */}
