@@ -1,103 +1,84 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../database/db.js';
-import EmailService from '../services/NotificationService.js';
+import fs from 'fs';
 class UserController {
 
     public async fetchAllUsers(req: Request, res: Response): Promise<Response> {
         try {
-
             const query = `
-                SELECT 
-                    u.*, 
-                    ec.name as emergency_name, 
-                    ec.relationship as emergency_relationship, 
-                    ec.contact as emergency_contact
-                FROM users u
-                LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
-                WHERE u.role = 2
-                ORDER BY u.created_at DESC
-            `;
+            SELECT 
+                u.*, 
+                ec.name as emergency_name, 
+                ec.relationship as emergency_relationship, 
+                ec.contact as emergency_contact,
+                GROUP_CONCAT(
+                    JSON_OBJECT('file_type', ua.file_type, 'file_path', ua.file_path)
+                ) as attachments
+            FROM users u
+            LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
+            LEFT JOIN user_attachments ua ON u.id = ua.user_id
+            WHERE u.role = 2
+            GROUP BY u.id
+            ORDER BY u.created_at DESC
+        `;
 
             const [rows]: any = await pool.execute(query);
 
             const formattedUsers = rows.map((user: any) => ({
-                id: user.id,
-                system_id: user.system_id,
-                firstname: user.firstname,
-                lastname: user.lastname,
-                email: user.email,
-                contact_number: user.contact_number,
-                gender: user.gender,
-                birthday: user.birthday,
-                address: user.address,
-                type: user.type,
-                id_expiry_date: user.id_expiry_date,
-                disability: user.disability,
+                ...user,
                 is_flood_prone: user.is_flood_prone === 1,
-                status: user.status,
+                is_registered_voter: user.is_registered_voter === 1,
                 emergencyContact: user.emergency_name ? {
                     name: user.emergency_name,
                     relationship: user.emergency_relationship,
                     contact: user.emergency_contact
-                } : null
+                } : null,
+                // Parse attachments JSON string if it exists
+                attachments: user.attachments ? JSON.parse(`[${user.attachments}]`) : []
             }));
 
             return res.status(200).json(formattedUsers);
-
         } catch (error) {
             console.error("Fetch Users Error:", error);
             return res.status(500).json({ message: "Internal server error." });
         }
     }
+
     public fetchUserBySystemId = async (req: Request, res: Response): Promise<Response> => {
         const { system_id } = req.params;
-
         try {
             const query = `
-                SELECT 
-                    u.*, 
-                    ec.name as emergency_name, 
-                    ec.relationship as emergency_relationship, 
-                    ec.contact as emergency_contact
-                FROM users u
-                LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
-                WHERE u.system_id = ? AND u.role = 2
-                LIMIT 1
-            `;
+            SELECT 
+                u.*, 
+                ec.name as emergency_name, 
+                ec.relationship as emergency_relationship, 
+                ec.contact as emergency_contact,
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT('file_type', file_type, 'file_path', file_path)) 
+                 FROM user_attachments WHERE user_id = u.id) as attachments
+            FROM users u
+            LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
+            WHERE u.system_id = ? AND u.role = 2
+            LIMIT 1
+        `;
 
             const [rows]: any = await pool.execute(query, [system_id]);
-
-            if (rows.length === 0) {
-                return res.status(404).json({ message: "Resident not found." });
-            }
+            if (rows.length === 0) return res.status(404).json({ message: "Resident not found." });
 
             const user = rows[0];
-
             const formattedUser = {
-                id: user.id,
-                system_id: user.system_id,
-                firstname: user.firstname,
-                lastname: user.lastname,
-                email: user.email,
-                contact_number: user.contact_number,
-                gender: user.gender,
-                birthday: user.birthday,
-                address: user.address,
-                type: user.type,
-                id_expiry_date: user.id_expiry_date,
-                disability: user.disability,
+                ...user,
                 is_flood_prone: user.is_flood_prone === 1,
-                status: user.status,
+                is_registered_voter: user.is_registered_voter === 1,
                 emergencyContact: user.emergency_name ? {
                     name: user.emergency_name,
                     relationship: user.emergency_relationship,
                     contact: user.emergency_contact
-                } : null
+                } : null,
+                attachments: typeof user.attachments === 'string' ? JSON.parse(user.attachments) : user.attachments || []
             };
 
             return res.status(200).json(formattedUser);
-
         } catch (error) {
             console.error("Fetch User Detail Error:", error);
             return res.status(500).json({ message: "Internal server error." });
@@ -105,14 +86,28 @@ class UserController {
     };
 
     public AddNewUser = async (req: Request, res: Response): Promise<Response> => {
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+
         const {
-            firstname, lastname, email, contact_number,
-            gender, birthday, address, type, id_expiry_date,
-            disability, is_flood_prone, emergencyContact
+            firstname, middlename, lastname, suffix, email, contact_number,
+            gender, birthday, birthplace, nationality, civil_status, blood_type,
+            house_no, street, barangay, ownership_type, years_of_residency, residence_status,
+            occupation, monthly_income, education, school, household_number,
+            type, id_expiry_date, tcic_id, disability, is_flood_prone, is_registered_voter,
+            emergencyContact
         } = req.body;
 
         if (!firstname || !lastname || !type) {
             return res.status(400).json({ message: "Required fields (Firstname, Lastname, Type) are missing." });
+        }
+
+        let parsedEmergencyContact = emergencyContact;
+        if (typeof emergencyContact === 'string') {
+            try {
+                parsedEmergencyContact = JSON.parse(emergencyContact);
+            } catch (e) {
+                console.error("Failed to parse emergencyContact:", e);
+            }
         }
 
         const connection = await pool.getConnection();
@@ -120,30 +115,57 @@ class UserController {
         try {
             await connection.beginTransaction();
 
+            // Removed 'yearly_income' and 'educational_level'
             const [userResult]: any = await connection.execute(
                 `INSERT INTO users (
-                system_id, firstname, lastname, email, password, contact_number, 
-                gender, birthday, address, type, id_expiry_date, 
-                disability, is_flood_prone, role, status
-            ) VALUES ('TEMP', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 2, 'active')`,
+            system_id, firstname, middlename, lastname, suffix, email, password, contact_number, 
+            gender, birthday, birthplace, nationality, civil_status, blood_type,
+            house_no, street, barangay, ownership_type, years_of_residency, residence_status,
+            occupation, monthly_income, education, school, household_number,
+            type, id_expiry_date, tcic_id, disability, is_flood_prone, is_registered_voter, role, status
+        ) VALUES ('TEMP', ?, ?, ?, ?, ?, 'TEMPORARY_PASS', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 2, 'active')`,
                 [
-                    firstname, lastname, email || null, 'TEMPORARY_PASS', contact_number,
-                    gender, birthday, address, type, id_expiry_date || null,
-                    disability || 'N/A', is_flood_prone ? 1 : 0
+                    firstname || null,
+                    middlename || null,
+                    lastname || null,
+                    suffix || null,
+                    email || null,
+                    contact_number || null,
+                    gender || null,
+                    birthday || null,
+                    birthplace || null,
+                    nationality || 'Filipino',
+                    civil_status || null,
+                    blood_type || null,
+                    house_no || null,
+                    street || null,
+                    barangay || null,
+                    ownership_type || null,
+                    years_of_residency || 0,
+                    residence_status || 'Resident',
+                    occupation || null,
+                    monthly_income || null,
+                    education || null,
+                    school || null,
+                    household_number || null,
+                    type || 'Resident',
+                    id_expiry_date || null,
+                    tcic_id || null,
+                    disability || 'N/A',
+                    (is_flood_prone === 'true' || is_flood_prone === 1 || is_flood_prone === true) ? 1 : 0,
+                    (is_registered_voter === 'true' || is_registered_voter === 1 || is_registered_voter === true) ? 1 : 0
                 ]
             );
 
             const newIdFromDB = userResult.insertId;
 
-            let prefix = 'PWD';
-            if (type === 'Both') {
-                prefix = 'SC-PWD';
-            } else if (type === 'Senior Citizen' || type === 'SC') {
-                prefix = 'SC';
-            }
+            // 2. Generate System ID
+            let prefix = 'RES';
+            if (type === 'Both') prefix = 'SC-PWD';
+            else if (['Senior Citizen', 'SC'].includes(type)) prefix = 'SC';
+            else if (type === 'PWD') prefix = 'PWD';
 
             const system_id = `${prefix}-${newIdFromDB.toString().padStart(3, '0')}`;
-
             const cleanLastName = lastname.replace(/\s+/g, '').toLowerCase();
             const rawPassword = `${system_id}${cleanLastName}`;
             const hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -153,48 +175,69 @@ class UserController {
                 [system_id, hashedPassword, newIdFromDB]
             );
 
-            if (emergencyContact && emergencyContact.name) {
-                await this.saveEmergencyContact(newIdFromDB, emergencyContact, connection);
+            // 3. Save Emergency Contact
+            if (parsedEmergencyContact && parsedEmergencyContact.name) {
+                await connection.execute(
+                    `INSERT INTO emergency_contacts (user_id, name, relationship, contact) VALUES (?, ?, ?, ?)`,
+                    [
+                        newIdFromDB,
+                        parsedEmergencyContact.name || null,
+                        parsedEmergencyContact.relationship || null,
+                        parsedEmergencyContact.contact || null
+                    ]
+                );
+            }
+
+            // 4. Save Attachments
+            if (files) {
+                if (files['photo_2x2']) {
+                    const photoPath = files['photo_2x2'][0].path;
+                    await connection.execute(
+                        `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, 'photo_2x2', ?)`,
+                        [newIdFromDB, photoPath]
+                    );
+                }
+                if (files['proof_of_residency']) {
+                    const docPath = files['proof_of_residency'][0].path;
+                    await connection.execute(
+                        `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, 'proof_of_residency', ?)`,
+                        [newIdFromDB, docPath]
+                    );
+                }
             }
 
             await connection.commit();
 
-            if (email) {
-                const fullName = `${firstname} ${lastname}`;
-                EmailService.sendRegistrationEmail(email, fullName, system_id, rawPassword);
-            }
-
             return res.status(201).json({
                 success: true,
                 message: "Resident registered successfully!",
-                data: {
-                    system_id,
-                    generated_password: rawPassword
-                }
+                data: { system_id, generated_password: rawPassword }
             });
 
         } catch (error: any) {
             await connection.rollback();
-            console.error("Registration Error:", error.message);
-
-            // Handling the "Data Truncated" error if the 'type' column is still too short
-            if (error.code === 'WARN_DATA_TRUNCATED' || error.errno === 1265) {
-                return res.status(400).json({
-                    message: "Database Error: The 'type' field is too long. Please ensure your 'users' table 'type' column is VARCHAR(50)."
-                });
-            }
-
-            return res.status(500).json({ message: "Internal server error." });
+            console.error("Registration Error:", error);
+            return res.status(500).json({ message: "Internal server error.", error: error.message });
         } finally {
             connection.release();
         }
     };
+
     public updateUser = async (req: Request, res: Response): Promise<Response> => {
-        const { system_id } = req.params;
+        const { system_id: oldSystemId } = req.params;
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+        if (!req.body || Object.keys(req.body).length === 0) {
+            return res.status(400).json({ message: "No data provided in request body." });
+        }
+
         const {
-            firstname, lastname, email, contact_number,
-            gender, birthday, address, type, id_expiry_date,
-            disability, is_flood_prone, emergencyContact
+            firstname, middlename, lastname, suffix, email, contact_number,
+            gender, birthday, birthplace, nationality, civil_status, blood_type,
+            house_no, street, barangay, ownership_type, years_of_residency, residence_status,
+            occupation, monthly_income, education, school, household_number,
+            type, id_expiry_date, tcic_id, disability, is_flood_prone, is_registered_voter,
+            emergencyContact
         } = req.body;
 
         const connection = await pool.getConnection();
@@ -202,9 +245,10 @@ class UserController {
         try {
             await connection.beginTransaction();
 
+            // 1. Find the User ID first
             const [userRow]: any = await connection.execute(
                 "SELECT id FROM users WHERE system_id = ?",
-                [system_id]
+                [oldSystemId]
             );
 
             if (userRow.length === 0) {
@@ -214,66 +258,115 @@ class UserController {
 
             const userId = userRow[0].id;
 
-            let prefix = 'PWD';
-            if (type === 'Both') {
-                prefix = 'SC-PWD';
-            } else if (type === 'Senior Citizen' || type === 'SC') {
-                prefix = 'SC';
-            }
+            // 2. Re-generate System ID if 'type' changed
+            let prefix = 'RES';
+            if (type === 'Both') prefix = 'SC-PWD';
+            else if (['Senior Citizen', 'SC'].includes(type)) prefix = 'SC';
+            else if (type === 'PWD') prefix = 'PWD';
 
             const newSystemId = `${prefix}-${userId.toString().padStart(3, '0')}`;
 
+            // 3. Update User fields (Removed 'yearly_income' and 'educational_level')
             await connection.execute(
                 `UPDATE users SET 
-                system_id = ?,
-                firstname = ?, lastname = ?, email = ?, 
-                contact_number = ?, gender = ?, birthday = ?, 
-                address = ?, type = ?, id_expiry_date = ?, 
-                disability = ?, is_flood_prone = ?
-            WHERE id = ?`,
+            system_id = ?, firstname = ?, middlename = ?, lastname = ?, suffix = ?, 
+            email = ?, contact_number = ?, gender = ?, birthday = ?, birthplace = ?, 
+            nationality = ?, civil_status = ?, blood_type = ?, 
+            house_no = ?, street = ?, barangay = ?, ownership_type = ?, 
+            years_of_residency = ?, residence_status = ?, occupation = ?, 
+            monthly_income = ?, education = ?, school = ?, 
+            household_number = ?, type = ?, 
+            id_expiry_date = ?, tcic_id = ?, disability = ?, 
+            is_flood_prone = ?, is_registered_voter = ?
+        WHERE id = ?`,
                 [
                     newSystemId,
-                    firstname, lastname, email || null, contact_number,
-                    gender, birthday, address, type, id_expiry_date || null,
-                    disability || 'N/A', is_flood_prone ? 1 : 0,
+                    firstname || null,
+                    middlename || null,
+                    lastname || null,
+                    suffix || null,
+                    email || null,
+                    contact_number || null,
+                    gender || null,
+                    birthday || null,
+                    birthplace || null,
+                    nationality || 'Filipino',
+                    civil_status || null,
+                    blood_type || null,
+                    house_no || null,
+                    street || null,
+                    barangay || null,
+                    ownership_type || null,
+                    years_of_residency || 0,
+                    residence_status || 'Resident',
+                    occupation || null,
+                    monthly_income || null,
+                    education || null,
+                    school || null,
+                    household_number || null,
+                    type || 'Resident',
+                    id_expiry_date || null,
+                    tcic_id || null,
+                    disability || 'N/A',
+                    (is_flood_prone === 'true' || is_flood_prone === 1 || is_flood_prone === true) ? 1 : 0,
+                    (is_registered_voter === 'true' || is_registered_voter === 1 || is_registered_voter === true) ? 1 : 0,
                     userId
                 ]
             );
 
-            if (emergencyContact && emergencyContact.name) {
+            // 4. Update Emergency Contact
+            let parsedEmergencyContact = emergencyContact;
+            if (typeof emergencyContact === 'string') {
+                try { parsedEmergencyContact = JSON.parse(emergencyContact); } catch (e) { }
+            }
+
+            if (parsedEmergencyContact && parsedEmergencyContact.name) {
                 await connection.execute(
                     `INSERT INTO emergency_contacts (user_id, name, relationship, contact) 
-                 VALUES (?, ?, ?, ?) 
-                 ON DUPLICATE KEY UPDATE 
-                    name = VALUES(name), 
-                    relationship = VALUES(relationship), 
-                    contact = VALUES(contact)`,
+             VALUES (?, ?, ?, ?) 
+             ON DUPLICATE KEY UPDATE 
+                name = VALUES(name), 
+                relationship = VALUES(relationship), 
+                contact = VALUES(contact)`,
                     [
                         userId,
-                        emergencyContact.name,
-                        emergencyContact.relationship || 'N/A',
-                        emergencyContact.contact_number || emergencyContact.contact
+                        parsedEmergencyContact.name,
+                        parsedEmergencyContact.relationship || 'N/A',
+                        parsedEmergencyContact.contact || parsedEmergencyContact.contact_number
                     ]
                 );
             }
 
+            // 5. Handle File Updates (Attachments)
+            if (files) {
+                const attachmentTypes = ['photo_2x2', 'proof_of_residency'];
+
+                for (const fileType of attachmentTypes) {
+                    if (files[fileType]) {
+                        const filePath = files[fileType][0].path;
+                        await connection.execute(
+                            `DELETE FROM user_attachments WHERE user_id = ? AND file_type = ?`,
+                            [userId, fileType]
+                        );
+                        await connection.execute(
+                            `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, ?, ?)`,
+                            [userId, fileType, filePath]
+                        );
+                    }
+                }
+            }
+
             await connection.commit();
             return res.status(200).json({
+                success: true,
                 message: "Resident updated successfully!",
-                new_system_id: newSystemId
+                data: { new_system_id: newSystemId }
             });
 
         } catch (error: any) {
             await connection.rollback();
-            console.error("Update Error:", error.message);
-
-            if (error.code === 'WARN_DATA_TRUNCATED' || error.errno === 1265) {
-                return res.status(400).json({
-                    message: "Data too long. Check if 'type' or 'system_id' column lengths are sufficient."
-                });
-            }
-
-            return res.status(500).json({ message: "Internal server error." });
+            console.error("Update Error:", error);
+            return res.status(500).json({ message: "Internal server error.", error: error.message });
         } finally {
             connection.release();
         }

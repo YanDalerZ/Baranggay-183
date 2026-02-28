@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, User as UserIcon, MapPin, ShieldCheck, ExternalLink, Heart, Fingerprint, GraduationCap, AlertCircle, FileText } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
 
 interface ViewUserDetailsProps {
@@ -11,20 +11,15 @@ interface ViewUserDetailsProps {
 }
 
 const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user }) => {
-    const [details, setDetails] = useState<User | null>(null);
+    const [details, setDetails] = useState<any | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
-    const token = useAuth().token;
-    const config = {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
-    };
-    const fetchResidentById = useCallback(async () => {
-        if (!user?.system_id) return;
+    const { token } = useAuth();
 
+    const fetchResidentById = useCallback(async () => {
+        if (!user?.system_id || !token) return;
         try {
-            if (!token) return;
             setLoading(true);
+            const config = { headers: { Authorization: `Bearer ${token}` } };
             const response = await axios.get(`${API_BASE_URL}/api/user/${user.system_id}`, config);
             setDetails(response.data);
         } catch (err) {
@@ -32,15 +27,28 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         } finally {
             setLoading(false);
         }
-    }, [user?.system_id]);
+    }, [user?.system_id, token]);
 
     useEffect(() => {
-        if (isOpen && user) {
-            fetchResidentById();
-        }
+        if (isOpen && user) fetchResidentById();
     }, [isOpen, user, fetchResidentById]);
 
     const displayData = details || user;
+
+    const getSafeUrl = (filePath: string | undefined) => {
+        if (!filePath) return "";
+
+        const cleanPath = filePath.replace(/\\/g, '/');
+        const baseUrl = API_BASE_URL.endsWith('/')
+            ? API_BASE_URL.slice(0, -1)
+            : API_BASE_URL;
+
+        const normalizedPath = cleanPath.startsWith('/')
+            ? cleanPath
+            : `/${cleanPath}`;
+
+        return `${baseUrl}${normalizedPath}`;
+    };
 
     if (!isOpen || !displayData) return null;
 
@@ -50,136 +58,202 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         const today = new Date();
         let age = today.getFullYear() - birthDate.getFullYear();
         const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
         return age;
     };
 
     const formatDate = (dateString: string | undefined) => {
         if (!dateString) return 'N/A';
-        return dateString.split('T')[0];
+        return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     };
 
-    const getDaysLeft = (dateString: string | undefined) => {
-        if (!dateString) return null;
-        const now = new Date();
-        const exp = new Date(dateString);
-        const diffTime = exp.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
-    };
-
-    const daysLeft = getDaysLeft(displayData.id_expiry_date);
+    // Get specific images
+    const profilePic = displayData.attachments?.find((a: any) => a.file_type === 'photo_2x2');
 
     return (
-        <div className="fixed inset-0 z-50 flex h-[100vh] items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[95vh] max-w-xl overflow-hidden relative animate-in fade-in zoom-in duration-200">
 
-                <div className="p-5 border-b border-gray-100 flex justify-between items-start">
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-900">Resident Profile</h2>
-                        <p className="text-gray-500 text-sm mt-1">
-                            {loading ? 'Refreshing data...' : `Detailed information for ${displayData.system_id}`}
-                        </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+            {loading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">Loading...</div>}
+            <div className="bg-white shadow-2xl w-full max-w-7xl max-h-[92vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+
+                {/* TOP HEADER */}
+                <div className="bg-gray-900 p-8 flex justify-between items-center text-white relative">
+                    <div className="flex items-center gap-8">
+                        <div className="h-28 w-28 border-4 rounded-full border-gray-700 bg-gray-800 overflow-hidden shadow-2xl">
+                            {profilePic ? (
+                                <img src={getSafeUrl(profilePic.file_path)} alt="Profile" className="h-full rounded-full w-full object-cover"
+                                    onError={(e) => (e.currentTarget.src = `https://ui-avatars.com/api/?name=${displayData.firstname}+${displayData.lastname}&background=random`)} />
+                            ) : (
+                                <div className="h-full w-full flex items-center justify-center text-gray-500"><UserIcon size={48} /></div>
+                            )}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-3">
+                                <h1 className="text-3xl font-black tracking-tight uppercase">
+                                    {displayData.firstname} {displayData.middlename || ''} {displayData.lastname} {displayData.suffix || ''}
+                                </h1>
+                                <Badge color={displayData.status === 'active' ? 'green' : 'red'} label={displayData.status} />
+                            </div>
+                            <p className="text-gray-400 font-mono tracking-widest mt-1">ID: {displayData.system_id} | {displayData.type}</p>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X size={20} className="text-gray-400" />
-                    </button>
+                    <button onClick={onClose} className="bg-white/10 p-3 hover:bg-white/20 transition-all text-white rounded-full"><X size={24} /></button>
                 </div>
 
-                <div className={`p-8 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto max-h-[70vh] ${loading ? 'opacity-50' : 'opacity-100'}`}>
-                    {/* Column 1: Personal Info */}
-                    <div className="space-y-4">
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                            Personal Information
-                        </h3>
-                        <div className="space-y-3">
-                            <DetailItem label="Name" value={`${displayData.firstname} ${displayData.lastname}`} />
-                            <DetailItem label="System ID" value={displayData.system_id!} />
-                            <DetailItem label="Birthday" value={formatDate(displayData.birthday)} />
-                            <DetailItem label="Age" value={`${calculateAge(displayData.birthday)} years old`} />
-                            <DetailItem label="Gender" value={displayData.gender} />
-                            <div>
-                                <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Type</p>
-                                <span className="inline-block mt-1 px-3 py-1 bg-purple-100 text-purple-700 text-xs font-bold rounded-full">
-                                    {displayData.type}
-                                </span>
-                            </div>
-                            <DetailItem label="Disability" value={displayData.disability || 'N/A'} />
-                        </div>
-                    </div>
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-gray-50/50">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Column 2: Contact, Risk & ID Status */}
-                    <div className="space-y-6">
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-gray-900">Contact & Location</h3>
-                            <div className="space-y-3">
-                                <DetailItem label="Address" value={displayData.address} />
-                                <DetailItem label="Contact" value={displayData.contact_number} />
-                                <DetailItem label="Email" value={displayData.email} />
-                                <div>
-                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Flood Risk</p>
-                                    {displayData.is_flood_prone ? (
-                                        <span className="inline-flex items-center gap-1 mt-1 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
-                                            <AlertTriangle size={12} /> High Risk
-                                        </span>
+                        <div className="space-y-6">
+                            <SectionCard icon={<Fingerprint className="text-indigo-500" />} title="Primary Identity">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <DataRow label="Email Address" value={displayData.email} />
+                                    <DataRow label="Contact Number" value={displayData.contact_number} />
+                                    <DataRow label="Gender" value={displayData.gender} />
+                                    <DataRow label="Civil Status" value={displayData.civil_status} />
+                                    <Badge label={displayData.nationality || "Filipino"} color="green" />
+                                    <DataRow label="TCIC ID" value={displayData.tcic_id} />
+                                </div>
+                            </SectionCard>
+
+                            <SectionCard icon={<Heart className="text-red-500" />} title="Health & Physical">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <DataRow label="Blood Type" value={displayData.blood_type} />
+                                    <DataRow label="Birthday" value={formatDate(displayData.birthday)} />
+                                    <DataRow label="Age" value={`${calculateAge(displayData.birthday)} Years Old`} />
+                                    <DataRow label="Birthplace" value={displayData.birthplace} />
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-gray-100">
+                                    <DataRow label="Disability Status" value={displayData.disability || 'None Reported'} isAlert={!!displayData.disability && displayData.disability !== 'N/A'} />
+                                </div>
+                            </SectionCard>
+                        </div>
+
+                        {/* CENTER COLUMN: LOCATION & SOCIO-ECONOMIC */}
+                        <div className="space-y-6">
+                            <SectionCard icon={<MapPin className="text-orange-500" />} title="Residence Mapping">
+                                <div className="space-y-4">
+                                    <div className="bg-white p-4 border border-gray-100 shadow-sm">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase">Registered Address</p>
+                                        <p className="font-bold text-gray-800">{displayData.house_no} {displayData.street}, {displayData.barangay}</p>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <DataRow label="Ownership" value={displayData.ownership_type} />
+                                        <DataRow label="Household No." value={displayData.household_number} />
+                                        <DataRow label="Years Stayed" value={displayData.years_of_residency} />
+                                        <DataRow label="Residence Status" value={displayData.residence_status} />
+                                    </div>
+                                </div>
+                            </SectionCard>
+
+                            <SectionCard icon={<GraduationCap className="text-blue-500" />} title="Economic Profile">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <DataRow label="Occupation" value={displayData.occupation} />
+                                    <DataRow label="Monthly Income" value={displayData.monthly_income ? `₱${(displayData.monthly_income).toLocaleString()}` : 'N/A'} />
+                                    <DataRow label="Education" value={displayData.education} />
+                                    <DataRow label="Institution" value={displayData.school} />
+                                </div>
+                            </SectionCard>
+                        </div>
+
+                        {/* RIGHT COLUMN: ATTACHMENTS & EMERGENCY */}
+                        <div className="space-y-6">
+                            <SectionCard icon={<ShieldCheck className="text-emerald-500" />} title="System Flags & Documents">
+                                <div className="flex gap-2 mb-6">
+                                    <StatusChip active={!!displayData.is_registered_voter} label="Voter" />
+                                    <StatusChip active={!!displayData.is_flood_prone} label="Flood Prone" type="danger" />
+                                </div>
+
+                                <div className="space-y-3">
+                                    <p className="text-[10px] font-black text-gray-400 uppercase">Uploaded Files</p>
+                                    {displayData.attachments && displayData.attachments.length > 0 ? (
+                                        displayData.attachments.map((file: any, idx: number) => (
+                                            <FilePreview key={idx} file={file} getSafeUrl={getSafeUrl} />
+                                        ))
                                     ) : (
-                                        <span className="inline-block mt-1 px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
-                                            Low Risk
-                                        </span>
+                                        <div className="text-center py-6 border-2 border-dashed border-gray-200 text-gray-400 text-xs">No attachments found</div>
                                     )}
                                 </div>
-                            </div>
-                        </div>
+                            </SectionCard>
 
-                        {/* --- ID Expiry Section --- */}
-                        <div className="pt-4 border-t border-gray-100">
-                            <h3 className="font-semibold text-gray-900 mb-3">Identification Status</h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                <DetailItem label="ID Expiry Date" value={formatDate(displayData.id_expiry_date)} />
-                                <div>
-                                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">Remaining Validity</p>
-                                    <p className={`text-sm font-bold mt-0.5 ${daysLeft === null ? 'text-gray-400' :
-                                        daysLeft <= 0 ? 'text-red-600' :
-                                            daysLeft <= 60 ? 'text-orange-600' : 'text-green-600'
-                                        }`}>
-                                        {daysLeft === null ? 'No data' : daysLeft <= 0 ? 'EXPIRED' : `${daysLeft} days remaining`}
-                                    </p>
+                            {displayData.emergencyContact && (
+                                <div className="bg-red-600 p-6 text-white shadow-xl shadow-red-100">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <AlertCircle size={20} />
+                                        <p className="text-xs font-black uppercase tracking-widest">In Case of Emergency</p>
+                                    </div>
+                                    <h3 className="text-xl font-black uppercase">{displayData.emergencyContact.name}</h3>
+                                    <p className="text-red-100 text-sm font-medium mt-1">{displayData.emergencyContact.relationship}</p>
+                                    <div className="mt-4 bg-white/20 p-3 font-mono text-center text-lg font-bold">
+                                        {displayData.emergencyContact.contact}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-100">
-                            <h3 className="font-semibold text-gray-900 mb-3">Emergency Contact</h3>
-                            {displayData.emergencyContact ? (
-                                <div className="space-y-3">
-                                    <DetailItem label="Name" value={displayData.emergencyContact.name} />
-                                    <DetailItem label="Relationship" value={displayData.emergencyContact.relationship} />
-                                    <DetailItem label="Contact" value={displayData.emergencyContact.contact} />
-                                </div>
-                            ) : (
-                                <p className="text-sm text-gray-400 italic">No emergency contact provided.</p>
                             )}
                         </div>
                     </div>
-                </div>
-
-                <div className="p-4 bg-gray-50 flex justify-end">
-                    <button onClick={onClose} className="px-6 py-2 bg-gray-900 text-white text-sm font-semibold rounded-lg hover:bg-black transition-all active:scale-95">
-                        Close
-                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-const DetailItem = ({ label, value }: { label: string; value: string }) => (
-    <div>
-        <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</p>
-        <p className="text-sm font-semibold text-gray-800 mt-0.5">{value || '---'}</p>
+// UI COMPONENTS (No changes needed to these helpers)
+const SectionCard = ({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) => (
+    <div className="bg-white p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gray-50 ">{icon}</div>
+            <h3 className="font-black text-gray-500 text-[11px] uppercase tracking-[2px]">{title}</h3>
+        </div>
+        {children}
     </div>
 );
+
+const DataRow = ({ label, value, isAlert = false }: { label: string; value: any; isAlert?: boolean }) => (
+    <div className={`${isAlert ? 'bg-red-50 p-2 border border-red-100' : ''}`}>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{label}</p>
+        <p className={`text-sm font-black ${isAlert ? 'text-red-700' : 'text-gray-800'} truncate`}>{value || '---'}</p>
+    </div>
+);
+
+const Badge = ({ color, label }: { color: 'green' | 'red'; label: string }) => (
+    <span className={`px-4 py-1 text-[10px] font-black uppercase tracking-widest ${color === 'green' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+        {label}
+    </span>
+);
+
+const StatusChip = ({ active, label, type = 'primary' }: { active: boolean; label: string; type?: 'primary' | 'danger' }) => (
+    <div className={`flex items-center gap-2 px-3 py-1.5 border-2 transition-all ${active
+        ? (type === 'danger' ? 'border-red-500 bg-red-50 text-red-600' : 'border-blue-500 bg-blue-50 text-blue-600')
+        : 'border-gray-100 bg-white text-gray-300'
+        }`}>
+        <ShieldCheck size={14} className={active ? 'opacity-100' : 'opacity-30'} />
+        <span className="text-[10px] font-black uppercase">{label}</span>
+    </div>
+);
+
+const FilePreview = ({ file, getSafeUrl }: { file: any; getSafeUrl: Function }) => {
+    const isImage = /\.(jpg|jpeg|png|webp|avif|gif)$/i.test(file.file_path);
+    const url = getSafeUrl(file.file_path);
+
+    return (
+        <div className="group relative border border-gray-100 overflow-hidden bg-white shadow-sm hover:border-blue-300 transition-all">
+            <div className="flex items-center p-3 gap-4">
+                <div className="h-12 w-12 bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {isImage ? (
+                        <img src={url} alt="preview" className="h-full w-full object-cover" />
+                    ) : (
+                        <FileText className="text-blue-500" />
+                    )}
+                </div>
+                <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black text-gray-400 uppercase truncate">{file.file_type.replace(/_/g, ' ')}</p>
+                    <p className="text-[10px] text-gray-400 truncate font-mono">{file.file_path.split(/[\\/]/).pop()}</p>
+                </div>
+                <a href={url} target="_blank" rel="noreferrer" className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 transition-all">
+                    <ExternalLink size={18} />
+                </a>
+            </div>
+        </div>
+    );
+};
 
 export default ViewUserDetails;

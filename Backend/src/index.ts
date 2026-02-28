@@ -41,7 +41,7 @@ app.use('/api/user', AllRoutes.UserRoute);
 app.use('/api/benefits', AllRoutes.BenefitsRoute);
 app.use('/api/events', AllRoutes.EventsRoute);
 app.use('/api/notifications', AllRoutes.NotificationsRoute);
-
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 const frontendPath = path.join(__dirname, '../../Frontend/dist');
 app.use(express.static(frontendPath));
 app.get(/^((?!\/api).)*$/, (req, res) => {
