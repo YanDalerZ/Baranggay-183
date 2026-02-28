@@ -26,12 +26,12 @@ const EVENTS = [
 
 export const SuperAdminDashboard = () => {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
+    <div>
       {/* Top Header */}
       <header>
         <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
           Super Admin Dashboard</h2>
-        <p className="text-sm md:text-base text-gray-500 font-medium">
+        <p className="text-sm md:text-base text-gray-500 font-medium mb-6">
           Super Admin control center for Barangay 183 Management Platform</p>
       </header>
 

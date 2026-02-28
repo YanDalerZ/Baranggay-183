@@ -38,6 +38,11 @@ import AdminContentCMS from './AdminPages/AdminContentCMS';
 //SuperAdmin Pages
 import SuperAdminDashboard from './SuperAdminPages/SuperAdminDashboard';
 import SuperAdminLogin from './SuperAdminPages/SuperAdminLogin';
+import SuperAdminRBAC from './SuperAdminPages/SuperAdminRBAC';
+import SuperAdminAuditTrail from './SuperAdminPages/SuperAdminAuditTrail';
+import SuperAdminConfiguration from './SuperAdminPages/SuperAdminConfiguration';
+import SuperAdminDatabase from './SuperAdminPages/SuperAdminDatabase';
+import SuperAdminCompliance from './SuperAdminPages/SuperAdminCompliance';
 
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -102,6 +107,12 @@ const AppContent: React.FC = () => {
 
       {/* --- SUPER ADMIN PROTECTED ROUTES (Required Role: 3) --- */}
       <Route path="/SuperAdminDashboard" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminDashboard /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminRBAC" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminRBAC /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminAuditTrail" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminAuditTrail /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminConfiguration" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminConfiguration /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminDatabase" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminDatabase /></SuperAdminNavbar></ProtectedRoute>} />
+      <Route path="/SuperAdminCompliance" element={<ProtectedRoute requiredRole={3}><SuperAdminNavbar><SuperAdminCompliance /></SuperAdminNavbar></ProtectedRoute>} />
+
 
       {/* --- 404 PAGE --- */}
       <Route path="*" element={
