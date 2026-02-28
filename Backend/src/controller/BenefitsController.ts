@@ -102,28 +102,29 @@ class LedgerController {
     public fetchAllDistributions = async (req: Request, res: Response): Promise<Response> => {
         try {
             const query = `
-            SELECT 
-                CONCAT(u.firstname, ' ', u.lastname) AS resident,
-                u.id AS resident_id,
-                u.system_id,
-                d.batch_id,
-                d.status,
-                db.batch_name, 
-                DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
-                GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description
-            FROM distribution d
-            JOIN users u ON d.resident_id = u.id
-            JOIN inventory i ON d.inventory_id = i.id
-            JOIN distribution_batches db ON d.batch_id = db.id 
-            WHERE d.status = 'Claimed' -- Only show actual hand-offs
-            GROUP BY 
-                u.id, 
-                d.batch_id, 
-                d.status, 
-                d.date_claimed,
-                db.batch_name,
-                u.system_id
-            ORDER BY d.date_claimed DESC`;
+    SELECT 
+        CONCAT(u.firstname, ' ', u.lastname) AS resident,
+        u.id AS resident_id,
+        u.system_id,
+        d.batch_id,
+        d.status,
+        db.batch_name, 
+        DATE_FORMAT(MAX(d.date_claimed), '%Y-%m-%d %H:%i') AS date_claimed,
+        GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description
+    FROM distribution d
+    JOIN users u ON d.resident_id = u.id
+    JOIN inventory i ON d.inventory_id = i.id
+    JOIN distribution_batches db ON d.batch_id = db.id 
+    WHERE d.status = 'Claimed' 
+    GROUP BY 
+        u.id, 
+        u.firstname,
+        u.lastname,
+        d.batch_id, 
+        d.status, 
+        db.batch_name,
+        u.system_id
+    ORDER BY MAX(d.date_claimed) DESC`;
 
             const [rows]: any = await pool.execute(query);
             return res.status(200).json(rows);
@@ -149,33 +150,39 @@ class LedgerController {
             const { target_group, batch_name, items_summary } = batch[0];
 
             const query = `
-            SELECT 
-                CONCAT(u.firstname, ' ', u.lastname) AS resident,
-                u.id AS resident_id,
-                u.system_id AS system_id,
-                u.type AS resident_type,
-                -- If they haven't claimed, show the batch's default items summary
-                COALESCE(
-                    GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', '), 
-                    ? 
-                ) AS item_description,
-                -- If there is no record in distribution, status is 'To Claim'
-                COALESCE(d.status, 'To Claim') AS status,
-                DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
-                ? AS batch_name
-            FROM users u
-            LEFT JOIN distribution d ON u.id = d.resident_id AND d.batch_id = ?
-            LEFT JOIN inventory i ON d.inventory_id = i.id
-            WHERE u.status = 'Active' AND (
-                (? = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
-                (? = 'SC' AND u.type IN ('SC', 'BOTH')) OR
-                (? = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
-                (u.type = ?)
-            )
-            GROUP BY u.id, d.status, d.date_claimed
-            ORDER BY u.lastname ASC
-        `;
-
+    SELECT 
+        CONCAT(u.firstname, ' ', u.lastname) AS resident,
+        u.id AS resident_id,
+        u.system_id AS system_id,
+        u.type AS resident_type,
+        -- If they haven't claimed, show the batch's default items summary
+        COALESCE(
+            GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', '), 
+            ? 
+        ) AS item_description,
+        -- If there is no record in distribution, status is 'To Claim'
+        COALESCE(MAX(d.status), 'To Claim') AS status,
+        -- We use MAX to get the most recent time if there's a slight millisecond/second difference
+        DATE_FORMAT(MAX(d.date_claimed), '%Y-%m-%d %H:%i') AS date_claimed,
+        ? AS batch_name
+    FROM users u
+    LEFT JOIN distribution d ON u.id = d.resident_id AND d.batch_id = ?
+    LEFT JOIN inventory i ON d.inventory_id = i.id
+    WHERE u.status = 'Active' AND (
+        (? = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
+        (? = 'SC' AND u.type IN ('SC', 'BOTH')) OR
+        (? = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
+        (u.type = ?)
+    )
+    -- Group ONLY by the unique resident fields
+    GROUP BY 
+        u.id, 
+        u.firstname, 
+        u.lastname, 
+        u.system_id, 
+        u.type
+    ORDER BY u.lastname ASC
+`;
             const [rows]: any = await pool.execute(query, [
                 items_summary,
                 batch_name,
@@ -192,6 +199,7 @@ class LedgerController {
             return res.status(500).json({ message: "Error fetching residents in batch." });
         }
     };
+
 
     public generateBatch = async (req: Request, res: Response): Promise<Response> => {
         const { batchName, targetGroup, selectedItems } = req.body;
