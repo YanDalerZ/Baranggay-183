@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
-import { X, User as UserIcon, MapPin, ShieldCheck, ExternalLink, Heart, Fingerprint, GraduationCap, AlertCircle, FileText, Activity } from 'lucide-react';
+import { X, User as UserIcon, MapPin, ShieldCheck, ExternalLink, Heart, Fingerprint, FileText, Activity } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
 
 interface ViewUserDetailsProps {

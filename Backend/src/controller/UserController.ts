@@ -50,12 +50,13 @@ class UserController {
         try {
             const query = `
             SELECT 
-                u.*, 
+                u.*,
+                CONCAT(house_no, ' ', street, ' ', barangay) as address,
                 ec.name as emergency_name, 
                 ec.relationship as emergency_relationship, 
                 ec.contact as emergency_contact,
                 (SELECT JSON_ARRAYAGG(JSON_OBJECT('file_type', file_type, 'file_path', file_path)) 
-                 FROM user_attachments WHERE user_id = u.id) as attachments
+                 FROM user_attachments WHERE user_id = u.id) as attachments 
             FROM users u
             LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
             WHERE u.system_id = ? AND u.role = 2
