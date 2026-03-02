@@ -5,17 +5,46 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 class EventController {
     public async getAllEvents(req: Request, res: Response): Promise<Response> {
         try {
+            // We fetch the base64 string directly from MySQL
             const [rows] = await pool.execute<RowDataPacket[]>(
-                'SELECT * FROM events ORDER BY event_date ASC, event_time ASC'
+                'SELECT id, title, type, event_date, event_time, location, attendees, description, TO_BASE64(event_bg) as event_bg FROM events ORDER BY event_date ASC, event_time ASC'
             );
 
-            return res.status(200).json(rows);
+            const eventsWithImages = rows.map(event => {
+                let formattedBg = null;
+
+                if (event.event_bg) {
+                    const b64 = event.event_bg;
+                    // Detect the format by checking the start of the base64 string
+                    // iVBORw0KGgo = PNG
+                    // /9j/ = JPEG
+                    // R0lGOD = GIF
+                    // UklGR = WebP
+                    let mimeType = 'image/jpeg'; // Default fallback
+
+                    if (b64.startsWith('iVBORw0KGgo')) {
+                        mimeType = 'image/png';
+                    } else if (b64.startsWith('R0lGOD')) {
+                        mimeType = 'image/gif';
+                    } else if (b64.startsWith('UklGR')) {
+                        mimeType = 'image/webp';
+                    }
+
+                    formattedBg = `data:${mimeType};base64,${b64}`;
+                }
+
+                return {
+                    ...event,
+                    event_bg: formattedBg
+                };
+            });
+
+            return res.status(200).json(eventsWithImages);
         } catch (error) {
             console.error("Fetch Events Error:", error);
             return res.status(500).json({ message: "Failed to retrieve events." });
         }
     }
-
     public async createEvent(req: Request, res: Response): Promise<Response> {
         const {
             title,
@@ -27,14 +56,14 @@ class EventController {
             description
         } = req.body;
 
+        // multer adds the file to req.file
+        const eventBg = req.file ? req.file.buffer : null;
+
         try {
-            // Validation for required fields
             if (!title || !type || !date || !time || !location) {
                 return res.status(400).json({ message: "Missing required fields." });
             }
 
-            // Ensure attendees matches the allowed values (SC, PWD, BOTH)
-            // If the frontend sends something else, we default to 'BOTH'
             const validAttendees = ['SC', 'PWD', 'BOTH'].includes(attendees)
                 ? attendees
                 : 'BOTH';
@@ -47,8 +76,9 @@ class EventController {
                     event_time, 
                     location, 
                     attendees, 
-                    description
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    description,
+                    event_bg
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     title,
                     type,
@@ -56,7 +86,8 @@ class EventController {
                     time,
                     location,
                     validAttendees,
-                    description || null
+                    description || null,
+                    eventBg
                 ]
             );
 
@@ -69,6 +100,7 @@ class EventController {
             return res.status(500).json({ message: "Internal server error." });
         }
     }
+
     public async getAllBirthdays(req: Request, res: Response): Promise<Response> {
         try {
             const [rows] = await pool.execute<RowDataPacket[]>(
@@ -92,7 +124,8 @@ class EventController {
                     event_time: '00:00:00',
                     location: 'Community',
                     attendees: 'All',
-                    description: `Happy Birthday to ${user.firstname}!`
+                    description: `Happy Birthday to ${user.firstname}!`,
+                    event_bg: null // Birthdays usually don't have custom backgrounds
                 };
             });
 

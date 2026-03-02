@@ -128,12 +128,12 @@ const EventCard = ({ event }: { event: Event }) => {
     return (
         <div className="bg-white border border-gray-100 p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                     <span className={`inline-flex items-center gap-2 px-3 py-1.5 border text-xs font-bold ${catInfo.bgColor} ${catInfo.color} ${catInfo.borderColor}`}>
                         {catInfo.icon} {event.type}
                     </span>
                 </div>
-                <div className="flex-grow">
+                <div className="grow">
                     <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{event.title}</h3>
                     <p className="text-gray-500 text-sm mb-4 leading-relaxed">{event.description}</p>
 
@@ -214,7 +214,7 @@ export default function EventsCalendar() {
         <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
                         Events Calendar
                     </h2>
                     <p className="text-gray-500 text-xs sm:text-sm">Stay informed about community events, health missions, and celebrations</p>

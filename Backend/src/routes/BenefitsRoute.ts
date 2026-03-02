@@ -5,6 +5,7 @@ import { authenticateToken, isAdmin } from '../middleware/authMiddleware.js';
 const router = Router();
 router.use(authenticateToken);
 router.get('/getBenefit/:userId', LedgerController.fetchUserBenefitsById);
+router.get('/stats/:userId', LedgerController.fetchUserClaimStats);
 
 router.get('/inventory', isAdmin, LedgerController.fetchInventory);
 router.post('/inventory', isAdmin, LedgerController.addNewItem);

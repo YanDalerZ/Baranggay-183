@@ -163,7 +163,7 @@ const AdminRBIManagement = () => {
             />
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
                         Registry of Barangay Inhabitants (RBI)
                     </h2>
                     <p className="text-sm text-gray-500">
@@ -207,7 +207,7 @@ const AdminRBIManagement = () => {
                         </button>
                     </div>
                     <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-4">
-                        <div className="relative flex-1 min-w-[300px]">
+                        <div className="relative flex-1 min-w-75">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
                                 type="text"

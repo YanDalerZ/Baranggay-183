@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../database/db.js';
-import fs from 'fs';
 class UserController {
 
     public async fetchAllUsers(req: Request, res: Response): Promise<Response> {
@@ -12,36 +11,63 @@ class UserController {
                 ec.name as emergency_name, 
                 ec.relationship as emergency_relationship, 
                 ec.contact as emergency_contact,
-                GROUP_CONCAT(
-                    JSON_OBJECT('file_type', ua.file_type, 'file_path', ua.file_path)
+                (
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'file_type', ua.file_type, 
+                            'file_name', ua.file_name,
+                            'mime_type', ua.mime_type,
+                            'file_data', TO_BASE64(ua.file_data)
+                        )
+                    ) 
+                    FROM user_attachments ua 
+                    WHERE ua.user_id = u.id
                 ) as attachments
             FROM users u
             LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
-            LEFT JOIN user_attachments ua ON u.id = ua.user_id
             WHERE u.role = 2
-            GROUP BY u.id
             ORDER BY u.created_at DESC
         `;
 
             const [rows]: any = await pool.execute(query);
 
-            const formattedUsers = rows.map((user: any) => ({
-                ...user,
-                is_flood_prone: user.is_flood_prone === 1,
-                is_registered_voter: user.is_registered_voter === 1,
-                emergencyContact: user.emergency_name ? {
-                    name: user.emergency_name,
-                    relationship: user.emergency_relationship,
-                    contact: user.emergency_contact
-                } : null,
-                // Parse attachments JSON string if it exists
-                attachments: user.attachments ? JSON.parse(`[${user.attachments}]`) : []
-            }));
+            const formattedUsers = rows.map((user: any) => {
+                let parsedAttachments = [];
+
+                if (user.attachments) {
+                    try {
+                        // JSON_ARRAYAGG returns a proper JSON array or stringified array
+                        parsedAttachments = typeof user.attachments === 'string'
+                            ? JSON.parse(user.attachments)
+                            : user.attachments;
+                    } catch (e) {
+                        console.error(`Error parsing attachments for user ${user.system_id}:`, e);
+                        parsedAttachments = [];
+                    }
+                }
+
+                return {
+                    ...user,
+                    // Ensure boolean conversion
+                    is_flood_prone: user.is_flood_prone === 1,
+                    is_registered_voter: user.is_registered_voter === 1,
+                    // Format emergency contact object
+                    emergencyContact: user.emergency_name ? {
+                        name: user.emergency_name,
+                        relationship: user.emergency_relationship,
+                        contact: user.emergency_contact
+                    } : null,
+                    attachments: parsedAttachments
+                };
+            });
 
             return res.status(200).json(formattedUsers);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Fetch Users Error:", error);
-            return res.status(500).json({ message: "Internal server error." });
+            return res.status(500).json({
+                message: "Internal server error.",
+                error: error.message
+            });
         }
     }
 
@@ -50,12 +76,19 @@ class UserController {
         try {
             const query = `
             SELECT 
-                u.*, 
+                u.*,
+                CONCAT(house_no, ' ', street, ' ', barangay) as address,
                 ec.name as emergency_name, 
                 ec.relationship as emergency_relationship, 
                 ec.contact as emergency_contact,
-                (SELECT JSON_ARRAYAGG(JSON_OBJECT('file_type', file_type, 'file_path', file_path)) 
-                 FROM user_attachments WHERE user_id = u.id) as attachments
+                (SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'file_type', file_type, 
+                        'file_name', file_name,
+                        'mime_type', mime_type,
+                        'file_data', TO_BASE64(file_data)
+                    )
+                ) FROM user_attachments WHERE user_id = u.id) as attachments 
             FROM users u
             LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
             WHERE u.system_id = ? AND u.role = 2
@@ -66,6 +99,9 @@ class UserController {
             if (rows.length === 0) return res.status(404).json({ message: "Resident not found." });
 
             const user = rows[0];
+
+            // In React, you will display this as: 
+            // <img src={`data:${attachment.mime_type};base64,${attachment.file_data}`} />
             const formattedUser = {
                 ...user,
                 is_flood_prone: user.is_flood_prone === 1,
@@ -190,19 +226,22 @@ class UserController {
 
             // 4. Save Attachments
             if (files) {
-                if (files['photo_2x2']) {
-                    const photoPath = files['photo_2x2'][0].path;
-                    await connection.execute(
-                        `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, 'photo_2x2', ?)`,
-                        [newIdFromDB, photoPath]
-                    );
-                }
-                if (files['proof_of_residency']) {
-                    const docPath = files['proof_of_residency'][0].path;
-                    await connection.execute(
-                        `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, 'proof_of_residency', ?)`,
-                        [newIdFromDB, docPath]
-                    );
+                const attachmentTypes = ['photo_2x2', 'proof_of_residency'];
+                for (const fieldName of attachmentTypes) {
+                    if (files[fieldName]) {
+                        const file = files[fieldName][0];
+                        await connection.execute(
+                            `INSERT INTO user_attachments (user_id, file_type, file_data, file_name, mime_type) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                            [
+                                newIdFromDB,
+                                fieldName,
+                                file.buffer,      // The binary data
+                                file.originalname, // The filename
+                                file.mimetype     // e.g., 'image/jpeg'
+                            ]
+                        );
+                    }
                 }
             }
 
@@ -343,14 +382,25 @@ class UserController {
 
                 for (const fileType of attachmentTypes) {
                     if (files[fileType]) {
-                        const filePath = files[fileType][0].path;
+                        const file = files[fileType][0];
+
+                        // Delete old binary record
                         await connection.execute(
                             `DELETE FROM user_attachments WHERE user_id = ? AND file_type = ?`,
                             [userId, fileType]
                         );
+
+                        // Insert new binary record
                         await connection.execute(
-                            `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, ?, ?)`,
-                            [userId, fileType, filePath]
+                            `INSERT INTO user_attachments (user_id, file_type, file_data, file_name, mime_type) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                            [
+                                userId,
+                                fileType,
+                                file.buffer,
+                                file.originalname,
+                                file.mimetype
+                            ]
                         );
                     }
                 }
@@ -424,45 +474,49 @@ class UserController {
         }
     };
 
-    private saveEmergencyContact = async (userId: number, contactData: any, connection: any): Promise<void> => {
-        const { name, relationship, contact } = contactData;
-
-        await connection.execute(
-            `INSERT INTO emergency_contacts (user_id, name, relationship, contact) 
-         VALUES (?, ?, ?, ?) 
-         ON DUPLICATE KEY UPDATE 
-            name = VALUES(name), 
-            relationship = VALUES(relationship), 
-            contact = VALUES(contact)`,
-            [userId, name, relationship, contact]
-        );
-    };
     public async getPriority(req: Request, res: Response): Promise<Response> {
         try {
             const sql = `
-                SELECT 
-                    id, 
-                    CONCAT(firstname, ' ', lastname) as name, 
-                    address, 
-                    contact_number as phone, 
-                    CASE 
-                        WHEN type = 'PWD' THEN 1 
-                        WHEN type = 'SC' THEN 2 
-                        ELSE 3 
-                    END as priority,
-                    is_flood_prone,
-                    type
-                FROM users
-                WHERE is_flood_prone = 1 OR type IN ('PWD', 'SC')
-                ORDER BY priority ASC
-                LIMIT 50
-            `;
+            SELECT 
+                id, 
+                CONCAT(firstname, ' ', lastname) as name, 
+                CONCAT(house_no, ' ', street, ' ', barangay) as address, 
+                contact_number as phone, 
+                CASE 
+                    -- Highest Priority: Both SC/PWD AND Flood Prone
+                    WHEN type = 'BOTH' AND is_flood_prone = 1 THEN 1
+                    -- Mid Priority: Just Flood Prone
+                    WHEN is_flood_prone = 1 THEN 2
+                    -- Lowest Priority: Just BOTH (not flood prone)
+                    WHEN type = 'BOTH' THEN 3
+                    ELSE 4 
+                END as priority_level,
+                is_flood_prone,
+                type
+            FROM users
+            WHERE is_flood_prone = 1 OR type = 'BOTH'
+            ORDER BY priority_level ASC
+            LIMIT 50
+        `;
 
+            // Note: Using pool.query or db.query depending on your setup
             const [rows]: any = await pool.query(sql);
 
             const formattedResidents = rows.map((row: any) => {
-                const tags = [];
+                const tags: string[] = [];
+                let priorityLabel = "";
+
+                // 1. Determine the Label (High, Mid, or None)
+                if (row.priority_level === 1) {
+                    priorityLabel = "High Priority";
+                } else if (row.priority_level === 2) {
+                    priorityLabel = "Mid Priority";
+                }
+
+                // 2. Determine Tags
                 if (row.is_flood_prone) tags.push('Flood-Prone');
+                if (row.type === 'BOTH') tags.push('SC/PWD');
+                // If you still use 'PWD' or 'SC' individual types elsewhere:
                 if (row.type === 'PWD') tags.push('PWD');
                 if (row.type === 'SC') tags.push('Senior Citizen');
 
@@ -471,7 +525,8 @@ class UserController {
                     name: row.name,
                     address: row.address,
                     phone: row.phone,
-                    priority: row.priority,
+                    priority: row.priority_level, // Changed from row.priority to priority_level
+                    priorityLabel: priorityLabel, // Pass this to the frontend
                     tags: tags
                 };
             });
@@ -482,6 +537,62 @@ class UserController {
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
+    // Add this method inside your UserController class
+
+    // Inside your UserController class in UserController.ts/js
+    public updateUserCoordinates = async (req: Request, res: Response): Promise<Response> => {
+        const { id } = req.params;
+        const { coordinates } = req.body;
+
+        if (!coordinates) {
+            return res.status(400).json({ message: "Coordinates are required." });
+        }
+
+        try {
+            // We use 'id' because the Risk Map uses the numeric primary key, not the system_id string
+            const [result]: any = await pool.execute(
+                `UPDATE users SET coordinates = ? WHERE id = ?`,
+                [coordinates, id]
+            );
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: "Resident record not found." });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Coordinates updated successfully.",
+                data: { id, coordinates }
+            });
+        } catch (error: any) {
+            console.error("Database Error:", error);
+            return res.status(500).json({ message: "Internal server error.", error: error.message });
+        }
+    };
+    public getAllResidentLocations = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            const [rows]: any = await pool.execute(
+                `SELECT id, system_id, firstname, lastname, house_no, street, barangay, disability, coordinates, is_flood_prone 
+             FROM users 
+             WHERE role = 2`
+            );
+
+            const residents = rows.map((user: any) => ({
+                id: user.id.toString(),
+                system_id: user.system_id,
+                name: `${user.firstname} ${user.lastname}`,
+                address: `${user.house_no || ''} ${user.street || ''} ${user.barangay || ''}, Pasay City`.trim(),
+                coordinates: user.coordinates,
+                vulnerability: user.disability || 'None',
+                isHighRisk: user.is_flood_prone === 1
+            }));
+
+            return res.status(200).json(residents);
+        } catch (error) {
+            console.error("GIS Fetch Error:", error);
+            return res.status(500).json({ message: "Failed to retrieve resident locations." });
+        }
+    };
 }
 
 export default new UserController();

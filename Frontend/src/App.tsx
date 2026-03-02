@@ -17,7 +17,6 @@ import UserProfile from './UserPages/UserProfile';
 import UserBenefits from './UserPages/UserBenefits';
 import UserAlert from './UserPages/UserAlerts';
 import UserEvents from './UserPages/UserEvents';
-import UserHistory from './UserPages/UserHistory';
 import UserApply from './UserPages/UserApplyServices';
 import UserAppointments from './UserPages/UserAppointments';
 import UserGuide from './UserPages/UserServiceGuide';
@@ -78,7 +77,6 @@ const AppContent: React.FC = () => {
       <Route path="/UserBenefits" element={<ProtectedRoute><Navbar><UserBenefits /></Navbar></ProtectedRoute>} />
       <Route path="/UserAlerts" element={<ProtectedRoute><Navbar><UserAlert /></Navbar></ProtectedRoute>} />
       <Route path="/UserEvents" element={<ProtectedRoute><Navbar><UserEvents /></Navbar></ProtectedRoute>} />
-      <Route path="/UserHistory" element={<ProtectedRoute><Navbar><UserHistory /></Navbar></ProtectedRoute>} />
       <Route path="/UserApply" element={<ProtectedRoute><Navbar><UserApply /></Navbar></ProtectedRoute>} />
       <Route path="/UserAppointments" element={<ProtectedRoute><Navbar><UserAppointments /></Navbar></ProtectedRoute>} />
       <Route path="/UserGuide" element={<ProtectedRoute><Navbar><UserGuide /></Navbar></ProtectedRoute>} />
