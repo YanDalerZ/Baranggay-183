@@ -5,69 +5,65 @@ export class NotificationController {
         try {
             const { title, message, target_groups, channels, sender_id } = req.body;
             const groupsArray = Array.isArray(target_groups) ? target_groups : target_groups.split(',');
-            let userSql = "SELECT email, CONCAT(firstname, ' ', lastname) as full_name FROM users WHERE 1=0";
+            let userSql = "SELECT email, contact_number, CONCAT(firstname, ' ', lastname) as full_name FROM users WHERE 1=0";
             let userParams = [];
             groupsArray.forEach((group) => {
-                if (group === 'all') {
+                if (group === 'all')
                     userSql += " OR 1=1";
-                }
-                else if (group === 'pwd') {
+                else if (group === 'pwd')
                     userSql += " OR type = 'PWD'";
-                }
-                else if (group === 'sc') {
+                else if (group === 'sc')
                     userSql += " OR type = 'SC'";
-                }
-                else if (group === 'flood_prone') {
+                else if (group === 'flood_prone')
                     userSql += " OR is_flood_prone = 1";
-                }
                 else {
                     userSql += " OR type = ?";
                     userParams.push(group);
                 }
             });
             const [users] = await db.query(userSql, userParams);
-            const actualRecipientCount = users.length;
-            if (actualRecipientCount === 0) {
+            if (users.length === 0) {
                 return res.status(404).json({ error: "No recipients found for the selected groups" });
             }
             const channelOptions = ['Email', 'SMS', 'Web'];
-            const bitmask = channelOptions.map(ch => channels.includes(ch) ? "1" : "0").join(",");
-            const insertSql = `
-                INSERT INTO notifications (sender_id, target_groups, channels_bitmask, title, message, recipient_count)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `;
-            const [result] = await db.query(insertSql, [
-                sender_id,
-                groupsArray.join(','),
-                bitmask,
-                title,
-                message,
-                actualRecipientCount
-            ]);
-            const bits = bitmask.split(',');
+            const bits = channelOptions.map(ch => channels.includes(ch) ? "1" : "0");
+            const bitmaskString = bits.join(",");
+            const [result] = await db.query(`INSERT INTO notifications (sender_id, target_groups, channels_bitmask, title, message, recipient_count) 
+             VALUES (?, ?, ?, ?, ?, ?)`, [sender_id, groupsArray.join(','), bitmaskString, title, message, users.length]);
             if (bits[0] === "1") {
-                await Promise.allSettled(users.map(async (user) => {
+                users.forEach((user) => {
                     if (user.email) {
-                        await NotificationService.sendBroadcastNotification({
+                        NotificationService.sendBroadcastNotification({
                             recipientEmail: user.email,
                             recipientName: user.full_name,
-                            title: title,
-                            message: message
-                        });
+                            title,
+                            message
+                        }).catch(e => console.error("Email Broadcast Error:", e));
                     }
-                }));
+                });
+            }
+            if (bits[1] === "1") {
+                users.forEach((user) => {
+                    if (user.contact_number) {
+                        NotificationService.sendSMS({
+                            phoneNumber: user.contact_number,
+                            message: `${title}: ${message}`
+                        }).catch(e => console.error("SMS Broadcast Error:", e));
+                    }
+                });
+            }
+            if (bits[2] === "1") {
+                console.log("[Web Alert] Notification pushed to web dashboard");
             }
             return res.status(201).json({
                 success: true,
-                notificationId: result.insertId,
-                recipient_count: actualRecipientCount,
-                channels_active: channels,
-                message: `Broadcast initiated to ${actualRecipientCount} residents.`
+                message: `Alert sent via: ${channels.join(' & ')}`,
+                recipient_count: users.length
             });
         }
         catch (error) {
-            console.error("Error in sendNotification:", error);
-            return res.status(500).json({ error: "Failed to process notification" });
+            console.error("Broadcast Error:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
         }
     }
     async getHistory(req, res) {
@@ -104,23 +100,29 @@ export class NotificationController {
         try {
             const sql = `
                 SELECT 
-                    (SELECT COUNT(*) FROM notifications WHERE DATE(created_at) = CURDATE()) as sentToday,
-                    (SELECT IFNULL(SUM(recipient_count), 0) FROM notifications) as totalRecipients,
-                    (SELECT COUNT(*) FROM notification_reads) as totalReads
+                    (SELECT COUNT(*) FROM users WHERE role = 2) as totalRecipients,
+                    (SELECT COUNT(*) FROM users WHERE is_flood_prone = 1) as floodProne,
+                    (SELECT COUNT(*) FROM users WHERE disability IS NOT NULL AND disability != '') as highVulnerability,
+                    (SELECT COUNT(*) FROM notifications WHERE DATE(created_at) = CURDATE()) as alertsSentToday
             `;
             const [results] = await db.query(sql);
-            const { sentToday, totalRecipients, totalReads } = results[0];
-            const rate = totalRecipients > 0
-                ? Math.round((totalReads / totalRecipients) * 100)
-                : 0;
+            // Ensure we have results, otherwise default to 0
+            const stats = results[0] || {
+                totalRecipients: 0,
+                floodProne: 0,
+                highVulnerability: 0,
+                alertsSentToday: 0
+            };
             return res.status(200).json({
-                sentToday: sentToday || 0,
-                totalRecipients: totalRecipients || 0,
-                deliveryRate: `${rate}%`
+                totalRecipients: stats.totalRecipients,
+                floodProneAreas: stats.floodProne,
+                highVulnerability: stats.highVulnerability,
+                alertsSentToday: stats.alertsSentToday
             });
         }
         catch (error) {
-            return res.status(500).json({ error: "Failed to fetch stats" });
+            console.error("Error fetching stats:", error);
+            return res.status(500).json({ error: "Failed to fetch stats from the database" });
         }
     }
     async deleteNotification(req, res) {
@@ -133,7 +135,6 @@ export class NotificationController {
             return res.status(500).json({ error: "Delete failed" });
         }
     }
-    // NotificationController.ts
     async markAsRead(req, res) {
         try {
             const { notification_id, user_id } = req.body;
