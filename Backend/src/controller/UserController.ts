@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../database/db.js';
-import fs from 'fs';
 class UserController {
 
     public async fetchAllUsers(req: Request, res: Response): Promise<Response> {
@@ -12,19 +11,21 @@ class UserController {
                 ec.name as emergency_name, 
                 ec.relationship as emergency_relationship, 
                 ec.contact as emergency_contact,
-                GROUP_CONCAT(
-                    JSON_OBJECT(
-                        'file_type', ua.file_type, 
-                        'file_name', ua.file_name,
-                        'mime_type', ua.mime_type,
-                        'file_data', TO_BASE64(ua.file_data)
-                    )
+                (
+                    SELECT JSON_ARRAYAGG(
+                        JSON_OBJECT(
+                            'file_type', ua.file_type, 
+                            'file_name', ua.file_name,
+                            'mime_type', ua.mime_type,
+                            'file_data', TO_BASE64(ua.file_data)
+                        )
+                    ) 
+                    FROM user_attachments ua 
+                    WHERE ua.user_id = u.id
                 ) as attachments
             FROM users u
             LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
-            LEFT JOIN user_attachments ua ON u.id = ua.user_id
             WHERE u.role = 2
-            GROUP BY u.id
             ORDER BY u.created_at DESC
         `;
 
@@ -35,9 +36,10 @@ class UserController {
 
                 if (user.attachments) {
                     try {
-                        // GROUP_CONCAT returns a string like {"obj1"},{"obj2"}
-                        // We wrap it in brackets to make it a valid JSON array
-                        parsedAttachments = JSON.parse(`[${user.attachments}]`);
+                        // JSON_ARRAYAGG returns a proper JSON array or stringified array
+                        parsedAttachments = typeof user.attachments === 'string'
+                            ? JSON.parse(user.attachments)
+                            : user.attachments;
                     } catch (e) {
                         console.error(`Error parsing attachments for user ${user.system_id}:`, e);
                         parsedAttachments = [];
@@ -46,8 +48,10 @@ class UserController {
 
                 return {
                     ...user,
+                    // Ensure boolean conversion
                     is_flood_prone: user.is_flood_prone === 1,
                     is_registered_voter: user.is_registered_voter === 1,
+                    // Format emergency contact object
                     emergencyContact: user.emergency_name ? {
                         name: user.emergency_name,
                         relationship: user.emergency_relationship,

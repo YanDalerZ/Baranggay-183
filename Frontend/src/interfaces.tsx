@@ -97,6 +97,7 @@ export interface User {
     photo_2x2?: string | File | null;
     proof_of_residency?: string | File | null;
     attachments?: any[];
+    medical_history?: string;
 }
 
 export interface InventoryItem {
