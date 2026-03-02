@@ -113,25 +113,31 @@ export class NotificationController {
         try {
             const sql = `
                 SELECT 
-                    (SELECT COUNT(*) FROM notifications WHERE DATE(created_at) = CURDATE()) as sentToday,
-                    (SELECT IFNULL(SUM(recipient_count), 0) FROM notifications) as totalRecipients,
-                    (SELECT COUNT(*) FROM notification_reads) as totalReads
+                    (SELECT COUNT(*) FROM users WHERE role = 2) as totalRecipients,
+                    (SELECT COUNT(*) FROM users WHERE is_flood_prone = 1) as floodProne,
+                    (SELECT COUNT(*) FROM users WHERE disability IS NOT NULL AND disability != '') as highVulnerability,
+                    (SELECT COUNT(*) FROM notifications WHERE DATE(created_at) = CURDATE()) as alertsSentToday
             `;
 
             const [results]: any = await db.query(sql);
-            const { sentToday, totalRecipients, totalReads } = results[0];
 
-            const rate = totalRecipients > 0
-                ? Math.round((totalReads / totalRecipients) * 100)
-                : 0;
+            // Ensure we have results, otherwise default to 0
+            const stats = results[0] || {
+                totalRecipients: 0,
+                floodProne: 0,
+                highVulnerability: 0,
+                alertsSentToday: 0
+            };
 
             return res.status(200).json({
-                sentToday: sentToday || 0,
-                totalRecipients: totalRecipients || 0,
-                deliveryRate: `${rate}%`
+                totalRecipients: stats.totalRecipients,
+                floodProneAreas: stats.floodProne,
+                highVulnerability: stats.highVulnerability,
+                alertsSentToday: stats.alertsSentToday
             });
         } catch (error) {
-            return res.status(500).json({ error: "Failed to fetch stats" });
+            console.error("Error fetching stats:", error);
+            return res.status(500).json({ error: "Failed to fetch stats from the database" });
         }
     }
 

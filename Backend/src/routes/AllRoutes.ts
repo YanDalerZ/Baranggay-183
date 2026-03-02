@@ -6,3 +6,4 @@ export { default as NotificationsRoute } from "./NotificationRoute.js";
 export { default as ServiceGuideRoute } from "./ServiceGuideRoute.js";
 export { default as AppointmentRoute } from "./AppointmentRoute.js";
 export { default as ApplicationsRoute } from "./ApplicationsRoute.js";
+export { default as RiskMapRoute } from "./RiskMapRoute.js";

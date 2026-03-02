@@ -537,6 +537,62 @@ class UserController {
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
+    // Add this method inside your UserController class
+
+    // Inside your UserController class in UserController.ts/js
+    public updateUserCoordinates = async (req: Request, res: Response): Promise<Response> => {
+        const { id } = req.params;
+        const { coordinates } = req.body;
+
+        if (!coordinates) {
+            return res.status(400).json({ message: "Coordinates are required." });
+        }
+
+        try {
+            // We use 'id' because the Risk Map uses the numeric primary key, not the system_id string
+            const [result]: any = await pool.execute(
+                `UPDATE users SET coordinates = ? WHERE id = ?`,
+                [coordinates, id]
+            );
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: "Resident record not found." });
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Coordinates updated successfully.",
+                data: { id, coordinates }
+            });
+        } catch (error: any) {
+            console.error("Database Error:", error);
+            return res.status(500).json({ message: "Internal server error.", error: error.message });
+        }
+    };
+    public getAllResidentLocations = async (req: Request, res: Response): Promise<Response> => {
+        try {
+            const [rows]: any = await pool.execute(
+                `SELECT id, system_id, firstname, lastname, house_no, street, barangay, disability, coordinates, is_flood_prone 
+             FROM users 
+             WHERE role = 2`
+            );
+
+            const residents = rows.map((user: any) => ({
+                id: user.id.toString(),
+                system_id: user.system_id,
+                name: `${user.firstname} ${user.lastname}`,
+                address: `${user.house_no || ''} ${user.street || ''} ${user.barangay || ''}, Pasay City`.trim(),
+                coordinates: user.coordinates,
+                vulnerability: user.disability || 'None',
+                isHighRisk: user.is_flood_prone === 1
+            }));
+
+            return res.status(200).json(residents);
+        } catch (error) {
+            console.error("GIS Fetch Error:", error);
+            return res.status(500).json({ message: "Failed to retrieve resident locations." });
+        }
+    };
 }
 
 export default new UserController();

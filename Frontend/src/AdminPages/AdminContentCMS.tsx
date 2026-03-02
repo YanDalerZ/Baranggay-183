@@ -4,11 +4,9 @@ import {
   Plus,
   BookOpen,
   Clock,
-  CheckCircle,
   Info,
   Loader2,
   Search,
-  ChevronRight
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
@@ -16,7 +14,6 @@ import { API_BASE_URL } from '../interfaces';
 import AddGuideModal from './AdminComponents/AddServiceGuide';
 import ViewGuideModal from './AdminComponents/ViewGuide';
 
-// --- Interfaces ---
 interface ServiceGuide {
   id: number;
   title: string;
@@ -28,18 +25,9 @@ interface ServiceGuide {
   office_hours?: string;
 }
 
-interface InterestForm {
-  id: string;
-  resident_name: string;
-  form_type: string;
-  submitted_at: string;
-  status: 'Pending' | 'Pre-verified' | 'Approved' | 'Completed';
-}
-
 const AdminContentCMS = () => {
   const [activeTab, setActiveTab] = useState<'guides' | 'forms'>('guides');
   const [guides, setGuides] = useState<ServiceGuide[]>([]);
-  const [forms, setForms] = useState<InterestForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,12 +45,9 @@ const AdminContentCMS = () => {
     if (!token) return;
     setLoading(true);
     try {
-      const [guidesRes, formsRes] = await Promise.all([
-        axios.get(`${API_BASE_URL}/api/serviceguide`, config),
-        axios.get(`${API_BASE_URL}/api/forms`, config)
-      ]);
+      const [guidesRes] = await Promise.all([
+        axios.get(`${API_BASE_URL}/api/serviceguide`, config)]);
       setGuides(guidesRes.data);
-      setForms(formsRes.data);
     } catch (err) {
       console.error("CMS Fetch Error:", err);
     } finally {
@@ -74,22 +59,10 @@ const AdminContentCMS = () => {
     fetchData();
   }, [token]);
 
-  const handleStatusUpdate = async (id: string, newStatus: string) => {
-    try {
-      await axios.patch(`${API_BASE_URL}/api/forms/${id}`, { status: newStatus }, config);
-      fetchData(); // Refresh data after update
-    } catch (err) {
-      alert("Failed to update status. Check permissions.");
-    }
-  };
-
   const filteredGuides = guides.filter(g =>
     g.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredForms = forms.filter(f =>
-    f.resident_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   if (loading && guides.length === 0) {
     return (
@@ -109,14 +82,7 @@ const AdminContentCMS = () => {
       </header>
 
       <main className="space-y-6">
-        {/* Statistics Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          <StatBox title="Service Guides" value={guides.length} />
-          <StatBox title="Total Forms" value={forms.length} />
-          <StatBox title="Pending" value={forms.filter(f => f.status === 'Pending').length} valueColor="text-orange-500" />
-          <StatBox title="Pre-verified" value={forms.filter(f => f.status === 'Pre-verified').length} valueColor="text-blue-600" />
-          <StatBox title="Approved" value={forms.filter(f => f.status === 'Approved').length} valueColor="text-green-600" />
-        </div>
+
 
         {/* CMS Container */}
         <section className="bg-white border border-gray-100 shadow-sm overflow-hidden rounded-xl">
@@ -148,12 +114,7 @@ const AdminContentCMS = () => {
               >
                 Services Guide
               </button>
-              <button
-                onClick={() => { setActiveTab('forms'); setSearchTerm(''); }}
-                className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${activeTab === 'forms' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
-              >
-                Interest Forms
-              </button>
+
             </div>
 
             {activeTab === 'guides' ? (
@@ -194,13 +155,7 @@ const AdminContentCMS = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
-                      {filteredForms.map((form) => (
-                        <FormRow
-                          key={form.id}
-                          form={form}
-                          onUpdate={handleStatusUpdate}
-                        />
-                      ))}
+
                     </tbody>
                   </table>
                 </div>
@@ -236,15 +191,6 @@ const AdminContentCMS = () => {
   );
 };
 
-// --- Sub-components ---
-
-const StatBox = ({ title, value, valueColor = "text-gray-900" }: any) => (
-  <div className="bg-white p-5 border border-gray-100 shadow-sm rounded-xl">
-    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-    <p className={`text-2xl font-black ${valueColor}`}>{value}</p>
-  </div>
-);
-
 const GuideCard = ({ guide }: { guide: ServiceGuide }) => {
   const stepCount = Array.isArray(guide.steps)
     ? guide.steps.length
@@ -278,66 +224,6 @@ const GuideCard = ({ guide }: { guide: ServiceGuide }) => {
         </div>
       </div>
     </div>
-  );
-};
-
-const FormRow = ({ form, onUpdate }: { form: InterestForm, onUpdate: (id: string, status: string) => void }) => {
-  const getNextStatus = (current: string) => {
-    if (current === 'Pending') return 'Pre-verified';
-    if (current === 'Pre-verified') return 'Approved';
-    if (current === 'Approved') return 'Completed';
-    return null;
-  };
-
-  const nextStatus = getNextStatus(form.status);
-
-  return (
-    <tr className="text-sm group hover:bg-gray-50/50 transition-colors">
-      <td className="px-4 py-5">
-        <div className="font-bold text-gray-900">{form.resident_name}</div>
-        <div className="text-[10px] text-gray-400 font-mono uppercase">REF-{form.id.toString().slice(-6)}</div>
-      </td>
-      <td className="px-4 py-5">
-        <span className="px-2.5 py-1 bg-gray-50 text-gray-600 text-[10px] font-bold border border-gray-100 rounded">
-          {form.form_type}
-        </span>
-      </td>
-      <td className="px-4 py-5 text-gray-500 font-medium text-xs">
-        {new Date(form.submitted_at).toLocaleDateString()}
-      </td>
-      <td className="px-4 py-5">
-        <StatusBadge status={form.status} />
-      </td>
-      <td className="px-4 py-5 text-right">
-        {nextStatus ? (
-          <button
-            onClick={() => onUpdate(form.id, nextStatus)}
-            className="px-4 py-1.5 bg-black text-white text-[10px] font-black uppercase hover:bg-[#00308F] transition-all rounded shadow-sm flex items-center gap-2 ml-auto"
-          >
-            {nextStatus === 'Pre-verified' ? 'Verify Entry' : nextStatus}
-            <ChevronRight size={12} />
-          </button>
-        ) : (
-          <span className="text-green-600 flex items-center justify-end gap-1 text-[10px] font-black uppercase">
-            <CheckCircle size={14} /> Finalized
-          </span>
-        )}
-      </td>
-    </tr>
-  );
-};
-
-const StatusBadge = ({ status }: { status: InterestForm['status'] }) => {
-  const styles = {
-    Pending: 'bg-orange-50 text-orange-600 border-orange-100',
-    'Pre-verified': 'bg-blue-50 text-blue-600 border-blue-100',
-    Approved: 'bg-indigo-50 text-indigo-600 border-indigo-100',
-    Completed: 'bg-green-50 text-green-700 border-green-200'
-  };
-  return (
-    <span className={`px-2 py-0.5 text-[10px] font-black uppercase border rounded-full ${styles[status]}`}>
-      {status}
-    </span>
   );
 };
 

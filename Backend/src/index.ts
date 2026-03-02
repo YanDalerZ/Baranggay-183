@@ -44,6 +44,8 @@ app.use('/api/notifications', AllRoutes.NotificationsRoute);
 app.use('/api/serviceguide', AllRoutes.ServiceGuideRoute);
 app.use('/api/appointments', AllRoutes.AppointmentRoute);
 app.use('/api/applications', AllRoutes.ApplicationsRoute);
+app.use('/api/risk', AllRoutes.RiskMapRoute);
+
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const frontendPath = path.join(__dirname, '../../Frontend/dist');
