@@ -172,7 +172,7 @@ const BenefitsReliefLedger = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
-      <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+      <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
         Benefits & Relief Goods Ledger
       </h2>
       <p className="text-gray-500 text-sm sm:text-base">
@@ -265,7 +265,7 @@ const BenefitsReliefLedger = () => {
                         <td className="px-6 py-4 text-blue-600">{item.allocated}</td>
                         <td className="px-6 py-4 font-bold">{balance}</td>
                         <td className="px-6 py-4 text-gray-500">{item.unit}</td>
-                        <td className="px-6 py-4 min-w-[120px]">
+                        <td className="px-6 py-4 min-w-30">
                           <div className="flex items-center gap-2">
                             <div className="h-1.5 w-16 bg-gray-100 rounded-full overflow-hidden">
                               <div className="h-full bg-green-500" style={{ width: `${percent}%` }}></div>

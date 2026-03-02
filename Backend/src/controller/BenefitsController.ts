@@ -102,28 +102,29 @@ class LedgerController {
     public fetchAllDistributions = async (req: Request, res: Response): Promise<Response> => {
         try {
             const query = `
-            SELECT 
-                CONCAT(u.firstname, ' ', u.lastname) AS resident,
-                u.id AS resident_id,
-                u.system_id,
-                d.batch_id,
-                d.status,
-                db.batch_name, 
-                DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
-                GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description
-            FROM distribution d
-            JOIN users u ON d.resident_id = u.id
-            JOIN inventory i ON d.inventory_id = i.id
-            JOIN distribution_batches db ON d.batch_id = db.id 
-            WHERE d.status = 'Claimed' -- Only show actual hand-offs
-            GROUP BY 
-                u.id, 
-                d.batch_id, 
-                d.status, 
-                d.date_claimed,
-                db.batch_name,
-                u.system_id
-            ORDER BY d.date_claimed DESC`;
+    SELECT 
+        CONCAT(u.firstname, ' ', u.lastname) AS resident,
+        u.id AS resident_id,
+        u.system_id,
+        d.batch_id,
+        d.status,
+        db.batch_name, 
+        DATE_FORMAT(MAX(d.date_claimed), '%Y-%m-%d %H:%i') AS date_claimed,
+        GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', ') AS item_description
+    FROM distribution d
+    JOIN users u ON d.resident_id = u.id
+    JOIN inventory i ON d.inventory_id = i.id
+    JOIN distribution_batches db ON d.batch_id = db.id 
+    WHERE d.status = 'Claimed' 
+    GROUP BY 
+        u.id, 
+        u.firstname,
+        u.lastname,
+        d.batch_id, 
+        d.status, 
+        db.batch_name,
+        u.system_id
+    ORDER BY MAX(d.date_claimed) DESC`;
 
             const [rows]: any = await pool.execute(query);
             return res.status(200).json(rows);
@@ -136,7 +137,6 @@ class LedgerController {
     public fetchDistributionByBatch = async (req: Request, res: Response): Promise<Response> => {
         const { batchId } = req.params;
         try {
-            // 1. First, get the batch details to know the target group
             const [batch]: any = await pool.execute(
                 `SELECT target_group, batch_name, items_summary FROM distribution_batches WHERE id = ?`,
                 [batchId]
@@ -149,33 +149,39 @@ class LedgerController {
             const { target_group, batch_name, items_summary } = batch[0];
 
             const query = `
-            SELECT 
-                CONCAT(u.firstname, ' ', u.lastname) AS resident,
-                u.id AS resident_id,
-                u.system_id AS system_id,
-                u.type AS resident_type,
-                -- If they haven't claimed, show the batch's default items summary
-                COALESCE(
-                    GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', '), 
-                    ? 
-                ) AS item_description,
-                -- If there is no record in distribution, status is 'To Claim'
-                COALESCE(d.status, 'To Claim') AS status,
-                DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') AS date_claimed,
-                ? AS batch_name
-            FROM users u
-            LEFT JOIN distribution d ON u.id = d.resident_id AND d.batch_id = ?
-            LEFT JOIN inventory i ON d.inventory_id = i.id
-            WHERE u.status = 'Active' AND (
-                (? = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
-                (? = 'SC' AND u.type IN ('SC', 'BOTH')) OR
-                (? = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
-                (u.type = ?)
-            )
-            GROUP BY u.id, d.status, d.date_claimed
-            ORDER BY u.lastname ASC
-        `;
-
+    SELECT 
+        CONCAT(u.firstname, ' ', u.lastname) AS resident,
+        u.id AS resident_id,
+        u.system_id AS system_id,
+        u.type AS resident_type,
+        -- If they haven't claimed, show the batch's default items summary
+        COALESCE(
+            GROUP_CONCAT(CONCAT(i.name, ' (', d.qty, ' ', i.unit, ')') SEPARATOR ', '), 
+            ? 
+        ) AS item_description,
+        -- If there is no record in distribution, status is 'To Claim'
+        COALESCE(MAX(d.status), 'To Claim') AS status,
+        -- We use MAX to get the most recent time if there's a slight millisecond/second difference
+        DATE_FORMAT(MAX(d.date_claimed), '%Y-%m-%d %H:%i') AS date_claimed,
+        ? AS batch_name
+    FROM users u
+    LEFT JOIN distribution d ON u.id = d.resident_id AND d.batch_id = ?
+    LEFT JOIN inventory i ON d.inventory_id = i.id
+    WHERE u.status = 'Active' AND (
+        (? = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
+        (? = 'SC' AND u.type IN ('SC', 'BOTH')) OR
+        (? = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
+        (u.type = ?)
+    )
+    -- Group ONLY by the unique resident fields
+    GROUP BY 
+        u.id, 
+        u.firstname, 
+        u.lastname, 
+        u.system_id, 
+        u.type
+    ORDER BY u.lastname ASC
+`;
             const [rows]: any = await pool.execute(query, [
                 items_summary,
                 batch_name,
@@ -193,6 +199,7 @@ class LedgerController {
         }
     };
 
+
     public generateBatch = async (req: Request, res: Response): Promise<Response> => {
         const { batchName, targetGroup, selectedItems } = req.body;
         const connection = await pool.getConnection();
@@ -202,14 +209,12 @@ class LedgerController {
 
             const itemsSummary = selectedItems.map((i: any) => `${i.qty} ${i.name}`).join(', ');
 
-            // 1. Insert the main batch record
             const [batch]: any = await connection.execute(
                 `INSERT INTO distribution_batches (batch_name, target_group, items_summary) VALUES (?, ?, ?)`,
                 [batchName, targetGroup, itemsSummary]
             );
             const batchId = batch.insertId;
 
-            // 2. Save the items linked to this batch (The "Recipe")
             const batchItemValues = selectedItems.map((si: any) => [batchId, si.id, si.qty]);
             await connection.query(
                 `INSERT INTO batch_items (batch_id, inventory_id, qty) VALUES ?`,
@@ -234,7 +239,6 @@ class LedgerController {
         try {
             await connection.beginTransaction();
 
-            // 1. Get the items assigned to this batch from our new table
             const [batchItems]: any = await connection.execute(
                 `SELECT inventory_id, qty FROM batch_items WHERE batch_id = ?`,
                 [batchId]
@@ -244,16 +248,13 @@ class LedgerController {
                 throw new Error("No items found for this batch configuration.");
             }
 
-            // 2. Check if already claimed
             const [existing]: any = await connection.execute(
                 `SELECT id FROM distribution WHERE batch_id = ? AND resident_id = ? LIMIT 1`,
                 [batchId, residentId]
             );
             if (existing.length > 0) throw new Error("Already claimed.");
 
-            // 3. Process Inventory and Record Claim
             for (const item of batchItems) {
-                // Update Inventory (Deduct from Total, add to Allocated)
                 const [update]: any = await connection.execute(
                     `UPDATE inventory SET allocated = allocated + ? 
                  WHERE id = ? AND (total - allocated) >= ?`,
@@ -264,7 +265,6 @@ class LedgerController {
                     throw new Error("Insufficient stock in inventory.");
                 }
 
-                // Insert into distribution
                 await connection.execute(
                     `INSERT INTO distribution (batch_id, resident_id, inventory_id, qty, status, date_claimed) 
                  VALUES (?, ?, ?, ?, 'Claimed', NOW())`,
@@ -288,7 +288,6 @@ class LedgerController {
         try {
             const [user]: any = await pool.execute(`SELECT type FROM users WHERE id = ?`, [userId]);
             if (!user.length) return res.status(404).json([]);
-
             const userType = user[0].type;
 
             const query = `
@@ -297,8 +296,9 @@ class LedgerController {
                     db.batch_name,
                     db.items_summary,
                     db.target_group,
-                    IF(d.id IS NULL, 'To Claim', d.status) AS status,
-                    DATE_FORMAT(d.date_claimed, '%Y-%m-%d %H:%i') as date_claimed,
+                    -- Use MAX(status) or COALESCE to get the claim status for the batch
+                    COALESCE(MAX(d.status), 'To Claim') AS status,
+                    DATE_FORMAT(MAX(d.date_claimed), '%Y-%m-%d %H:%i') as date_claimed,
                     DATE_FORMAT(db.created_at, '%Y-%m-%d') as date_posted
                 FROM distribution_batches db
                 LEFT JOIN distribution d ON d.batch_id = db.id AND d.resident_id = ?
@@ -307,6 +307,7 @@ class LedgerController {
                     (db.target_group = 'SC' AND ? IN ('SC', 'BOTH')) OR
                     (db.target_group = 'PWD' AND ? IN ('PWD', 'BOTH')) OR
                     (db.target_group = ?)
+                GROUP BY db.id
                 ORDER BY db.created_at DESC;
             `;
 
@@ -315,6 +316,50 @@ class LedgerController {
         } catch (error) {
             console.error("Fetch User Benefits Error:", error);
             return res.status(500).json([]);
+        }
+    };
+
+    /**
+     * FIXED: fetchUserClaimStats
+     * Ensures stats logic matches the 1-batch-per-row UI
+     */
+    public fetchUserClaimStats = async (req: Request, res: Response): Promise<Response> => {
+        const { userId } = req.params;
+        try {
+            const [user]: any = await pool.execute(`SELECT type FROM users WHERE id = ?`, [userId]);
+            if (!user.length) return res.status(404).json({ message: "User not found" });
+            const userType = user[0].type;
+
+            const statsQuery = `
+            SELECT 
+                (SELECT COUNT(id) FROM distribution_batches 
+                 WHERE (target_group = 'BOTH') OR (target_group = ?)
+                ) AS total_claims,
+
+                (SELECT COUNT(DISTINCT batch_id) 
+                 FROM distribution 
+                 WHERE resident_id = ? AND status = 'Claimed'
+                ) AS claimed_completed,
+
+                (SELECT COUNT(DISTINCT batch_id) 
+                 FROM distribution 
+                 WHERE resident_id = ? AND status = 'Approved'
+                ) AS approved_ready,
+
+                (SELECT COUNT(DISTINCT batch_id) 
+                 FROM distribution 
+                 WHERE resident_id = ? AND status = 'Pending'
+                ) AS pending_review
+            `;
+
+            const [stats]: any = await pool.execute(statsQuery, [userType, userId, userId, userId]);
+
+            return res.status(200).json({
+                stats: stats[0]
+            });
+        } catch (error) {
+            console.error("Fetch User Claim Stats Error:", error);
+            return res.status(500).json({ message: "Error fetching claim statistics." });
         }
     };
 }

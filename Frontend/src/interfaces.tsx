@@ -17,10 +17,18 @@ export interface ServiceData {
     label: string;
     title: string;
     description: string;
-    image: string;
+    requirements: string[];
+    steps: string[];
+    processing_time: string;
+    office_hours: string;
 }
 
 export interface EventData {
+    type: string;
+    event_time: string;
+    event_date: string;
+
+    event_bg?: any;
     id: number;
     day: string;
     month: string;
@@ -32,8 +40,8 @@ export interface EventData {
 }
 
 
+export type UserType = 'Resident' | 'Senior Citizen' | 'PWD' | 'Both';
 
-export type UserType = 'Both' | 'SC' | 'PWD' | '';
 export interface EmergencyContact {
     id?: number;
     user_id?: number;
@@ -45,24 +53,52 @@ export interface EmergencyContact {
 export interface User {
     id?: number;
     system_id?: string;
-    firstname: string;
-    lastname: string;
-    status?: 'active' | 'inactive';
-    gender: string;
-    birthday: string;
-    contact_number: string;
-    email: string;
-    address: string;
-    type: UserType;
-    id_expiry_date: string;
-    disability: string;
-    is_flood_prone: boolean;
-    emergency_id?: number;
-    emergencyContact: EmergencyContact;
     created_at?: string;
     updated_at?: string;
-}
+    status?: 'active' | 'inactive';
 
+    firstname: string;
+    lastname: string;
+    middlename?: string;
+    suffix?: string;
+    gender: string;
+    birthday: string;
+    birthplace?: string;
+    nationality?: string;
+    civil_status?: string;
+    blood_type?: string;
+    contact_number: string;
+    email: string;
+
+    address?: string;
+    house_no?: string;
+    street?: string;
+    barangay?: string;
+    ownership_type?: string;
+    years_of_residency?: string | number;
+    household_number?: string;
+
+    type: UserType;
+    occupation?: string;
+    monthly_income?: string;
+    education?: string;
+    school?: string;
+    tcic_id?: string;
+
+    is_registered_voter: boolean | number;
+    is_flood_prone: boolean | number;
+
+    id_expiry_date?: string;
+    disability?: string;
+
+    emergency_id?: number;
+    emergencyContact: EmergencyContact;
+
+    photo_2x2?: string | File | null;
+    proof_of_residency?: string | File | null;
+    attachments?: any[];
+    medical_history?: string;
+}
 
 export interface InventoryItem {
     id: string;
