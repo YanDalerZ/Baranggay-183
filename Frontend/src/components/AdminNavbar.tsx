@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   User as UserIcon, FileText, Bell, LogOut, Sun, Menu, X,
-  Home, Users, Gift, MapPin, AlertTriangle,
+  Home, Users, Gift, AlertTriangle,
   Calendar, ClipboardCheck, MoreHorizontal
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -47,7 +47,7 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col lg:flex-row font-sans text-black">
 
       <aside
-        className={`hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 fixed h-screen z-[70] ${isCollapsed ? 'w-20' : 'w-72'
+        className={`hidden lg:flex flex-col bg-white border-r border-gray-200 transition-all duration-300 fixed h-screen z-70 ${isCollapsed ? 'w-20' : 'w-72'
           }`}
       >
         <div className="p-5 flex items-center justify-between border-b border-gray-50">
@@ -138,7 +138,7 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
         </div>
       </nav>
 
-      <div className={`fixed inset-0 bg-white z-[60] pt-24 px-8 lg:hidden transition-all duration-500 ease-in-out transform overflow-y-auto ${isMenuOpen
+      <div className={`fixed inset-0 bg-white z-60 pt-24 px-8 lg:hidden transition-all duration-500 ease-in-out transform overflow-y-auto ${isMenuOpen
         ? 'translate-y-0 opacity-100 visible'
         : '-translate-y-full opacity-0 invisible'
         }`}>
@@ -184,13 +184,13 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
         className={`flex-1 transition-all duration-300 min-h-screen pt-24 lg:pt-10 pb-32 lg:pb-10 px-4 md:px-12 ${!isCollapsed ? 'lg:ml-72' : 'lg:ml-20'
           }`}
       >
-        <div className="max-w-[1400px] mx-auto">
+        <div className="max-w-350 mx-auto">
           {children}
         </div>
       </main>
 
       {/* --- BOTTOM NAVIGATION (Mobile/Tablet Only) --- */}
-      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-[70] px-2 py-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
+      <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 lg:hidden z-70 px-2 py-3 shadow-[0_-10px_30px_rgba(0,0,0,0.08)]">
         <div className="flex justify-around items-center">
           {menuItems.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.path;
@@ -198,7 +198,7 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
               <button
                 key={item.name}
                 onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
-                className="flex flex-col items-center gap-1.5 min-w-[60px]"
+                className="flex flex-col items-center gap-1.5 min-w-15"
               >
                 <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-[#00308F] text-white scale-110 shadow-md shadow-blue-200' : 'text-gray-400'}`}>
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
@@ -212,7 +212,7 @@ const AdminNavbar: React.FC<NavbarProps> = ({ children }) => {
 
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="flex flex-col items-center gap-1.5 min-w-[60px] text-gray-400"
+            className="flex flex-col items-center gap-1.5 min-w-15 text-gray-400"
           >
             <div className={`p-2 rounded-xl transition-all ${isMenuOpen ? 'bg-orange-500 text-white' : 'bg-gray-50'}`}>
               {isMenuOpen ? <X size={20} /> : <MoreHorizontal size={20} />}
