@@ -261,11 +261,11 @@ const UnifiedEmergencyDashboard = () => {
     }
 
     return (
-        <div className="max-w-[1600px] mx-auto px-4 pt-4 pb-12 space-y-6">
+        <div className="max-w-400 mx-auto px-4 pt-4 pb-12 space-y-6">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl md:text-5xl font-black uppercase tracking-tighter -skew-x-12 bg-gradient-to-r from-red-600 to-[#00308F] bg-clip-text text-transparent">
+                    <h2 className="text-2xl md:text-5xl font-black uppercase tracking-tighter -skew-x-12 bg-linear-to-r from-red-600 to-[#00308F] bg-clip-text text-transparent">
                         Emergency Command Center
                     </h2>
                     <p className="text-gray-500 font-medium italic">GIS Mapping & Disaster Response Protocol</p>
@@ -329,7 +329,7 @@ const UnifiedEmergencyDashboard = () => {
 
                             <div>
                                 <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Message</label>
-                                <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Emergency instructions..." className="w-full bg-gray-50 border-none py-2 px-3 text-sm focus:ring-2 focus:ring-red-500 outline-none min-h-[100px] resize-none" />
+                                <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Emergency instructions..." className="w-full bg-gray-50 border-none py-2 px-3 text-sm focus:ring-2 focus:ring-red-500 outline-none min-h-25 resize-none" />
                             </div>
 
                             <div className="space-y-2">
@@ -414,7 +414,7 @@ const UnifiedEmergencyDashboard = () => {
                             <AlertTriangle size={18} />
                             <h3 className="text-sm font-black uppercase tracking-widest">Evacuation Priority</h3>
                         </div>
-                        <div className="space-y-3 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                        <div className="space-y-3 max-h-87.5 overflow-y-auto custom-scrollbar pr-2">
                             {priorityResidents.map(res => (
                                 <div key={res.id} className="p-3 bg-red-50 border-l-4 border-red-600 flex justify-between items-center group cursor-pointer hover:bg-red-100 transition-colors">
                                     <div className="space-y-0.5">
@@ -438,7 +438,7 @@ const UnifiedEmergencyDashboard = () => {
                             <History size={16} className="text-gray-400" />
                             <h2 className="text-xs font-black uppercase tracking-widest">Recent Alerts</h2>
                         </div>
-                        <div className="divide-y divide-gray-50 max-h-[300px] overflow-y-auto">
+                        <div className="divide-y divide-gray-50 max-h-75 overflow-y-auto">
                             {history.length > 0 ? history.map(item => (
                                 <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors">
                                     <p className="text-[10px] font-black text-gray-900 uppercase truncate">{item.title}</p>
@@ -477,7 +477,7 @@ const UnifiedEmergencyDashboard = () => {
                             </div>
 
                             <div className="flex items-start gap-2 mb-4">
-                                <MapPin size={10} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                                <MapPin size={10} className="text-gray-400 mt-0.5 shrink-0" />
                                 <p className="text-[10px] text-gray-600 leading-tight line-clamp-1 italic">{resident.address}</p>
                             </div>
 
@@ -513,13 +513,6 @@ const LegendItem = ({ color, label, isDot = false }: { color: string; label: str
     <div className="flex items-center gap-2">
         <div className={`${color} ${isDot ? 'w-2.5 h-2.5 rounded-full' : 'w-5 h-3'}`} />
         <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">{label}</span>
-    </div>
-);
-
-const SummaryRow = ({ label, value, valueColor = "text-gray-900" }: { label: string; value: string; valueColor?: string }) => (
-    <div className="flex justify-between items-center border-b border-gray-50 pb-2">
-        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{label}</span>
-        <span className={`text-lg font-black ${valueColor}`}>{value}</span>
     </div>
 );
 

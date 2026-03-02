@@ -390,15 +390,6 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-const DataField = ({ label, value, invert = false }: { label: string, value: any, invert?: boolean }) => (
-  <div>
-    <p className={`text-[10px] font-black uppercase tracking-widest mb-1 ${invert ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
-    <p className={`text-sm font-black uppercase tracking-tight ${invert ? 'text-white' : 'text-black'}`}>{value || '---'}</p>
-  </div>
-);
-
-// --- REUSED FORM COMPONENTS ---
-
 const PWDApplicationForm = ({ user, isRenewal, formData, onChange, onFileChange }: any) => (
   <div className="space-y-12">
     <div className="flex justify-between items-start">
