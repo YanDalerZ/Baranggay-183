@@ -103,6 +103,46 @@ class LoginController {
         }
     };
 
+    public SuperAdminLogin = async (req: Request, res: Response): Promise<Response> => {
+        const { email, password } = req.body;
+
+        try {
+            if (!email || !password) {
+                return res.status(400).json({ message: "Email and password are required." });
+            }
+
+            const [rows] = await pool.execute<RowDataPacket[]>(
+                'SELECT * FROM users WHERE email = ?',
+                [email]
+            );
+
+            const user = rows[0];
+
+            if (!user || user.role !== 3 || !(await bcrypt.compare(password, user.password))) {
+                return res.status(401).json({ message: "Invalid super admin credentials." });
+            }
+
+            if (user.status !== 'active') {
+                return res.status(403).json({ message: "Account is inactive." });
+            }
+
+            const token = this.generateToken(user);
+
+            const { password: _, ...userData } = user;
+            userData.fullname = `${user.firstname} ${user.lastname}`.trim();
+
+            return res.status(200).json({
+                message: "Super Admin login successful",
+                token,
+                user: userData
+            });
+
+        } catch (error) {
+            console.error("Super Admin Login Error:", error);
+            return res.status(500).json({ message: "Internal server error." });
+        }
+    };
+
     public VerifyToken = async (req: Request, res: Response): Promise<Response> => {
         const authHeader = req.headers.authorization;
         const token = authHeader && authHeader.split(' ')[1];
