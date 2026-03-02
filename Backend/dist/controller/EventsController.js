@@ -2,8 +2,35 @@ import pool from '../database/db.js';
 class EventController {
     async getAllEvents(req, res) {
         try {
-            const [rows] = await pool.execute('SELECT * FROM events ORDER BY event_date ASC, event_time ASC');
-            return res.status(200).json(rows);
+            // We fetch the base64 string directly from MySQL
+            const [rows] = await pool.execute('SELECT id, title, type, event_date, event_time, location, attendees, description, TO_BASE64(event_bg) as event_bg FROM events ORDER BY event_date ASC, event_time ASC');
+            const eventsWithImages = rows.map(event => {
+                let formattedBg = null;
+                if (event.event_bg) {
+                    const b64 = event.event_bg;
+                    // Detect the format by checking the start of the base64 string
+                    // iVBORw0KGgo = PNG
+                    // /9j/ = JPEG
+                    // R0lGOD = GIF
+                    // UklGR = WebP
+                    let mimeType = 'image/jpeg'; // Default fallback
+                    if (b64.startsWith('iVBORw0KGgo')) {
+                        mimeType = 'image/png';
+                    }
+                    else if (b64.startsWith('R0lGOD')) {
+                        mimeType = 'image/gif';
+                    }
+                    else if (b64.startsWith('UklGR')) {
+                        mimeType = 'image/webp';
+                    }
+                    formattedBg = `data:${mimeType};base64,${b64}`;
+                }
+                return {
+                    ...event,
+                    event_bg: formattedBg
+                };
+            });
+            return res.status(200).json(eventsWithImages);
         }
         catch (error) {
             console.error("Fetch Events Error:", error);
@@ -12,13 +39,12 @@ class EventController {
     }
     async createEvent(req, res) {
         const { title, type, date, time, location, attendees, description } = req.body;
+        // multer adds the file to req.file
+        const eventBg = req.file ? req.file.buffer : null;
         try {
-            // Validation for required fields
             if (!title || !type || !date || !time || !location) {
                 return res.status(400).json({ message: "Missing required fields." });
             }
-            // Ensure attendees matches the allowed values (SC, PWD, BOTH)
-            // If the frontend sends something else, we default to 'BOTH'
             const validAttendees = ['SC', 'PWD', 'BOTH'].includes(attendees)
                 ? attendees
                 : 'BOTH';
@@ -29,15 +55,17 @@ class EventController {
                     event_time, 
                     location, 
                     attendees, 
-                    description
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+                    description,
+                    event_bg
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
                 title,
                 type,
                 date,
                 time,
                 location,
                 validAttendees,
-                description || null
+                description || null,
+                eventBg
             ]);
             return res.status(201).json({
                 message: "Event created successfully",
@@ -67,7 +95,8 @@ class EventController {
                     event_time: '00:00:00',
                     location: 'Community',
                     attendees: 'All',
-                    description: `Happy Birthday to ${user.firstname}!`
+                    description: `Happy Birthday to ${user.firstname}!`,
+                    event_bg: null // Birthdays usually don't have custom backgrounds
                 };
             });
             return res.status(200).json(birthdayEvents);
