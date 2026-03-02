@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import UserController from '../controller/UserController.js';
 import { authenticateToken, isAdmin } from '../middleware/authMiddleware.js';
-import { upload } from '../middleware/uploadMiddleware';
+import { upload } from '../middleware/uploadMiddleware.js';
 
 const router = Router();
 router.use(authenticateToken);
