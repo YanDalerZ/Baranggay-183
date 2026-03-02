@@ -13,7 +13,12 @@ class UserController {
                 ec.relationship as emergency_relationship, 
                 ec.contact as emergency_contact,
                 GROUP_CONCAT(
-                    JSON_OBJECT('file_type', ua.file_type, 'file_path', ua.file_path)
+                    JSON_OBJECT(
+                        'file_type', ua.file_type, 
+                        'file_name', ua.file_name,
+                        'mime_type', ua.mime_type,
+                        'file_data', TO_BASE64(ua.file_data)
+                    )
                 ) as attachments
             FROM users u
             LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
@@ -25,23 +30,40 @@ class UserController {
 
             const [rows]: any = await pool.execute(query);
 
-            const formattedUsers = rows.map((user: any) => ({
-                ...user,
-                is_flood_prone: user.is_flood_prone === 1,
-                is_registered_voter: user.is_registered_voter === 1,
-                emergencyContact: user.emergency_name ? {
-                    name: user.emergency_name,
-                    relationship: user.emergency_relationship,
-                    contact: user.emergency_contact
-                } : null,
-                // Parse attachments JSON string if it exists
-                attachments: user.attachments ? JSON.parse(`[${user.attachments}]`) : []
-            }));
+            const formattedUsers = rows.map((user: any) => {
+                let parsedAttachments = [];
+
+                if (user.attachments) {
+                    try {
+                        // GROUP_CONCAT returns a string like {"obj1"},{"obj2"}
+                        // We wrap it in brackets to make it a valid JSON array
+                        parsedAttachments = JSON.parse(`[${user.attachments}]`);
+                    } catch (e) {
+                        console.error(`Error parsing attachments for user ${user.system_id}:`, e);
+                        parsedAttachments = [];
+                    }
+                }
+
+                return {
+                    ...user,
+                    is_flood_prone: user.is_flood_prone === 1,
+                    is_registered_voter: user.is_registered_voter === 1,
+                    emergencyContact: user.emergency_name ? {
+                        name: user.emergency_name,
+                        relationship: user.emergency_relationship,
+                        contact: user.emergency_contact
+                    } : null,
+                    attachments: parsedAttachments
+                };
+            });
 
             return res.status(200).json(formattedUsers);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Fetch Users Error:", error);
-            return res.status(500).json({ message: "Internal server error." });
+            return res.status(500).json({
+                message: "Internal server error.",
+                error: error.message
+            });
         }
     }
 
@@ -55,8 +77,14 @@ class UserController {
                 ec.name as emergency_name, 
                 ec.relationship as emergency_relationship, 
                 ec.contact as emergency_contact,
-                (SELECT JSON_ARRAYAGG(JSON_OBJECT('file_type', file_type, 'file_path', file_path)) 
-                 FROM user_attachments WHERE user_id = u.id) as attachments 
+                (SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'file_type', file_type, 
+                        'file_name', file_name,
+                        'mime_type', mime_type,
+                        'file_data', TO_BASE64(file_data)
+                    )
+                ) FROM user_attachments WHERE user_id = u.id) as attachments 
             FROM users u
             LEFT JOIN emergency_contacts ec ON u.id = ec.user_id
             WHERE u.system_id = ? AND u.role = 2
@@ -67,6 +95,9 @@ class UserController {
             if (rows.length === 0) return res.status(404).json({ message: "Resident not found." });
 
             const user = rows[0];
+
+            // In React, you will display this as: 
+            // <img src={`data:${attachment.mime_type};base64,${attachment.file_data}`} />
             const formattedUser = {
                 ...user,
                 is_flood_prone: user.is_flood_prone === 1,
@@ -191,19 +222,22 @@ class UserController {
 
             // 4. Save Attachments
             if (files) {
-                if (files['photo_2x2']) {
-                    const photoPath = files['photo_2x2'][0].path;
-                    await connection.execute(
-                        `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, 'photo_2x2', ?)`,
-                        [newIdFromDB, photoPath]
-                    );
-                }
-                if (files['proof_of_residency']) {
-                    const docPath = files['proof_of_residency'][0].path;
-                    await connection.execute(
-                        `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, 'proof_of_residency', ?)`,
-                        [newIdFromDB, docPath]
-                    );
+                const attachmentTypes = ['photo_2x2', 'proof_of_residency'];
+                for (const fieldName of attachmentTypes) {
+                    if (files[fieldName]) {
+                        const file = files[fieldName][0];
+                        await connection.execute(
+                            `INSERT INTO user_attachments (user_id, file_type, file_data, file_name, mime_type) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                            [
+                                newIdFromDB,
+                                fieldName,
+                                file.buffer,      // The binary data
+                                file.originalname, // The filename
+                                file.mimetype     // e.g., 'image/jpeg'
+                            ]
+                        );
+                    }
                 }
             }
 
@@ -344,14 +378,25 @@ class UserController {
 
                 for (const fileType of attachmentTypes) {
                     if (files[fileType]) {
-                        const filePath = files[fileType][0].path;
+                        const file = files[fileType][0];
+
+                        // Delete old binary record
                         await connection.execute(
                             `DELETE FROM user_attachments WHERE user_id = ? AND file_type = ?`,
                             [userId, fileType]
                         );
+
+                        // Insert new binary record
                         await connection.execute(
-                            `INSERT INTO user_attachments (user_id, file_type, file_path) VALUES (?, ?, ?)`,
-                            [userId, fileType, filePath]
+                            `INSERT INTO user_attachments (user_id, file_type, file_data, file_name, mime_type) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                            [
+                                userId,
+                                fileType,
+                                file.buffer,
+                                file.originalname,
+                                file.mimetype
+                            ]
                         );
                     }
                 }

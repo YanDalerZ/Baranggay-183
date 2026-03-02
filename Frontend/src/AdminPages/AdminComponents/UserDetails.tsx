@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import axios from 'axios';
-import { X, User as UserIcon, MapPin, ShieldCheck, ExternalLink, Heart, Fingerprint, FileText, Activity } from 'lucide-react';
+import { X, User as UserIcon, MapPin, ShieldCheck, ExternalLink, Heart, Fingerprint, FileText, Activity, Download } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
 
 interface ViewUserDetailsProps {
@@ -35,12 +35,13 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
 
     const displayData = details || user;
 
-    const getSafeUrl = (filePath: string | undefined) => {
-        if (!filePath) return "";
-        const cleanPath = filePath.replace(/\\/g, '/');
-        const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-        const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-        return `${baseUrl}${normalizedPath}`;
+    // Updated to handle Base64 BLOB data from your new backend logic
+    const getFileSrc = (file: any) => {
+        if (!file || !file.file_data) return "";
+        // If it's already a full URL (legacy support)
+        if (file.file_data.startsWith('http')) return file.file_data;
+        // Construct Base64 Data URI
+        return `data:${file.mime_type || 'image/png'};base64,${file.file_data}`;
     };
 
     if (!isOpen || !displayData) return null;
@@ -69,19 +70,25 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
     const profilePic = displayData.attachments?.find((a: any) => a.file_type === 'photo_2x2');
 
     return (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 h-[100vh] backdrop-blur-sm p-4 transition-all duration-300 lg:pl-[280px]`}>
-            <div className="bg-white border border-slate-200 w-full max-w-5xl max-h-[100vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 h-screen backdrop-blur-sm p-4 transition-all duration-300 lg:pl-70`}>
+            <div className="bg-white border border-slate-200 w-full max-w-5xl max-h-screen flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
 
-                {loading && <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 animate-pulse z-[60]" />}
+                {loading && <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 animate-pulse z-60" />}
 
                 <div className="border-b border-slate-100 px-6 py-4 flex justify-between items-center bg-white">
                     <div className="flex items-center gap-4">
                         <div className="h-14 w-14 bg-slate-100 ring-1 ring-slate-200 overflow-hidden">
-                            {profilePic ? (
-                                <img src={getSafeUrl(profilePic.file_path)} alt="Profile" className="h-full w-full object-cover"
-                                    onError={(e) => (e.currentTarget.src = `https://ui-avatars.com/api/?name=${displayData.firstname}+${displayData.lastname}&background=f1f5f9&color=0f172a`)} />
+                            {profilePic && profilePic.file_data ? (
+                                <img
+                                    src={getFileSrc(profilePic)}
+                                    alt="Profile"
+                                    className="h-full w-full object-cover"
+                                    onError={(e) => (e.currentTarget.src = `https://ui-avatars.com/api/?name=${displayData.firstname}+${displayData.lastname}&background=f1f5f9&color=0f172a`)}
+                                />
                             ) : (
-                                <div className="h-full w-full flex items-center justify-center text-slate-400"><UserIcon size={24} /></div>
+                                <div className="h-full w-full flex items-center justify-center text-slate-400">
+                                    <UserIcon size={24} />
+                                </div>
                             )}
                         </div>
                         <div>
@@ -90,7 +97,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                     {displayData.firstname} {displayData.lastname}
                                 </h1>
                                 <span className={`text-[9px] font-bold px-1.5 py-0.5 uppercase border ${displayData.status === 'active' ? 'border-emerald-500 text-emerald-600' : 'border-red-500 text-red-600'}`}>
-                                    {displayData.status}
+                                    {displayData.status || 'Active'}
                                 </span>
                             </div>
                             <p className="text-[10px] font-medium text-slate-500 mt-1 uppercase tracking-wider">
@@ -98,7 +105,9 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-900"><X size={20} /></button>
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 transition-colors text-slate-400 hover:text-slate-900">
+                        <X size={20} />
+                    </button>
                 </div>
 
                 {/* SCROLLABLE BODY */}
@@ -129,7 +138,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                 </div>
                                 <DataRow label="Birthday" value={formatDate(displayData.birthday)} />
                                 <DataRow label="Birthplace" value={displayData.birthplace} />
-                                <DataRow label="Disability" value={displayData.disability || 'None'} isAlert={!!displayData.disability && displayData.disability !== 'N/A'} />
+                                <DataRow label="Disability" value={displayData.disability || 'None'} isAlert={!!displayData.disability && displayData.disability !== 'N/A' && displayData.disability !== 'None'} />
                             </div>
                         </div>
 
@@ -139,11 +148,13 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                             <div className="space-y-4">
                                 <div className="p-2 bg-slate-50 border border-slate-100">
                                     <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Registered Address</p>
-                                    <p className="font-bold text-[11px] text-slate-800 leading-tight uppercase">{displayData.house_no} {displayData.street}, {displayData.barangay}</p>
+                                    <p className="font-bold text-[11px] text-slate-800 leading-tight uppercase">
+                                        {displayData.house_no || ''} {displayData.street || ''}, {displayData.barangay || ''}
+                                    </p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2">
                                     <DataRow label="Ownership" value={displayData.ownership_type} />
-                                    <DataRow label="Residency" value={`${displayData.years_of_residency}Y`} />
+                                    <DataRow label="Residency" value={`${displayData.years_of_residency || 0}Y`} />
                                 </div>
                                 <DataRow label="Income" value={formatCurrency(displayData.monthly_income)} />
                                 <DataRow label="Education" value={displayData.education} />
@@ -161,9 +172,13 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
 
                                 <div className="space-y-2 pt-2">
                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Files</p>
-                                    {displayData.attachments?.slice(0, 3).map((file: any, idx: number) => (
-                                        <FilePreview key={idx} file={file} getSafeUrl={getSafeUrl} />
-                                    ))}
+                                    {displayData.attachments && displayData.attachments.length > 0 ? (
+                                        displayData.attachments.slice(0, 3).map((file: any, idx: number) => (
+                                            <FilePreview key={idx} file={file} getFileSrc={getFileSrc} />
+                                        ))
+                                    ) : (
+                                        <p className="text-[10px] text-slate-400 italic">No attachments found</p>
+                                    )}
                                 </div>
 
                                 {displayData.emergencyContact && (
@@ -172,8 +187,8 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                             <Activity size={12} />
                                             <p className="text-[8px] font-bold uppercase tracking-widest text-red-100">ICE Contact</p>
                                         </div>
-                                        <p className="text-[11px] font-bold uppercase truncate">{displayData.emergencyContact.name}</p>
-                                        <p className="text-[14px] font-mono font-bold mt-1">{displayData.emergencyContact.contact}</p>
+                                        <p className="text-[11px] font-bold uppercase truncate">{displayData.emergencyContact.name || 'N/A'}</p>
+                                        <p className="text-[14px] font-mono font-bold mt-1">{displayData.emergencyContact.contact || 'N/A'}</p>
                                     </div>
                                 )}
                             </div>
@@ -206,7 +221,7 @@ const DataRow = ({ label, value, isAlert = false }: { label: string; value: any;
     <div>
         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight mb-0.5">{label}</p>
         <p className={`text-[12px] font-bold tracking-tight ${isAlert ? 'text-red-600' : 'text-slate-900'} truncate`}>
-            {value || '—'}
+            {value ?? '—'}
         </p>
     </div>
 );
@@ -220,12 +235,26 @@ const StatusChip = ({ active, label, type = 'primary' }: { active: boolean; labe
     </div>
 );
 
-const FilePreview = ({ file, getSafeUrl }: { file: any; getSafeUrl: Function }) => {
-    const url = getSafeUrl(file.file_path);
+const FilePreview = ({ file, getFileSrc }: { file: any; getFileSrc: Function }) => {
+    const src = getFileSrc(file);
+    const isPdf = file.mime_type === 'application/pdf';
+
     return (
-        <a href={url} target="_blank" rel="noreferrer" className="flex items-center p-1.5 border border-slate-100 hover:bg-slate-50 transition-colors group">
-            <FileText size={12} className="text-slate-400 mr-2" />
-            <p className="text-[9px] font-bold text-slate-600 uppercase truncate flex-1">{file.file_type.replace(/_/g, ' ')}</p>
+        <a
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+            download={isPdf ? file.file_name : undefined}
+            className="flex items-center p-1.5 border border-slate-100 hover:bg-slate-50 transition-colors group"
+        >
+            {isPdf ? (
+                <Download size={12} className="text-blue-500 mr-2" />
+            ) : (
+                <FileText size={12} className="text-slate-400 mr-2" />
+            )}
+            <p className="text-[9px] font-bold text-slate-600 uppercase truncate flex-1">
+                {file.file_type ? file.file_type.replace(/_/g, ' ') : 'Document'}
+            </p>
             <ExternalLink size={10} className="text-slate-300 group-hover:text-slate-900" />
         </a>
     );

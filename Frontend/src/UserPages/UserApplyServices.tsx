@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { FileText, Send, ChevronDown } from 'lucide-react';
 
-type ApplicationType = 'RBI' | 'PWD' | 'Senior';
+type ApplicationType = 'PWD' | 'Senior';
 
 const UserApplyServices: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ApplicationType>('RBI');
+  const [activeTab, setActiveTab] = useState<ApplicationType>('PWD');
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
-      {/* Header Section */}
       <section>
         <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
           Services Application Portal</h2>
@@ -17,9 +16,7 @@ const UserApplyServices: React.FC = () => {
         </p>
       </section>
 
-      {/* Form Selection Tabs */}
       <div className="flex flex-wrap bg-gray-200/60 p-1  w-fit gap-1">
-        <TabButton active={activeTab === 'RBI'} onClick={() => setActiveTab('RBI')} label="RBI Registration" />
         <TabButton active={activeTab === 'PWD'} onClick={() => setActiveTab('PWD')} label="PWD ID Application" />
         <TabButton active={activeTab === 'Senior'} onClick={() => setActiveTab('Senior')} label="Senior Citizen ID" />
       </div>
@@ -27,7 +24,6 @@ const UserApplyServices: React.FC = () => {
       {/* Main Form Container */}
       <div className="bg-white  border border-gray-100 shadow-sm overflow-hidden">
         <div className="p-8 md:p-12">
-          {activeTab === 'RBI' && <RBIRegistrationForm />}
           {activeTab === 'PWD' && <PWDApplicationForm />}
           {activeTab === 'Senior' && <SeniorCitizenForm />}
 
@@ -69,65 +65,6 @@ const UserApplyServices: React.FC = () => {
     </div>
   );
 };
-
-// --- APPLICATION FORMS (FORMATTED PER IMAGES) ---
-
-const RBIRegistrationForm = () => (
-  <div className="space-y-12">
-    <div>
-      <h3 className="text-base font-bold text-gray-900">RBI (Registry of Barangay Inhabitants) Registration</h3>
-      <p className="text-sm text-gray-500 mt-1">The foundation for all barangay records. Complete this form to be registered as a resident of Barangay 183.</p>
-    </div>
-
-    <FormSection title="Personal Information">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        <Input label="First Name *" />
-        <Input label="Middle Name *" />
-        <Input label="Last Name *" />
-        <Input label="Suffix" placeholder="Jr., Sr., III, etc." />
-        <Select label="Sex *" options={['Male', 'Female']} />
-        <Input label="Birthplace *" />
-        <Input label="Nationality *" defaultValue="Filipino" />
-      </div>
-    </FormSection>
-
-    <FormSection title="Residence Details">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Input label="House No. *" />
-        <Input label="Street *" />
-        <Input label="Purok *" placeholder="e.g., Purok 1" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-        <Select label="Ownership Type *" options={['Owned', 'Rented', 'Living with Relatives']} />
-        <Input label="Years of Residency *" />
-      </div>
-    </FormSection>
-
-    <FormSection title="Household Data">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input label="Occupation *" />
-        <Select label="Monthly Income *" options={['Below 10,000', '10,000 - 20,000', 'Above 20,000']} />
-        <Select label="Civil Status *" options={['Single', 'Married', 'Widowed', 'Separated']} />
-      </div>
-    </FormSection>
-
-    <FormSection title="Emergency Information">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-5 bg-gray-200  relative"><div className="absolute left-1 top-1 w-3 h-3 bg-white "></div></div>
-        <span className="text-sm font-medium text-gray-700">Located in Flood-Prone Area?</span>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Input label="Emergency Contact Person *" />
-        <Input label="Emergency Contact Number *" placeholder="09XXXXXXXXX" />
-      </div>
-    </FormSection>
-
-    <FormSection title="Verification Documents">
-      <FileUpload label="Upload 2x2 Photo *" sub="Recent 2x2 photo with white background" />
-      <FileUpload label="Upload Proof of Residency *" sub="Utility bill, tax declaration, or barangay clearance" />
-    </FormSection>
-  </div>
-);
 
 const PWDApplicationForm = () => (
   <div className="space-y-12">

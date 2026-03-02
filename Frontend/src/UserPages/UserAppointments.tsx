@@ -56,12 +56,11 @@ const AppointmentsPage: React.FC = () => {
   });
 
   const { token } = useAuth();
-  const config = {
-    headers: { Authorization: `Bearer ${token}` }
-  };
+
   const fetchData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
+    const config = { headers: { Authorization: `Bearer ${token}` } };
     try {
       const [aptRes, svcRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/api/appointments`, config),
@@ -80,9 +79,10 @@ const AppointmentsPage: React.FC = () => {
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedService) return;
+    if (!selectedService || !token) return;
 
     try {
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.post(`${API_BASE_URL}/api/appointments`, {
         service_id: selectedService.id,
         service_type: selectedService.title,
@@ -106,7 +106,7 @@ const AppointmentsPage: React.FC = () => {
 
     try {
       await axios.post(`${API_BASE_URL}/api/appointments`, {
-        service_id: null, // This matches the NULL column we just fixed
+        service_id: null,
         service_type: customData.service_type,
         appointment_date: customData.date,
         appointment_time: customData.time,
@@ -142,7 +142,6 @@ const AppointmentsPage: React.FC = () => {
           <p className="text-sm text-gray-500 mt-1 font-medium">Schedule appointments and track your service requests</p>
         </div>
 
-        {/* Trigger for Custom Request Modal */}
         <button
           onClick={() => setIsCustomModalOpen(true)}
           className="flex items-center gap-2 bg-[#00308F] text-white px-6 py-3 text-xs font-black uppercase tracking-widest hover:bg-blue-800 transition-all shadow-lg"
@@ -151,7 +150,6 @@ const AppointmentsPage: React.FC = () => {
         </button>
       </header>
 
-      {/* Info Banner */}
       <div className="bg-[#fffbeb] border border-orange-200 p-5 flex gap-4">
         <div className="p-2 bg-white shadow-sm h-fit"><Home className="text-orange-500" size={20} /></div>
         <div>
@@ -160,7 +158,6 @@ const AppointmentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex gap-8">
           <button onClick={() => setActiveTab('my')} className={`pb-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'my' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
@@ -172,7 +169,6 @@ const AppointmentsPage: React.FC = () => {
         </nav>
       </div>
 
-      {/* Tab Content: My Appointments */}
       {activeTab === 'my' && (
         <div className="space-y-4">
           {appointments.length > 0 ? appointments.map((apt) => (
@@ -215,7 +211,6 @@ const AppointmentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tab Content: Request Appointment */}
       {activeTab === 'request' && (
         <div className="bg-white border border-gray-200 overflow-hidden">
           <div className="grid grid-cols-12 bg-gray-50 p-4 border-b border-gray-200 text-[10px] font-black uppercase tracking-widest text-gray-400">
@@ -256,7 +251,6 @@ const AppointmentsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Accordion Content */}
                 {expandedServiceId === service.id && (
                   <div className="px-6 pb-6 animate-in fade-in slide-in-from-top-2 duration-300">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 border border-gray-100 p-4">
@@ -291,7 +285,6 @@ const AppointmentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Booking Form Modal (Standard) */}
       {isModalOpen && selectedService && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -343,15 +336,17 @@ const AppointmentsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Guide Modal */}
       {isGuideOpen && selectedService && (
         <ViewGuideModal
           guide={selectedService}
           onClose={() => setIsGuideOpen(false)}
+          onProceed={() => {
+            setIsGuideOpen(false);
+            setIsModalOpen(true);
+          }}
         />
       )}
 
-      {/* Custom Request Modal Integration */}
       <CustomRequestModal
         isOpen={isCustomModalOpen}
         onClose={() => setIsCustomModalOpen(false)}

@@ -3,9 +3,10 @@ import { X, Clock, MapPin, CheckCircle2, Phone, Lightbulb } from 'lucide-react';
 interface ViewGuideModalProps {
     guide: any | null;
     onClose: () => void;
+    onProceed: (guide: any) => void;
 }
 
-const ViewGuideModal = ({ guide, onClose }: ViewGuideModalProps) => {
+const ViewGuideModal = ({ guide, onClose, onProceed }: ViewGuideModalProps) => {
     if (!guide) return null;
 
     // Parse JSON safely
@@ -15,7 +16,7 @@ const ViewGuideModal = ({ guide, onClose }: ViewGuideModalProps) => {
         ? JSON.parse(guide.steps) : guide.steps;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col rounded-2xl border border-gray-200">
 
                 {/* Header Section */}
@@ -102,7 +103,7 @@ const ViewGuideModal = ({ guide, onClose }: ViewGuideModalProps) => {
                                 </ul>
                             </section>
 
-                            {/* Pro Tip Box (As seen in Image 2) */}
+                            {/* Pro Tip Box */}
                             <div className="p-6 bg-amber-50 rounded-xl border border-amber-100">
                                 <div className="flex items-center gap-2 mb-2 text-amber-700">
                                     <Lightbulb size={18} />
@@ -120,7 +121,7 @@ const ViewGuideModal = ({ guide, onClose }: ViewGuideModalProps) => {
                 <div className="px-8 py-6 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div className="flex items-center gap-2 text-gray-400 text-xs font-bold">
                         <Clock size={14} />
-                        <span>Last updated: {new Date(guide.last_updated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                        <span>Last updated: {guide.last_updated ? new Date(guide.last_updated).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
                     </div>
 
                     <div className="flex items-center gap-6">
@@ -129,10 +130,10 @@ const ViewGuideModal = ({ guide, onClose }: ViewGuideModalProps) => {
                             <span>For questions, call: (02) 8123-4567</span>
                         </div>
                         <button
-                            onClick={onClose}
+                            onClick={() => onProceed(guide)}
                             className="px-8 py-2.5 bg-gray-900 text-white text-xs font-bold uppercase tracking-widest hover:bg-blue-700 transition-all rounded-lg shadow-sm"
                         >
-                            Proceed
+                            Book an Appointment
                         </button>
                     </div>
                 </div>
@@ -141,7 +142,6 @@ const ViewGuideModal = ({ guide, onClose }: ViewGuideModalProps) => {
     );
 };
 
-// Helper for the list icon used in the layout
 const ListOrdered = ({ size }: { size: number }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="10" y1="6" x2="21" y2="6" /><line x1="10" y1="12" x2="21" y2="12" /><line x1="10" y1="18" x2="21" y2="18" /><path d="M4 6h1v4" /><path d="M4 10h2" /><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />

@@ -12,7 +12,8 @@ import {
     Heart,
     FileText,
     ExternalLink,
-    Activity
+    Activity,
+    Download
 } from 'lucide-react';
 import { type User, API_BASE_URL } from '../../interfaces';
 
@@ -55,12 +56,13 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
 
     const displayData = details || user;
 
-    const getSafeUrl = (filePath: string | undefined) => {
-        if (!filePath) return "";
-        const cleanPath = filePath.replace(/\\/g, '/');
-        const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-        const normalizedPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
-        return `${baseUrl}${normalizedPath}`;
+    // Updated to handle Base64 BLOB data
+    const getFileSrc = (file: any) => {
+        if (!file || !file.file_data) return "";
+        // Support for legacy file paths if any still exist
+        if (file.file_data.startsWith('http')) return file.file_data;
+        // Construct Base64 Data URI
+        return `data:${file.mime_type || 'image/png'};base64,${file.file_data}`;
     };
 
     if (!isOpen || !displayData) return null;
@@ -101,20 +103,20 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
     const profilePic = displayData.attachments?.find((a: any) => a.file_type === 'photo_2x2');
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm p-0 sm:p-6 transition-all">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm p-0 sm:p-6 transition-all">
             {/* Modal Container */}
-            <div className="bg-white w-full max-w-6xl h-full sm:h-[95vh] md:h-[90vh] shadow-2xl flex flex-col md:flex-row overflow-y-auto sm:rounded-lg animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white w-full max-w-6xl h-full sm:h-[95vh] md:h-[90vh] shadow-2xl flex flex-col md:flex-row overflow-hidden sm:rounded-lg animate-in fade-in zoom-in-95 duration-200">
 
-                {loading && <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 animate-pulse z-[110]" />}
+                {loading && <div className="absolute top-0 left-0 right-0 h-1 bg-blue-600 animate-pulse z-110" />}
 
-                {/* Left Sidebar: Sticky on mobile top, sidebar on desktop */}
+                {/* Left Sidebar */}
                 <div className="w-full md:w-1/4 bg-zinc-50 border-b md:border-b-0 md:border-r border-zinc-200 p-6 flex flex-col shrink-0 overflow-y-auto">
                     <div className="flex flex-col items-center md:items-start">
                         <div className="relative group">
-                            <div className="h-32 w-32 md:h-40 md:w-40 bg-zinc-200 border-4 border-white shadow-md ring-1 ring-zinc-200 overflow-y-auto">
-                                {profilePic ? (
+                            <div className="h-32 w-32 md:h-40 md:w-40 bg-zinc-200 border-4 border-white shadow-md ring-1 ring-zinc-200 overflow-hidden rounded-sm">
+                                {profilePic && profilePic.file_data ? (
                                     <img
-                                        src={getSafeUrl(profilePic.file_path)}
+                                        src={getFileSrc(profilePic)}
                                         alt="Profile"
                                         className="h-full w-full object-cover"
                                         onError={(e) => (e.currentTarget.src = `https://ui-avatars.com/api/?name=${displayData.firstname}+${displayData.lastname}&background=f1f5f9&color=0f172a`)}
@@ -163,7 +165,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                     {/* Header */}
                     <div className="flex justify-between items-start p-6 md:p-8 border-b border-zinc-100 bg-white sticky top-0 z-10">
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-light tracking-tight text-zinc-900 leading-tight">
+                            <h2 className="text-2xl md:text-3xl font-light tracking-tight text-zinc-900 leading-tight uppercase">
                                 {displayData.firstname} {displayData.middlename && `${displayData.middlename} `}
                                 <span className="font-bold">{displayData.lastname}</span>
                                 {displayData.suffix && ` ${displayData.suffix}`}
@@ -178,7 +180,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                     </div>
 
                     {/* Scrollable Data Grid */}
-                    <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-12 pt-6">
+                    <div className="flex-1 overflow-y-auto px-6 md:px-10 pb-12 pt-6 custom-scrollbar">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8">
 
                             {/* Section: Personal Info */}
@@ -191,7 +193,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                     <DetailRow label="Civil Status" value={displayData.civil_status} />
                                     <DetailRow label="Nationality" value={displayData.nationality} />
                                     <DetailRow label="Blood Type" value={displayData.blood_type} />
-                                    <DetailRow label="Disability" value={displayData.disability} isAlert={!!displayData.disability && displayData.disability.toLowerCase() !== 'none'} />
+                                    <DetailRow label="Disability" value={displayData.disability} isAlert={!!displayData.disability && displayData.disability.toLowerCase() !== 'none' && displayData.disability.toLowerCase() !== 'n/a'} />
                                 </div>
                             </section>
 
@@ -209,7 +211,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <DetailRow label="Ownership" value={displayData.ownership_type} />
-                                        <DetailRow label="Residency" value={`${displayData.years_of_residency} Years`} />
+                                        <DetailRow label="Residency" value={`${displayData.years_of_residency || 0} Years`} />
                                     </div>
                                 </div>
                             </section>
@@ -253,7 +255,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                 <div className="space-y-2">
                                     {displayData.attachments && displayData.attachments.length > 0 ? (
                                         displayData.attachments.map((file: any, idx: number) => (
-                                            <FilePreview key={idx} file={file} getSafeUrl={getSafeUrl} />
+                                            <FilePreview key={idx} file={file} getFileSrc={getFileSrc} />
                                         ))
                                     ) : (
                                         <p className="text-xs text-zinc-400 italic">No uploaded documents.</p>
@@ -294,7 +296,7 @@ const SectionHeader = ({ icon, title }: { icon: React.ReactNode, title: string }
 const DetailRow = ({ label, value, isAlert = false }: { label: string, value: any, isAlert?: boolean }) => (
     <div className="min-w-0">
         <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-0.5">{label}</p>
-        <p className={`text-[13px] font-semibold ${isAlert ? 'text-red-600' : 'text-zinc-800'} break-words`}>
+        <p className={`text-[13px] font-semibold ${isAlert ? 'text-red-600' : 'text-zinc-800'} wrap-break-word uppercase`}>
             {value || '—'}
         </p>
     </div>
@@ -319,13 +321,25 @@ const StatusChip = ({ active, label, type = 'primary' }: { active: boolean; labe
     </div>
 );
 
-const FilePreview = ({ file, getSafeUrl }: { file: any; getSafeUrl: Function }) => {
-    const url = getSafeUrl(file.file_path);
+const FilePreview = ({ file, getFileSrc }: { file: any; getFileSrc: Function }) => {
+    const src = getFileSrc(file);
+    const isPdf = file.mime_type === 'application/pdf';
+
     return (
-        <a href={url} target="_blank" rel="noreferrer" className="flex items-center p-3 border border-zinc-100 hover:bg-zinc-50 hover:border-zinc-300 transition-all group rounded-sm">
-            <FileText size={16} className="text-zinc-400 mr-3 shrink-0" />
+        <a
+            href={src}
+            target="_blank"
+            rel="noreferrer"
+            download={isPdf ? file.file_name : undefined}
+            className="flex items-center p-3 border border-zinc-100 hover:bg-zinc-50 hover:border-zinc-300 transition-all group rounded-sm"
+        >
+            {isPdf ? (
+                <Download size={16} className="text-blue-600 mr-3 shrink-0" />
+            ) : (
+                <FileText size={16} className="text-zinc-400 mr-3 shrink-0" />
+            )}
             <p className="text-[10px] font-bold text-zinc-600 uppercase truncate flex-1">
-                {file.file_type.replace(/_/g, ' ')}
+                {file.file_type ? file.file_type.replace(/_/g, ' ') : 'Document'}
             </p>
             <ExternalLink size={14} className="text-zinc-300 group-hover:text-black shrink-0" />
         </a>

@@ -17,10 +17,18 @@ export interface ServiceData {
     label: string;
     title: string;
     description: string;
-    image: string;
+    requirements: string[];
+    steps: string[];
+    processing_time: string;
+    office_hours: string;
 }
 
 export interface EventData {
+    type: string;
+    event_time: string;
+    event_date: string;
+
+    event_bg?: any;
     id: number;
     day: string;
     month: string;
