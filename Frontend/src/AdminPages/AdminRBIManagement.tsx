@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
+import * as XLSX from 'xlsx';
 import {
     Search, Eye, Edit3,
-    Loader2, Trash2, Info,
-    Plus, ArrowUpDown, ArrowUp, ArrowDown
+    Loader2, Trash2,
+    Plus, ArrowUpDown, ArrowUp, ArrowDown,
+    FileSpreadsheet, Printer, X, Download
 } from 'lucide-react';
 import AddResidentForm from './AdminComponents/RBIForm';
 import ViewUserDetails from './AdminComponents/UserDetails';
@@ -17,6 +19,7 @@ type SortConfig = {
 
 const AdminRBIManagement = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [residents, setResidents] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -26,11 +29,11 @@ const AdminRBIManagement = () => {
 
     const [sortConfig, setSortConfig] = useState<SortConfig>({ key: null, direction: 'asc' });
     const { token } = useAuth();
+
     const config = {
-        headers: {
-            Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
     };
+
     const fetchResidents = async () => {
         try {
             if (!token) return;
@@ -48,32 +51,14 @@ const AdminRBIManagement = () => {
         fetchResidents();
     }, []);
 
-    const requestSort = (key: keyof User | 'days_left') => {
-        let direction: 'asc' | 'desc' = 'asc';
-        if (sortConfig.key === key && sortConfig.direction === 'asc') {
-            direction = 'desc';
-        }
-        setSortConfig({ key, direction });
-    };
-
-    const getSortIcon = (key: keyof User | 'days_left') => {
-        if (sortConfig.key !== key) return <ArrowUpDown size={12} className="ml-1 opacity-30" />;
-        return sortConfig.direction === 'asc'
-            ? <ArrowUp size={12} className="ml-1 text-blue-600" />
-            : <ArrowDown size={12} className="ml-1 text-blue-600" />;
-    };
-
-    // Helper to calculate days remaining
     const calculateDaysLeft = (expiryDate?: string) => {
         if (!expiryDate) return null;
         const now = new Date();
         const exp = new Date(expiryDate);
         const diffTime = exp.getTime() - now.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
 
-    // --- Calculated Statistics ---
     const stats = useMemo(() => {
         const now = new Date();
         const sixtyDaysFromNow = new Date();
@@ -87,11 +72,8 @@ const AdminRBIManagement = () => {
                 else if (expDate <= sixtyDaysFromNow) acc.expiringSoon++;
             }
             if (curr.is_flood_prone) acc.floodProne++;
-            if (curr.is_flood_prone === true) {
-                acc.highVulnerability++;
-            }
             return acc;
-        }, { total: 0, expiringSoon: 0, expired: 0, floodProne: 0, highVulnerability: 0 });
+        }, { total: 0, expiringSoon: 0, expired: 0, floodProne: 0 });
     }, [residents]);
 
     const filteredAndSortedResidents = useMemo(() => {
@@ -121,31 +103,25 @@ const AdminRBIManagement = () => {
         return result;
     }, [residents, searchTerm, sortConfig]);
 
+    const requestSort = (key: keyof User | 'days_left') => {
+        let direction: 'asc' | 'desc' = (sortConfig.key === key && sortConfig.direction === 'asc') ? 'desc' : 'asc';
+        setSortConfig({ key, direction });
+    };
+
+    const getSortIcon = (key: keyof User | 'days_left') => {
+        if (sortConfig.key !== key) return <ArrowUpDown size={12} className="ml-1 opacity-30" />;
+        return sortConfig.direction === 'asc'
+            ? <ArrowUp size={12} className="ml-1 text-blue-600" />
+            : <ArrowDown size={12} className="ml-1 text-blue-600" />;
+    };
+
     const handleDelete = async (id: string) => {
-        if (!token) return;
-        if (window.confirm("Are you sure you want to delete this profile?")) {
+        if (window.confirm("Are you sure?")) {
             try {
                 await axios.delete(`${API_BASE_URL}/api/user/${id}`, config);
                 fetchResidents();
-            } catch (err) {
-                console.error("Delete failed:", err);
-            }
+            } catch (err) { console.error(err); }
         }
-    };
-
-    const handleAddClick = () => {
-        setSelectedUser(null);
-        setIsModalOpen(true);
-    };
-
-    const handleViewClick = (user: User) => {
-        setSelectedUser(user);
-        setIsViewDetailsOpen(true);
-    };
-
-    const handleEditClick = (user: User) => {
-        setSelectedUser(user);
-        setIsModalOpen(true);
     };
 
     return (
@@ -161,137 +137,268 @@ const AdminRBIManagement = () => {
                 onClose={() => setIsViewDetailsOpen(false)}
                 user={selectedUser}
             />
+
+            {isExportModalOpen && (
+                <ExportSelectionModal
+                    residents={residents}
+                    onClose={() => setIsExportModalOpen(false)}
+                />
+            )}
+
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-                        Registry of Barangay Inhabitants (RBI)
+                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase tracking-tighter -skew-x-12 bg-blue-900 bg-clip-text text-transparent">
+                        Registry of Barangay Inhabitants
                     </h2>
-                    <p className="text-sm text-gray-500">
-                        Manage PWD and Senior Citizen profiles
-                    </p>
+                    <p className="text-sm text-gray-500">Manage PWD and Senior Citizen profiles</p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 text-sm font-semibold hover:bg-blue-700 transition shadow-sm active:scale-95"
+                    >
+                        <FileSpreadsheet size={18} /> Export & Reports
+                    </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <StatCard title="TOTAL PROFILES" count={stats.total} color="text-gray-900" />
                 <StatCard title="EXPIRING SOON" count={stats.expiringSoon} sub="Within 60 days" color="text-orange-500" />
                 <StatCard title="EXPIRED IDS" count={stats.expired} color="text-red-600" />
                 <StatCard title="FLOOD-PRONE" count={stats.floodProne} color="text-orange-600" />
-                <StatCard title="HIGH VULNERABILITY" count={stats.highVulnerability} sub="Bedridden/Wheelchair" color="text-purple-600" />
             </div>
 
-            <div className="bg-yellow-50 border border-yellow-200 p-4 flex items-start gap-3 rounded-sm">
-                <div className="bg-yellow-400 p-1 rounded-full">
-                    <Info size={16} className="text-white" />
-                </div>
-                <div>
-                    <h4 className="text-sm font-bold text-yellow-900">ID Expiration Alerts</h4>
-                    <p className="text-sm text-yellow-800">
-                        {stats.expiringSoon} resident(s) have IDs expiring within 60 days. {stats.expired} resident(s) have expired IDs.
-                        Automatic renewal reminders have been sent via SMS and Email.
-                    </p>
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                <main className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
-                    <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
-                        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                            Profile Registry
-                        </h2>
-                        <button
-                            onClick={handleAddClick}
-                            className="flex items-center gap-2 bg-[#0F172A] text-white px-4 py-2 text-sm font-semibold hover:bg-black transition shadow-sm active:scale-95 whitespace-nowrap"
-                        >
-                            <Plus size={18} /> Add Resident
-                        </button>
+            <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
+                    <div className="relative flex-1 min-w-75">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search by ID or Name..."
+                            className="w-full bg-gray-50 border border-gray-200 py-2 pl-10 pr-4 text-sm outline-none focus:border-blue-400"
+                        />
                     </div>
-                    <div className="p-4 border-b border-gray-100 flex flex-wrap items-center gap-4">
-                        <div className="relative flex-1 min-w-75">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder="Search by ID or Name..."
-                                className="w-full bg-gray-50 border border-gray-200 py-2 pl-10 pr-4 text-sm outline-none focus:border-blue-400"
-                            />
+                    <button
+                        onClick={() => { setSelectedUser(null); setIsModalOpen(true); }}
+                        className="flex items-center gap-2 bg-[#0F172A] text-white px-4 py-2 text-sm font-semibold hover:bg-black transition"
+                    >
+                        <Plus size={18} /> Add Resident
+                    </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+                            <Loader2 className="animate-spin mb-2" size={32} />
+                            <p>Loading Registry...</p>
                         </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        {loading ? (
-                            <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-                                <Loader2 className="animate-spin mb-2" size={32} />
-                                <p>Loading Registry...</p>
-                            </div>
-                        ) : (
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
-                                        <th onClick={() => requestSort('system_id')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center">System ID {getSortIcon('system_id')}</div>
-                                        </th>
-                                        <th onClick={() => requestSort('firstname')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center">Full Name {getSortIcon('firstname')}</div>
-                                        </th>
-                                        <th onClick={() => requestSort('type')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center">Category {getSortIcon('type')}</div>
-                                        </th>
-                                        <th onClick={() => requestSort('id_expiry_date')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center">ID Status {getSortIcon('id_expiry_date')}</div>
-                                        </th>
-                                        <th onClick={() => requestSort('days_left')} className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors">
-                                            <div className="flex items-center">Days Left {getSortIcon('days_left')}</div>
-                                        </th>
-                                        <th className="px-6 py-4">Vulnerability</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-[11px] font-bold text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                                    <th onClick={() => requestSort('system_id')} className="px-6 py-4 cursor-pointer">ID {getSortIcon('system_id')}</th>
+                                    <th onClick={() => requestSort('firstname')} className="px-6 py-4 cursor-pointer">Name {getSortIcon('firstname')}</th>
+                                    <th className="px-6 py-4">Category</th>
+                                    <th className="px-6 py-4">Status</th>
+                                    <th className="px-6 py-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {filteredAndSortedResidents.map((person) => (
+                                    <tr key={person.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 text-sm font-bold">{person.system_id}</td>
+                                        <td className="px-6 py-4 text-sm">{person.firstname} {person.lastname}</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${getTypeStyles(person.type)}`}>
+                                                {person.type}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <IDStatusBadge date={person.id_expiry_date} />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-end gap-2">
+                                                <ActionButton icon={<Eye size={16} />} onClick={() => { setSelectedUser(person); setIsViewDetailsOpen(true); }} />
+                                                <ActionButton icon={<Edit3 size={16} />} onClick={() => { setSelectedUser(person); setIsModalOpen(true); }} />
+                                                <ActionButton icon={<Trash2 size={16} />} onClick={() => handleDelete(person.system_id!)} color="text-red-400 hover:text-red-600" />
+                                            </div>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {filteredAndSortedResidents.map((person) => {
-                                        const daysLeft = calculateDaysLeft(person.id_expiry_date);
-                                        return (
-                                            <tr key={person.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4 text-sm font-bold text-gray-900">{person.system_id}</td>
-                                                <td className="px-6 py-4 text-sm text-gray-700">{person.firstname} {person.lastname}</td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${getTypeStyles(person.type)}`}>
-                                                        {person.type}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <IDStatusBadge date={person.id_expiry_date} />
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`text-sm font-medium ${daysLeft !== null && daysLeft <= 0 ? 'text-red-600 font-bold' : daysLeft !== null && daysLeft <= 60 ? 'text-orange-600' : 'text-gray-600'}`}>
-                                                        {daysLeft === null ? 'N/A' : daysLeft <= 0 ? 'EXPIRED' : `${daysLeft} days`}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4 flex gap-1">
-                                                    {person.is_flood_prone && (
-                                                        <span className="bg-orange-100 text-orange-700 px-2 py-0.5 text-[10px] font-bold rounded">Flood-Prone</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-end gap-2">
-                                                        <ActionButton icon={<Eye size={16} />} onClick={() => handleViewClick(person)} />
-                                                        <ActionButton icon={<Edit3 size={16} />} onClick={() => handleEditClick(person)} />
-                                                        <ActionButton icon={<Trash2 size={16} />} onClick={() => handleDelete(person.system_id!)} color="text-red-400 hover:text-red-600" />
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </main>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
+
+/**
+ * EXPORT & PRINT MODAL COMPONENT
+ */
+const ExportSelectionModal = ({ residents, onClose }: { residents: User[], onClose: () => void }) => {
+
+    const getFilteredList = (filterType: string) => {
+        const now = new Date();
+        const sixtyDays = new Date();
+        sixtyDays.setDate(now.getDate() + 60);
+
+        let list = [...residents];
+        let title = "Resident Registry";
+
+        if (filterType === 'PWD') {
+            list = list.filter(r => r.type === 'PWD' || r.type?.toLowerCase() === 'both');
+            title = "PWD Report";
+        }
+        else if (filterType === 'SC') {
+            list = list.filter(r => r.type?.toLowerCase() === 'senior citizen' || r.type?.toLowerCase() === 'sc' || r.type?.toLowerCase() === 'both');
+            title = "Senior Citizen Report";
+        }
+        else if (filterType === 'FLOOD') {
+            list = list.filter(r => r.is_flood_prone);
+            title = "Flood-Prone Areas Report";
+        }
+        else if (filterType === 'EXPIRED') {
+            list = list.filter(r => r.id_expiry_date && new Date(r.id_expiry_date) < now);
+            title = "Expired ID Report";
+        }
+        else if (filterType === 'EXPIRING') {
+            list = list.filter(r => r.id_expiry_date && new Date(r.id_expiry_date) >= now && new Date(r.id_expiry_date) <= sixtyDays);
+            title = "Expiring IDs (Next 60 Days)";
+        }
+
+        return { list, title };
+    };
+
+    const handleExcel = (filterType: string) => {
+        const { list, title } = getFilteredList(filterType);
+
+        const dataToExport = list.map(r => ({
+            'System ID': r.system_id,
+            'First Name': r.firstname,
+            'Last Name': r.lastname,
+            'Category': r.type,
+            'Expiry Date': r.id_expiry_date || 'N/A',
+            'Flood Prone': r.is_flood_prone ? 'Yes' : 'No',
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(dataToExport);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Report");
+        XLSX.writeFile(wb, `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    };
+
+    const handlePrint = (filterType: string) => {
+        const { list, title } = getFilteredList(filterType);
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return;
+
+        const html = `
+            <html>
+                <head>
+                    <title>Print - ${title}</title>
+                    <style>
+                        body { font-family: sans-serif; padding: 20px; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+                        th { background-color: #f2f2f2; }
+                        h1 { text-align: center; text-transform: uppercase; font-size: 18px; margin-bottom: 5px; }
+                        .date { text-align: right; font-size: 10px; color: #666; }
+                    </style>
+                </head>
+                <body>
+                    <div class="date">Generated on: ${new Date().toLocaleString()}</div>
+                    <h1>${title}</h1>
+                    <p style="text-align:center; font-size: 12px; color: #444;">Total Records: ${list.length}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>System ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Expiry Date</th>
+                                <th>Flood Prone</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${list.map(r => `
+                                <tr>
+                                    <td>${r.system_id}</td>
+                                    <td>${r.firstname} ${r.lastname}</td>
+                                    <td>${r.type}</td>
+                                    <td>${r.id_expiry_date || 'N/A'}</td>
+                                    <td>${r.is_flood_prone ? 'YES' : 'NO'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </body>
+            </html>
+        `;
+
+        printWindow.document.write(html);
+        printWindow.document.close();
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-2xl rounded-lg shadow-2xl overflow-hidden">
+                <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                    <h3 className="font-bold text-gray-800">Export & Reports Center</h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-black"><X size={20} /></button>
+                </div>
+
+                <div className="p-6">
+                    <table className="w-full text-left">
+                        <thead>
+                            <tr className="text-xs uppercase text-gray-400 font-bold border-b">
+                                <th className="pb-3">Report Type</th>
+                                <th className="pb-3 text-center">Excel</th>
+                                <th className="pb-3 text-center">Print / PDF</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            <ReportRow label="All Residents" onExcel={() => handleExcel('ALL')} onPrint={() => handlePrint('ALL')} />
+                            <ReportRow label="PWD Residents" onExcel={() => handleExcel('PWD')} onPrint={() => handlePrint('PWD')} />
+                            <ReportRow label="Senior Citizens" onExcel={() => handleExcel('SC')} onPrint={() => handlePrint('SC')} />
+                            <ReportRow label="Flood-Prone Areas" onExcel={() => handleExcel('FLOOD')} onPrint={() => handlePrint('FLOOD')} />
+                            <ReportRow label="Expired IDs" labelColor="text-red-600" onExcel={() => handleExcel('EXPIRED')} onPrint={() => handlePrint('EXPIRED')} />
+                            <ReportRow label="Expiring Soon" labelColor="text-orange-600" onExcel={() => handleExcel('EXPIRING')} onPrint={() => handlePrint('EXPIRING')} />
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="p-4 bg-gray-50 border-t text-center">
+                    <p className="text-xs text-gray-500">Reports are generated based on the current system date: {new Date().toLocaleDateString()}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ReportRow = ({ label, onExcel, onPrint, labelColor = "text-gray-700" }: any) => (
+    <tr className="hover:bg-gray-50 transition-colors">
+        <td className={`py-4 font-semibold text-sm ${labelColor}`}>{label}</td>
+        <td className="py-4 text-center">
+            <button onClick={onExcel} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors" title="Download Excel">
+                <Download size={18} />
+            </button>
+        </td>
+        <td className="py-4 text-center">
+            <button onClick={onPrint} className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors" title="Print Report">
+                <Printer size={18} />
+            </button>
+        </td>
+    </tr>
+);
 
 const StatCard = ({ title, count, sub, color }: any) => (
     <div className="bg-white p-5 border border-gray-200 shadow-sm rounded-sm">
@@ -314,7 +421,7 @@ const IDStatusBadge = ({ date }: { date?: string }) => {
     const diff = (exp.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
 
     if (diff < 0) return <span className="bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-bold rounded">Expired</span>;
-    if (diff < 60) return <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 text-[10px] font-bold rounded">Near Expiration</span>;
+    if (diff < 60) return <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 text-[10px] font-bold rounded">Near Expiry</span>;
     return <span className="bg-green-100 text-green-700 px-2 py-0.5 text-[10px] font-bold rounded">Active</span>;
 };
 

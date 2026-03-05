@@ -38,8 +38,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
         }
 
         if (requiredRole !== undefined && user?.role !== requiredRole) {
-            console.error("Access denied: Insufficient permissions.");
-            const fallback = user?.role === 1 ? "/AdminDashboard" : "/UserMainPage";
+            const rolePaths: Record<number, string> = {
+                1: "/AdminDashboard",
+                3: "/SuperAdminDashboard",
+            };
+
+            const fallback = rolePaths[user?.role as number] || "/UserMainPage";
+
             return <Navigate to={fallback} replace />;
         }
 
