@@ -18,9 +18,9 @@ interface SMSOptions {
 
 class NotificationService {
     private transporter: any;
-    private smsAuth: string;
-    private deviceId: string;
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
+    private readonly SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
+    private readonly SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
 
     constructor() {
         this.transporter = nodemailer.createTransport({
@@ -32,43 +32,44 @@ class NotificationService {
                 pass: process.env.EMAIL_PASS,
             },
         });
-
-        const smsLogin = process.env.SMS_GATEWAY_LOGIN;
-        const smsPassword = process.env.SMS_GATEWAY_PASSWORD;
-        this.deviceId = process.env.SMS_GATEWAY_DEVICE_ID || '';
-        this.smsAuth = Buffer.from(`${smsLogin}:${smsPassword}`).toString('base64');
     }
 
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
-        if (cleanPhone.startsWith('0')) return `+63${cleanPhone.substring(1)}`;
-        if (cleanPhone.startsWith('9') && cleanPhone.length === 10) return `+63${cleanPhone}`;
-        if (cleanPhone.startsWith('63') && cleanPhone.length === 12) return `+${cleanPhone}`;
-        return cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+
+        if (cleanPhone.startsWith('0')) {
+            cleanPhone = '63' + cleanPhone.substring(1);
+        }
+        else if (cleanPhone.startsWith('9') && cleanPhone.length === 10) {
+            cleanPhone = '63' + cleanPhone;
+        }
+
+        return cleanPhone;
     }
 
     async sendSMS({ phoneNumber, message }: SMSOptions) {
         try {
-            if (!this.deviceId) throw new Error("SMS Gateway Device ID not set");
-
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
-            const url = 'https://api.sms-gate.app/3rdparty/v1/messages';
 
             const payload = {
-                textMessage: { text: `[${this.SENDER_LABEL}]\n${message}` },
-                phoneNumbers: [formattedPhone],
-                deviceId: this.deviceId
+                apikey: this.SEMAPHORE_API_KEY,
+                number: formattedPhone,
+                message: `[${this.SENDER_LABEL}]\n${message}`,
+                sendername: 'BARANGAY183',
+
             };
 
-            const response = await axios.post(url, payload, {
-                headers: {
-                    'Authorization': `Basic ${this.smsAuth}`,
-                    'Content-Type': 'application/json'
-                }
-            });
+            const response = await axios.post(this.SEMAPHORE_API_URL, payload);
+
+            console.log(`[SMS Success] sent to ${formattedPhone}:`, response.data);
             return response.data;
         } catch (error: any) {
-            console.error(`[SMS Error] for ${phoneNumber}:`, error.message);
+            if (error.response) {
+                console.error(`[SMS Error] status: ${error.response.status}`);
+                console.error(`[SMS Error] data:`, error.response.data);
+            } else {
+                console.error(`[SMS Error] message: ${error.message}`);
+            }
             return null;
         }
     }
