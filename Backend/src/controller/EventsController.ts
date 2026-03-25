@@ -135,6 +135,76 @@ class EventController {
             return res.status(500).json({ message: "Error fetching birthdays." });
         }
     }
+    public async updateEvent(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params;
+        const {
+            title,
+            type,
+            date,
+            time,
+            location,
+            attendees,
+            description
+        } = req.body;
+
+        const eventBg = req.file ? req.file.buffer : null;
+
+        try {
+            // Check if event exists
+            const [exists] = await pool.execute<RowDataPacket[]>(
+                'SELECT id FROM events WHERE id = ?',
+                [id]
+            );
+
+            if (exists.length === 0) {
+                return res.status(404).json({ message: "Event not found." });
+            }
+
+            // Construct query dynamically to handle optional image update
+            let query = `
+                UPDATE events 
+                SET title = ?, type = ?, event_date = ?, event_time = ?, 
+                    location = ?, attendees = ?, description = ?
+            `;
+            const params: any[] = [title, type, date, time, location, attendees, description || null];
+
+            if (eventBg) {
+                query += `, event_bg = ? `;
+                params.push(eventBg);
+            }
+
+            query += ` WHERE id = ?`;
+            params.push(id);
+
+            await pool.execute<ResultSetHeader>(query, params);
+
+            return res.status(200).json({ message: "Event updated successfully." });
+        } catch (error) {
+            console.error("Update Event Error:", error);
+            return res.status(500).json({ message: "Internal server error." });
+        }
+    }
+
+    public async deleteEvent(req: Request, res: Response): Promise<Response> {
+        const { id } = req.params;
+
+        try {
+            const [result] = await pool.execute<ResultSetHeader>(
+                'DELETE FROM events WHERE id = ?',
+                [id]
+            );
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: "Event not found." });
+            }
+
+            return res.status(200).json({ message: "Event deleted successfully." });
+        } catch (error) {
+            console.error("Delete Event Error:", error);
+            return res.status(500).json({ message: "Internal server error." });
+        }
+    }
+
 }
 
 export default new EventController();

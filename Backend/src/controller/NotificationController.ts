@@ -261,5 +261,18 @@ export class NotificationController {
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
+    async hideNotif(req: Request, res: Response) {
+        const { user_id, notification_id } = req.body;
+        try {
+            await db.query(
+                'INSERT IGNORE INTO hidden_notifications (user_id, notification_id) VALUES (?, ?)',
+                [user_id, notification_id]
+            );
+            return res.status(200).json({ message: "Notification hidden for user" });
+        } catch (error) {
+            console.error("Hide Error:", error);
+            return res.status(500).json({ error: "Failed to hide notification" });
+        }
+    }
 }
 export default new NotificationController();

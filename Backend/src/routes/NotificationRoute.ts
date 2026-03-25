@@ -12,5 +12,5 @@ router.post('/send', isAdmin, NotificationController.sendNotification);
 router.delete('/:id', isAdmin, NotificationController.deleteNotification);
 router.post('/support', NotificationController.sendSupportRequest);
 router.post('/mark-read', NotificationController.markAsRead);
-
+router.post('/hide', NotificationController.hideNotif);
 export default router;

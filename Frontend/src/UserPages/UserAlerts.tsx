@@ -141,17 +141,14 @@ export default function Dashboard() {
     const handleNotificationClick = async (n: Notification) => {
         setSelectedNotification(n);
 
-        // If it's already read, don't ping the server
         if (!n.isNew) return;
 
         try {
-            // Update Backend
             await axios.post(`${API_BASE_URL}/api/notifications/mark-read`, {
                 notification_id: n.id,
                 user_id: user?.id
             }, config);
 
-            // Update local state so the "New" badge disappears
             setNotifications(prev => prev.map(notif =>
                 notif.id === n.id ? { ...notif, isNew: false } : notif
             ));
@@ -159,7 +156,20 @@ export default function Dashboard() {
             console.error("Error marking specific notification as read", error);
         }
     };
+    const hideNotification = async (notificationId: number) => {
+        try {
+            await axios.post(`${API_BASE_URL}/api/notifications/hide`, {
+                user_id: user?.id,
+                notification_id: notificationId
+            }, config);
 
+            setNotifications(prev => prev.filter(n => n.id !== notificationId));
+
+            setSelectedNotification(null);
+        } catch (error) {
+            console.error("Failed to hide notification", error);
+        }
+    };
     const markAllAsRead = async () => {
         setMarkingRead(true);
         try {
@@ -229,6 +239,13 @@ export default function Dashboard() {
                             </div>
                         </div>
                         <div className="p-6 bg-gray-50 flex justify-end">
+                            <button
+                                onClick={() => hideNotification(selectedNotification.id)}
+                                className="group flex items-center gap-2 text-gray-900 hover:text-red-600 transition-colors text-xs font-bold uppercase tracking-widest mr-2"
+                            >
+                                <X size={16} className="group-hover:rotate-90 transition-transform" />
+                                Hide from Feed
+                            </button>
                             <button
                                 onClick={() => setSelectedNotification(null)}
                                 className="px-6 py-2 bg-gray-900 text-white font-bold text-sm uppercase tracking-widest hover:bg-gray-800 transition-colors"
