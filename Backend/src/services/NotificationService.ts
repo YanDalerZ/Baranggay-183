@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 
 dotenv.config();
 
-const resend = new Resend('re_2fA2Ma1w_LxdQqUfGbGXdiwCPPKyFeauw');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface BulkNotifyOptions {
     recipientEmail: string;
@@ -23,7 +23,7 @@ class NotificationService {
     private readonly SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
     private readonly SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
 
-    private readonly EMAIL_FROM = 'onboarding@resend.dev';
+    private readonly EMAIL_FROM = 'reyeslopez.contact@gmail.com';
 
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
