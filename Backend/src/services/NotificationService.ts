@@ -26,13 +26,16 @@ class NotificationService {
         this.transporter = nodemailer.createTransport({
             host: "smtp.gmail.com",
             port: 587,
-            secure: true,
+            secure: false,
+            debug: true,
+            logger: true,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
             tls: {
-                rejectUnauthorized: false
+                rejectUnauthorized: false,
+                minVersion: 'TLSv1.2'
             }
         });
     }
