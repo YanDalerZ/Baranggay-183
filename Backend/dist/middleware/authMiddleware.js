@@ -23,4 +23,12 @@ export const isAdmin = (req, res, next) => {
         res.status(403).json({ message: "Access denied. Admins only." });
     }
 };
+export const isSuperAdmin = (req, res, next) => {
+    if (req.user && req.user.role === 3) {
+        next();
+    }
+    else {
+        res.status(403).json({ message: "Access denied. Super Admins only." });
+    }
+};
 //# sourceMappingURL=authMiddleware.js.map
