@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, CheckCircle2, X, ChevronRight as ChevronRightIcon, ExternalLink, Youtube, Facebook } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, X, ChevronRight as ChevronRightIcon, ExternalLink, Facebook, Instagram } from 'lucide-react';
 import '../css/UserMainPage.css';
 import { API_BASE_URL, type EventData, type ServiceData } from '../interfaces';
 import { useAuth } from '../context/AuthContext';
@@ -307,8 +307,8 @@ const UserMainPage: React.FC = () => {
                                 <a href="https://www.facebook.com/barangay183official" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#00308F] hover:text-[#00308F] transition-colors">
                                     <Facebook size={16} />
                                 </a>
-                                <a href="https://www.youtube.com/@PasayCityGovernment" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#FF0000] hover:text-[#FF0000] transition-colors">
-                                    <Youtube size={16} />
+                                <a href="https://www.instagram.com/bagongvillamor183/" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#FF0000] hover:text-[#FF0000] transition-colors">
+                                    <Instagram size={16} />
                                 </a>
                                 <a href="https://pasay.gov.ph" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#00308F] hover:text-[#00308F] transition-colors">
                                     <ExternalLink size={16} />
