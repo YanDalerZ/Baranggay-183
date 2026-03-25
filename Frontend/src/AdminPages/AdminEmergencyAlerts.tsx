@@ -164,32 +164,82 @@ const UnifiedEmergencyDashboard = () => {
             console.error("Delete Zone Error:", err);
         }
     };
-
-    // --- Resident Actions ---
     const autoLocateResident = async (resident: Resident) => {
         try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(resident.address)}`);
-            const data = await response.json();
+            // 1. Aggressive formatting for OSM
+            // Converts "8th 29th" -> "8th Street & 29th Street"
+            let optimizedAddress = resident.address
+                .replace(/(\d+)(st|nd|rd|th)\s+(\d+)(st|nd|rd|th)/gi, '$1$2 Street & $3$4 Street')
+                .replace(/barangay\s*183/gi, 'Villamor')
+                .replace(/Villamor\s+Villamor/gi, 'Villamor')
+                .trim();
+
+            // 2. Ensure Pasay City is present
+            if (!optimizedAddress.toLowerCase().includes("pasay")) {
+                optimizedAddress += ", Pasay City, Philippines";
+            }
+
+            const fetchFromOSM = async (query: string) => {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+                const res = await fetch(url, {
+                    headers: { 'User-Agent': 'Barangay_App_Validator' } // Critical for OSM
+                });
+                return await res.json();
+            };
+
+            // Attempt 1: The full formatted intersection
+            let data = await fetchFromOSM(optimizedAddress);
+
+            // Attempt 2: If that fails, try ONLY the intersection + Pasay (Removes "Villamor")
+            if (!data || data.length === 0) {
+                const intersectionOnly = optimizedAddress.split(',')[0] + ", Pasay City, Philippines";
+                data = await fetchFromOSM(intersectionOnly);
+            }
+
+            // Attempt 3: If that fails, try searching just the first street to get them "close"
+            if (!data || data.length === 0) {
+                const firstStreet = optimizedAddress.split('&')[0].trim() + ", Pasay City, Philippines";
+                data = await fetchFromOSM(firstStreet);
+            }
+
             if (data && data.length > 0) {
                 const { lat, lon } = data[0];
                 handleManualPin(resident.id, parseFloat(lat), parseFloat(lon));
             } else {
-                alert("Address not found. Please pin manually.");
+                alert(`Unable to find "${resident.address}" on the map. Please click the map to set the location manually.`);
                 setActivePinningUser(resident.id);
             }
         } catch (err) {
             console.error("Geocoding error:", err);
+            alert("Mapping service is currently busy. Please try again or pin manually.");
         }
     };
 
     const handleManualPin = async (userId: string, lat: number, lng: number) => {
         try {
             const coordsString = `${lat},${lng}`;
-            await axios.put(`${API_BASE_URL}/api/user/id/${userId}/coordinates`, { coordinates: coordsString }, config);
+            await axios.put(`${API_BASE_URL}/api/user/id/${userId}/coordinates`, {
+                coordinates: coordsString
+            }, config);
+
+            // Clear active pinning user to restore flood circles to view
+            setActivePinningUser(null);
             window.location.reload();
         } catch (err) {
-            console.error("Update Coordinates Error:", err);
+            console.error("Update Error:", err);
             alert("Failed to save location.");
+        }
+    };
+
+    const handleClearPin = async (userId: string) => {
+        if (!window.confirm("Are you sure you want to clear this resident's location?")) return;
+        try {
+            // Sends null to clear the record in the DB
+            await axios.put(`${API_BASE_URL}/api/user/id/${userId}/coordinates`, { coordinates: null }, config);
+            window.location.reload();
+        } catch (err) {
+            console.error("Clear Coordinates Error:", err);
+            alert("Failed to clear location.");
         }
     };
 
@@ -201,7 +251,6 @@ const UnifiedEmergencyDashboard = () => {
         }
     };
 
-    // --- Broadcast Actions ---
     const handleBroadcast = async () => {
         if (!message) return alert("Please enter a message");
         setIsSending(true);
@@ -227,7 +276,6 @@ const UnifiedEmergencyDashboard = () => {
         setChannels(prev => prev.includes(channel) ? prev.filter(c => c !== channel) : [...prev, channel]);
     };
 
-    // --- Risk Detection Logic ---
     const isInsideAnyZone = useCallback((resCoords: string | null) => {
         if (!resCoords || !floodPoints.length) return false;
         const coords = resCoords.split(',').map(Number);
@@ -262,7 +310,6 @@ const UnifiedEmergencyDashboard = () => {
 
     return (
         <div className="max-w-400 mx-auto px-4 pt-4 pb-12 space-y-6">
-            {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl md:text-5xl font-black uppercase tracking-tighter -skew-x-12 bg-linear-to-r from-red-600 to-[#00308F] bg-clip-text text-transparent">
@@ -289,7 +336,6 @@ const UnifiedEmergencyDashboard = () => {
                 </div>
             </div>
 
-            {/* Top Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <StatCard title="Total Population" value={stats?.totalRecipients || residents.length.toString()} icon={<Users className="text-gray-400" size={20} />} />
                 <StatCard title="Active Hotspots" value={floodPoints.length.toString()} valueColor="text-orange-600" />
@@ -299,7 +345,6 @@ const UnifiedEmergencyDashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-                {/* Left Column: Alert Controls */}
                 <aside className="lg:col-span-3 space-y-6">
                     <section className="bg-white border border-gray-100 shadow-sm p-6 space-y-6">
                         <div className="flex items-center gap-2">
@@ -349,18 +394,19 @@ const UnifiedEmergencyDashboard = () => {
                     </section>
                 </aside>
 
-                {/* Middle Column: Map & Analytics */}
                 <main className="lg:col-span-6 space-y-6">
                     <div className="bg-white border border-gray-100 shadow-sm p-4">
                         <div className="aspect-video bg-blue-50 relative z-0 border overflow-hidden rounded-sm" >
-                            <MapContainer center={VILLAMOR_CENTER} zoom={16} style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}>                                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <MapContainer center={VILLAMOR_CENTER} zoom={16} style={{ height: '100%', width: '100%', position: 'relative', zIndex: 0 }}>
+                                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                                 <MapClickHandler activePinningUser={activePinningUser} isAddMode={isAddMode} onMapClick={handleMapClick} />
 
                                 <Circle center={BGY_183_BOUNDARY.center} radius={BGY_183_BOUNDARY.radius} pathOptions={{ color: '#22c55e', fillOpacity: 0.02, dashArray: '5, 10' }} />
 
-                                {floodPoints.map((point) => (
+                                {/* FLOOD CIRCLES VISIBILITY TOGGLE: Only rendered when NOT in active pinning mode */}
+                                {!activePinningUser && floodPoints.map((point) => (
                                     <Circle key={point.id} center={[point.lat, point.lng]} radius={point.radius || 100}
-                                        pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.35, weight: 2 }}>
+                                        pathOptions={{ color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.35, weight: 2, interactive: !isAddMode }}>
                                         <Popup>
                                             <div className="min-w-50 p-2">
                                                 <div className="flex items-center justify-between mb-3">
@@ -493,10 +539,16 @@ const UnifiedEmergencyDashboard = () => {
                                         </button>
                                     </>
                                 ) : (
-                                    <button onClick={() => { setActivePinningUser(resident.id); setIsAddMode(false); }}
-                                        className={`w-full flex items-center justify-center gap-1 py-1.5 border-2 text-[8px] font-black transition uppercase tracking-widest ${activePinningUser === resident.id ? 'bg-orange-500 text-white border-orange-500' : 'bg-white border-gray-100 text-gray-400 hover:text-gray-900'}`}>
-                                        <LocateFixed size={10} /> Re-Pin Location
-                                    </button>
+                                    <div className="flex gap-1 w-full">
+                                        <button onClick={() => { setActivePinningUser(resident.id); setIsAddMode(false); }}
+                                            className={`flex-1 flex items-center justify-center gap-1 py-1.5 border-2 text-[8px] font-black transition uppercase tracking-widest ${activePinningUser === resident.id ? 'bg-orange-500 text-white border-orange-500' : 'bg-white border-gray-100 text-gray-400 hover:text-gray-900'}`}>
+                                            <LocateFixed size={10} /> {activePinningUser === resident.id ? 'Pinning...' : 'Re-Pin'}
+                                        </button>
+                                        <button onClick={() => handleClearPin(resident.id)}
+                                            className="flex-1 flex items-center justify-center gap-1 py-1.5 border-2 border-red-100 bg-red-50 text-red-600 text-[8px] font-black hover:bg-red-100 transition uppercase tracking-widest">
+                                            <Trash2 size={10} /> Clear
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>

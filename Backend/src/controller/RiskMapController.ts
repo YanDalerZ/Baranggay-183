@@ -18,7 +18,6 @@ class RiskMapController {
                 // Construct address string for searching
                 const fullAddress = [
                     user.street,
-                    user.barangay,
                     "Pasay City", // Adding context for Leaflet search
                     "Philippines"
                 ].filter(Boolean).join(', ');
