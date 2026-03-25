@@ -1,23 +1,28 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, Plus, Gift, Clock, MapPin, Info, X, Image as ImageIcon } from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Plus, Gift, Clock,
+  MapPin, Info, X, Image as ImageIcon, Edit2, Trash2
+} from 'lucide-react';
 import { API_BASE_URL, type Event } from '../interfaces';
 
 const AdminEventsCalendar = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [birthdays, setBirthdays] = useState<Event[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [viewDate, setViewDate] = useState(new Date());
   const { token } = useAuth();
+
   const config = {
     headers: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'multipart/form-data' // Required for file uploads
+      'Content-Type': 'multipart/form-data'
     }
   };
 
@@ -81,6 +86,51 @@ const AdminEventsCalendar = () => {
     }
   };
 
+  // Open modal for editing
+  const handleEditClick = (event: Event) => {
+    setEditingId(Number(event.id));
+    setFormData({
+      title: event.title,
+      type: event.type,
+      date: event.event_date.split('T')[0], // Ensure YYYY-MM-DD format
+      time: event.event_time,
+      location: event.location,
+      attendees: event.attendees,
+      description: event.description || ''
+    });
+    setPreviewUrl(event.event_bg || null);
+    setIsModalOpen(true);
+  };
+
+  // Delete an event
+  const handleDelete = async (id: string | number) => {
+    if (!window.confirm("Are you sure you want to delete this event?")) return;
+    try {
+      const authConfig = { headers: { Authorization: `Bearer ${token}` } };
+      await axios.delete(`${API_BASE_URL}/api/events/${id}`, authConfig);
+      fetchData();
+    } catch (error) {
+      console.error("Delete Error:", error);
+      alert("Failed to delete event.");
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setFormData({
+      title: '',
+      type: 'Community Event',
+      date: '',
+      time: '',
+      location: '',
+      attendees: 'BOTH',
+      description: ''
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -98,24 +148,19 @@ const AdminEventsCalendar = () => {
         data.append('event_bg', selectedFile);
       }
 
-      await axios.post(`${API_BASE_URL}/api/events/create`, data, config);
+      if (editingId) {
+        // Update existing event
+        await axios.put(`${API_BASE_URL}/api/events/${editingId}`, data, config);
+      } else {
+        // Create new event
+        await axios.post(`${API_BASE_URL}/api/events/create`, data, config);
+      }
 
-      setIsModalOpen(false);
-      setSelectedFile(null);
-      setPreviewUrl(null);
-      setFormData({
-        title: '',
-        type: 'Community Event',
-        date: '',
-        time: '',
-        location: '',
-        attendees: 'BOTH',
-        description: ''
-      });
+      closeModal();
       fetchData();
     } catch (error) {
       console.error(error);
-      alert("Error creating event. Check console.");
+      alert("Error processing event. Check console.");
     }
   };
 
@@ -222,13 +267,17 @@ const AdminEventsCalendar = () => {
                         </div>
                       ))}
                       {dayEvents.map(ev => (
-                        <div key={ev.id} className={`p-1 text-[8px] font-bold truncate ${ev.type === 'Health Mission' ? 'bg-green-100 text-green-700' :
-                          ev.type === 'Vaccination' ? 'bg-purple-100 text-purple-700' :
-                            ev.type === 'Relief Distribution' ? 'bg-orange-100 text-orange-700' :
-                              'bg-blue-100 text-blue-700'
-                          }`}>
+                        <button
+                          key={ev.id}
+                          onClick={() => handleEditClick(ev)}
+                          className={`w-full text-left p-1 text-[8px] font-bold truncate hover:opacity-80 transition-opacity ${ev.type === 'Health Mission' ? 'bg-green-100 text-green-700' :
+                            ev.type === 'Vaccination' ? 'bg-purple-100 text-purple-700' :
+                              ev.type === 'Relief Distribution' ? 'bg-orange-100 text-orange-700' :
+                                'bg-blue-100 text-blue-700'
+                            }`}
+                        >
                           {ev.title}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -243,6 +292,10 @@ const AdminEventsCalendar = () => {
                 events.filter(e => new Date(e.event_date).getMonth() === currentMonth).map(e => (
                   <div key={e.id} className="p-4 bg-white border border-gray-100 flex justify-between items-center">
                     <span className="text-sm font-bold text-gray-700">{formatDate(e.event_date)}: {e.title}</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleEditClick(e)} className="p-2 text-blue-600 bg-blue-50"><Edit2 size={14} /></button>
+                      <button onClick={() => handleDelete(e.id)} className="p-2 text-red-600 bg-red-50"><Trash2 size={14} /></button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -283,7 +336,11 @@ const AdminEventsCalendar = () => {
                         }`}>
                         {event.type}
                       </span>
-                      <span className="text-[10px] font-bold text-gray-400">{formatDate(event.event_date)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-gray-400">{formatDate(event.event_date)}</span>
+                        <button onClick={() => handleEditClick(event)} className="text-gray-400 hover:text-blue-600"><Edit2 size={10} /></button>
+                        <button onClick={() => handleDelete(event.id)} className="text-gray-400 hover:text-red-600"><Trash2 size={10} /></button>
+                      </div>
                     </div>
                     <h4 className="text-sm font-bold text-gray-900 group-hover:text-blue-600">{event.title}</h4>
                     <div className="flex items-center gap-4 text-[10px] font-medium text-gray-400 mt-2">
@@ -303,11 +360,13 @@ const AdminEventsCalendar = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-[2px] p-4">
           <div className="bg-white w-full max-w-[40vw] max-h-[90vh] rounded-2xl shadow-2xl overflow-y-auto">
             <div className="px-8 pt-8 pb-4 relative">
-              <button onClick={() => { setIsModalOpen(false); setPreviewUrl(null); }} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors">
+              <button onClick={closeModal} className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={20} />
               </button>
-              <h3 className="text-2xl font-bold text-gray-900">Create New Event</h3>
-              <p className="text-gray-500 text-sm mt-1 font-medium">Fill in the details to create a new community event.</p>
+              <h3 className="text-2xl font-bold text-gray-900">{editingId ? 'Edit Event' : 'Create New Event'}</h3>
+              <p className="text-gray-500 text-sm mt-1 font-medium">
+                {editingId ? 'Modify the details of the existing event.' : 'Fill in the details to create a new community event.'}
+              </p>
             </div>
 
             <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
@@ -404,9 +463,18 @@ const AdminEventsCalendar = () => {
                 </select>
               </div>
 
-              <div className="pt-2 flex justify-end">
+              <div className="pt-2 flex justify-end gap-3">
+                {editingId && (
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(editingId)}
+                    className="bg-red-50 text-red-600 px-6 py-3 rounded-xl text-sm font-bold hover:bg-red-100 transition-all"
+                  >
+                    Delete Event
+                  </button>
+                )}
                 <button type="submit" className="bg-[#0D1117] text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-black transition-all shadow-lg">
-                  Create Event
+                  {editingId ? 'Update Event' : 'Create Event'}
                 </button>
               </div>
             </form>
@@ -422,7 +490,7 @@ const AdminEventsCalendar = () => {
         <div>
           <h4 className="text-sm font-bold text-blue-900 mb-1">Dynamic Schedule Syncing</h4>
           <p className="text-xs text-blue-800 leading-relaxed">
-            When an event is created with a background image, it will be displayed on the user's mobile dashboard and notifications.
+            When an event is created or updated with a background image, it will be displayed on the user's mobile dashboard and notifications.
           </p>
         </div>
       </div>

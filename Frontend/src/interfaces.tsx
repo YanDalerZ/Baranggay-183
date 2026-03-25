@@ -149,6 +149,8 @@ export interface Event {
     location: string;
     attendees: string;
     description: string;
+    event_bg?: any;
+
 }
 
 export interface Notification {

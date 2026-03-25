@@ -1,8 +1,10 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import { Resend } from 'resend';
 
 dotenv.config();
+
+const resend = new Resend('re_2fA2Ma1w_LxdQqUfGbGXdiwCPPKyFeauw');
 
 interface BulkNotifyOptions {
     recipientEmail: string;
@@ -17,28 +19,11 @@ interface SMSOptions {
 }
 
 class NotificationService {
-    private transporter: any;
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
     private readonly SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
     private readonly SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
 
-    constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            debug: true,
-            logger: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: {
-                rejectUnauthorized: false,
-                minVersion: 'TLSv1.2'
-            }
-        });
-    }
+    private readonly EMAIL_FROM = 'onboarding@resend.dev';
 
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
@@ -62,9 +47,8 @@ class NotificationService {
                 number: formattedPhone,
                 message: `[${this.SENDER_LABEL}]\n${message}`,
                 sendername: 'BARANGAY183',
-
             };
-            //
+
             const response = await axios.post(this.SEMAPHORE_API_URL, payload);
 
             console.log(`[SMS Success] sent to ${formattedPhone}:`, response.data);
@@ -82,8 +66,8 @@ class NotificationService {
 
     async sendRegistrationEmail(userEmail: string, fullName: string, systemId: string, rawPassword: string) {
         try {
-            const mailOptions = {
-                from: `"Barangay 183 Admin" <${process.env.EMAIL_USER}>`,
+            const { data, error } = await resend.emails.send({
+                from: `Barangay 183 Admin <${this.EMAIL_FROM}>`,
                 to: userEmail,
                 subject: "Account Created - Barangay 183 System",
                 html: `
@@ -97,9 +81,10 @@ class NotificationService {
                         <p style="margin-top:20px; font-size:12px; color:gray;">Please change your password after your first login.</p>
                     </div>
                 `
-            };
-            await this.transporter.sendMail(mailOptions);
-            console.log(`[Email] Registration sent to ${userEmail}`);
+            });
+
+            if (error) throw error;
+            console.log(`[Email] Registration sent to ${userEmail}`, data);
         } catch (error) {
             console.error("[Email Error] Registration Email Failed:", error);
         }
@@ -107,8 +92,8 @@ class NotificationService {
 
     async sendBroadcastNotification({ recipientEmail, recipientName, title, message }: BulkNotifyOptions) {
         try {
-            const mailOptions = {
-                from: `"Barangay 183 Alerts" <${process.env.EMAIL_USER}>`,
+            const { data, error } = await resend.emails.send({
+                from: `Barangay 183 Alerts <${this.EMAIL_FROM}>`,
                 to: recipientEmail,
                 subject: `📢 ${title}`,
                 html: `
@@ -123,22 +108,23 @@ class NotificationService {
                         </p>
                     </div>
                 `
-            };
-            return await this.transporter.sendMail(mailOptions);
+            });
+
+            if (error) throw error;
+            return data;
         } catch (error) {
-            console.error(`[Email Error] Broadcast failed to ${recipientEmail}`);
+            console.error(`[Email Error] Broadcast failed to ${recipientEmail}`, error);
             return null;
         }
     }
+
     async sendPasswordResetEmail(userEmail: string, fullName: string, resetToken: string) {
         try {
-            // Use the environment variable if it exists, otherwise fallback to local
-            // In Render, set FRONTEND_URL to https://baranggay-183.onrender.com
             const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173/';
             const resetLink = `${baseUrl}reset-password/${resetToken}`;
 
-            const mailOptions = {
-                from: `"Barangay 183 Security" <${process.env.EMAIL_USER}>`,
+            const { data, error } = await resend.emails.send({
+                from: `Barangay 183 Security <${this.EMAIL_FROM}>`,
                 to: userEmail,
                 subject: "Password Reset Request - Barangay 183",
                 html: `
@@ -154,7 +140,7 @@ class NotificationService {
                     <div style="text-align: center; margin: 35px 0;">
                         <a href="${resetLink}" 
                            style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
-                           Reset My Password
+                            Reset My Password
                         </a>
                     </div>
                     
@@ -170,10 +156,10 @@ class NotificationService {
                     </p>
                 </div>
             `
-            };
+            });
 
-            await this.transporter.sendMail(mailOptions);
-            console.log(`[Email] Reset link sent to ${userEmail}`);
+            if (error) throw error;
+            console.log(`[Email] Reset link sent to ${userEmail}`, data);
             return true;
         } catch (error) {
             console.error("[Email Error] Password Reset Email Failed:", error);
