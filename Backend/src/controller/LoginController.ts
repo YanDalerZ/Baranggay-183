@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import pool from '../database/db.js';
 import { RowDataPacket } from 'mysql2';
+import NotificationService from '../services/NotificationService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
@@ -154,6 +155,66 @@ class LoginController {
             return res.status(200).json({ valid: true, user: decoded });
         } catch (error) {
             return res.status(401).json({ valid: false, message: "Token expired or invalid." });
+        }
+    };
+    public ForgotPassword = async (req: Request, res: Response): Promise<Response> => {
+        const { email } = req.body;
+
+        try {
+            // 1. Find user
+            const [rows]: any = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
+            const user = rows[0];
+
+            if (!user) {
+                // For security, don't reveal if email exists or not
+                return res.status(200).json({ message: "If an account exists, a reset link has been sent." });
+            }
+
+            // 2. Generate Reset Token (15 min expiry)
+            const resetToken = jwt.sign(
+                { email: user.email, id: user.id },
+                process.env.JWT_SECRET || 'fallback_secret',
+                { expiresIn: '15m' }
+            );
+
+            // 3. Send Email
+            const fullName = `${user.firstname} ${user.lastname}`;
+            const emailSent = await NotificationService.sendPasswordResetEmail(user.email, fullName, resetToken);
+
+            if (!emailSent) {
+                return res.status(500).json({ message: "Error sending email. Please try again later." });
+            }
+
+            return res.status(200).json({ message: "Reset link sent to your email." });
+
+        } catch (error) {
+            console.error("Forgot Password Error:", error);
+            return res.status(500).json({ message: "Internal server error." });
+        }
+    };
+
+    public ResetPassword = async (req: Request, res: Response): Promise<Response> => {
+        const { token, newPassword } = req.body;
+
+        try {
+            // 1. Verify token
+            const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+
+            // 2. Hash new password
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+            // 3. Update DB
+            await pool.execute(
+                'UPDATE users SET password = ? WHERE email = ?',
+                [hashedPassword, decoded.email]
+            );
+
+            return res.status(200).json({ message: "Password updated successfully." });
+
+        } catch (error) {
+            console.error("Reset Password Error:", error);
+            return res.status(400).json({ message: "Invalid or expired reset link." });
         }
     };
 }

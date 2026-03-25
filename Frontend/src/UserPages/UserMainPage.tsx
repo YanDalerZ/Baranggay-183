@@ -1,12 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { ChevronLeft, ChevronRight, CheckCircle2, X, ChevronRight as ChevronRightIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, X, ChevronRight as ChevronRightIcon, ExternalLink, Youtube, Facebook } from 'lucide-react';
 import '../css/UserMainPage.css';
 import { API_BASE_URL, type EventData, type ServiceData } from '../interfaces';
 import { useAuth } from '../context/AuthContext';
 import ViewGuideModal from './UserComponents/ViewGuide';
+import { useNavigate } from 'react-router-dom';
 
 import defaultLogo from '/Logo.png';
+interface ModalProps {
+    title: string;
+    children: React.ReactNode;
+    onClose: () => void;
+}
+type FooterModalType = 'hotlines' | 'officials' | 'transparency' | null;
 
 const UserMainPage: React.FC = () => {
     const { token } = useAuth();
@@ -15,6 +22,9 @@ const UserMainPage: React.FC = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [progress, setProgress] = useState(0);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const [activeModal, setActiveModal] = useState<FooterModalType>(null);
+    const closeModal = () => setActiveModal(null);
 
     // Modal & Booking States
     const [selectedService, setSelectedService] = useState<ServiceData | null>(null);
@@ -249,11 +259,11 @@ const UserMainPage: React.FC = () => {
                 </div>
             </section>
 
-            <footer id="about" className="footer-wrapper">
+            <footer id="about" className="footer-wrapper relative">
                 <div className="max-w-full mx-auto px-4 md:px-6">
                     <div className="footer-grid">
                         <div className="space-y-8">
-                            <div className=" text-[#00308F] p-3 leading-none inline-flex flex-col items-center justify-center">
+                            <div className="text-[#00308F] p-3 leading-none inline-flex flex-col items-center justify-center">
                                 <img className="size-30" src="./Logo.png" alt="Logo" />
                                 <span className="text-[14px] font-black tracking-tighter uppercase">Barangay</span>
                                 <span className="text-[24px] font-black tracking-tighter uppercase">183</span>
@@ -266,17 +276,27 @@ const UserMainPage: React.FC = () => {
                         <div>
                             <h5 className="footer-heading">Our Barangay</h5>
                             <ul className="footer-link-list">
-                                <li><a href="#" className="hover:text-[#00308F] transition-colors">Profile</a></li>
-                                <li><a href="#" className="hover:text-[#00308F] transition-colors">Transparency</a></li>
-                                <li><a href="#" className="hover:text-[#00308F] transition-colors">Officials</a></li>
+                                <li className="cursor-pointer">
+                                    <a onClick={() => navigate('/UserProfile')} className="hover:text-[#00308F] transition-colors">Profile</a>
+                                </li>
+                                <li className="cursor-pointer">
+                                    <a onClick={() => setActiveModal('transparency')} className="hover:text-[#00308F] transition-colors">Transparency</a>
+                                </li>
+                                <li className="cursor-pointer">
+                                    <a onClick={() => setActiveModal('officials')} className="hover:text-[#00308F] transition-colors">Officials</a>
+                                </li>
                             </ul>
                         </div>
 
                         <div>
                             <h5 className="footer-heading text-[#FF9800]">Quick Support</h5>
                             <ul className="footer-link-list">
-                                <li><a href="#" className="hover:text-[#FF9800] transition-colors">Hotlines</a></li>
-                                <li><a href="#" className="hover:text-[#FF9800] transition-colors">Forms</a></li>
+                                <li className="cursor-pointer">
+                                    <a onClick={() => setActiveModal('hotlines')} className="hover:text-[#FF9800] transition-colors">Hotlines</a>
+                                </li>
+                                <li className="cursor-pointer">
+                                    <a onClick={() => navigate('/UserGuide')} className="hover:text-[#FF9800] transition-colors">Forms</a>
+                                </li>
                             </ul>
                         </div>
 
@@ -284,19 +304,88 @@ const UserMainPage: React.FC = () => {
                             <h5 className="footer-heading">Contact</h5>
                             <p className="text-[12px] font-bold text-gray-500 mb-6 uppercase">Brgy 183 Hall, Villamor Airbase, Pasay City</p>
                             <div className="flex space-x-3">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#00308F] transition-colors">
-                                        <div className="w-3 h-3 bg-gray-300 rounded-sm" />
-                                    </div>
-                                ))}
+                                <a href="https://www.facebook.com/barangay183official" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#00308F] hover:text-[#00308F] transition-colors">
+                                    <Facebook size={16} />
+                                </a>
+                                <a href="https://www.youtube.com/@PasayCityGovernment" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#FF0000] hover:text-[#FF0000] transition-colors">
+                                    <Youtube size={16} />
+                                </a>
+                                <a href="https://pasay.gov.ph" target="_blank" rel="noopener noreferrer" className="w-8 h-8 border border-gray-200 flex items-center justify-center cursor-pointer hover:border-[#00308F] hover:text-[#00308F] transition-colors">
+                                    <ExternalLink size={16} />
+                                </a>
                             </div>
                         </div>
                     </div>
+
                     <div className="pt-12 border-t border-gray-100 text-[10px] font-black text-gray-300 uppercase tracking-[0.25em] text-center">
                         &copy; 2026 Barangay 183 Community Hub. All Rights Reserved.
                     </div>
                 </div>
+
+                {/* Modals */}
+                {activeModal === 'hotlines' && (
+                    <Modal title="Emergency Hotlines" onClose={closeModal}>
+                        <div className="space-y-4 text-sm">
+                            <section>
+                                <h6 className="font-bold text-[#00308F] mb-2 border-b pb-1">Barangay 183 & Villamor</h6>
+                                <p className="flex justify-between"><span>Brgy 183 Hall:</span> <span className="font-mono text-blue-700">(02) 8853-5031</span></p>
+                                <p className="flex justify-between"><span>Villamor Fire Station:</span> <span className="font-mono text-blue-700">8853-5031 loc 5304</span></p>
+                                <p className="flex justify-between"><span>Villamor Sub-Station (Police):</span> <span className="font-mono text-blue-700">(02) 831-7433</span></p>
+                            </section>
+                            <section>
+                                <h6 className="font-bold text-[#FF9800] mb-2 border-b pb-1">Pasay City Central</h6>
+                                <p className="flex justify-between"><span>Pasay Emergency Center:</span> <span className="font-mono text-orange-700">888</span></p>
+                                <p className="flex justify-between"><span>Pasay PNP (Police):</span> <span className="font-mono text-orange-700">(02) 8831-1544</span></p>
+                                <p className="flex justify-between"><span>Pasay BFP (Fire):</span> <span className="font-mono text-orange-700">(02) 8844-2120</span></p>
+                                <p className="flex justify-between"><span>CDRRMO (Rescue):</span> <span className="font-mono text-orange-700">0905-493-9111</span></p>
+                            </section>
+                        </div>
+                    </Modal>
+                )}
+
+                {activeModal === 'officials' && (
+                    <Modal title="Barangay 183 Officials" onClose={closeModal}>
+                        <div className="space-y-3 text-sm">
+                            <div className="bg-blue-50 p-2 rounded">
+                                <p className="text-[10px] uppercase text-blue-600 font-bold">Punong Barangay</p>
+                                <p className="font-bold text-blue-900 text-base">Hon. Ricardo E. Santos</p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                                {["Kag. Arnel M. Gancia", "Kag. Danilo C. Hernandez", "Kag. Ma. Elena L. Rivera", "Kag. Roberto B. Reyes", "Kag. Jocelyn M. De Leon", "Kag. Ferdinand P. Santos", "Kag. Manuel T. Cruz"].map((name, i) => (
+                                    <div key={i} className="border-b border-gray-100 py-1 flex justify-between">
+                                        <span className="text-gray-700">{name}</span>
+                                        <span className="text-[10px] text-gray-400 uppercase self-center font-bold">Kagawad</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mt-4 pt-2 border-t text-[11px] italic text-gray-500">
+                                * Current term: 2024 - 2026.
+                            </div>
+                        </div>
+                    </Modal>
+                )}
+
+                {activeModal === 'transparency' && (
+                    <Modal title="Data Privacy Act (RA 10173)" onClose={closeModal}>
+                        <div className="text-[12px] leading-relaxed text-gray-600 space-y-3 max-h-100 overflow-y-auto pr-2">
+                            <p className="font-bold text-gray-800">Commitment to Privacy</p>
+                            <p>The Barangay 183 Digital Hub adheres to Republic Act No. 10173, otherwise known as the Data Privacy Act of 2012. We are committed to protecting all personal information we collect through this portal.</p>
+
+                            <p className="font-bold text-gray-800 uppercase">Core Principles:</p>
+                            <ul className="list-disc pl-4 space-y-1">
+                                <li><strong>Transparency:</strong> We inform users about why we collect data and how it is used.</li>
+                                <li><strong>Legitimate Purpose:</strong> Data is used only for official barangay services and resident records.</li>
+                                <li><strong>Proportionality:</strong> We only collect information necessary for the requested service.</li>
+                            </ul>
+
+                            <p className="font-bold text-gray-800">Your Rights:</p>
+                            <p>Under the DPA, you have the right to access your data, dispute inaccuracies, and request the removal of your personal information from our digital filing system.</p>
+                        </div>
+                    </Modal>
+                )}
             </footer>
+
+
 
             {/* View Guide Modal */}
             {selectedService && !isBookingModalOpen && (
@@ -357,6 +446,29 @@ const UserMainPage: React.FC = () => {
             )}
         </div>
     );
-};
 
+};
+const Modal: React.FC<ModalProps> = ({ title, children, onClose }) => (
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div className="bg-white w-full max-w-md rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+                <h4 className="font-black text-[#00308F] uppercase tracking-tight text-sm">{title}</h4>
+                <button onClick={onClose} className="text-gray-400 hover:text-red-500 transition-colors">
+                    <X size={20} />
+                </button>
+            </div>
+            <div className="p-6">
+                {children}
+            </div>
+            <div className="p-4 bg-gray-50 text-right border-t border-gray-100">
+                <button
+                    onClick={onClose}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded uppercase hover:bg-gray-300 transition-colors"
+                >
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+);
 export default UserMainPage;

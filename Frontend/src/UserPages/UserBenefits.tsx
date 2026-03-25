@@ -16,6 +16,7 @@ import {
     MapPin,
     AlertCircle
 } from 'lucide-react';
+import SupportModal from './UserComponents/ContactSupport';
 
 interface Benefit {
     batch_id: number;
@@ -190,7 +191,8 @@ export default function MyBenefits() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<'All' | 'Claimed' | 'Pending'>('All');
-
+    const [isSupportOpen, setIsSupportOpen] = useState(false);
+    const currentUser = { id: 123 }; // Replace with your actual auth context
     // States for Modal
     const [selectedBenefit, setSelectedBenefit] = useState<Benefit | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -422,10 +424,16 @@ export default function MyBenefits() {
                             <div className="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
                                 <p className="text-[10px] text-blue-700 font-black uppercase italic mb-1">Need Assistance?</p>
                                 <p className="text-[10px] text-blue-900 font-medium mb-3">Visit the help desk or contact our 24/7 hotline.</p>
-                                <button className="w-full py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-700">
+                                <button onClick={() => setIsSupportOpen(true)} className="w-full py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-lg hover:bg-blue-700">
                                     Contact Support
                                 </button>
                             </div>
+                            {isSupportOpen && (
+                                <SupportModal
+                                    userId={currentUser.id}
+                                    onClose={() => setIsSupportOpen(false)}
+                                />
+                            )}
                         </div>
                     </div>
 
