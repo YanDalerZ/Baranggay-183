@@ -1,10 +1,7 @@
 import dotenv from 'dotenv';
 import axios from 'axios';
-import { Resend } from 'resend';
 
 dotenv.config();
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface BulkNotifyOptions {
     recipientEmail: string;
@@ -23,10 +20,16 @@ class NotificationService {
     private readonly SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
     private readonly SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
 
-    private readonly EMAIL_FROM = 'admin@barangay-183.onrender.com';
-    private async throttle() {
-        return new Promise(resolve => setTimeout(resolve, 500));
+    // EmailJS Configuration
+    private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
+    private readonly SERVICE_ID = process.env.EMAILJS_SERVICE_ID!;
+    private readonly PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY!;
+    private readonly TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID!;
+
+    constructor() {
+        // Transporter removed as it is no longer needed for API-based sending
     }
+
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
 
@@ -38,6 +41,22 @@ class NotificationService {
         }
 
         return cleanPhone;
+    }
+
+
+    private async sendViaEmailJS(toEmail: string, subject: string, htmlContent: string) {
+        const payload = {
+            service_id: this.SERVICE_ID,
+            template_id: this.TEMPLATE_ID,
+            user_id: this.PUBLIC_KEY,
+            template_params: {
+                to_email: toEmail,
+                subject: subject,
+                html_content: htmlContent,
+            },
+        };
+
+        return await axios.post(this.EMAILJS_API_URL, payload);
     }
 
     async sendSMS({ phoneNumber, message }: SMSOptions) {
@@ -68,12 +87,8 @@ class NotificationService {
 
     async sendRegistrationEmail(userEmail: string, fullName: string, systemId: string, rawPassword: string) {
         try {
-            await this.throttle();
-            const { data, error } = await resend.emails.send({
-                from: `Barangay 183 Admin <${this.EMAIL_FROM}>`,
-                to: userEmail,
-                subject: "Account Created - Barangay 183 System",
-                html: `
+            const subject = "Account Created - Barangay 183 System";
+            const html = `
                     <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                         <h2 style="color: #2563eb;">Welcome to Barangay 183</h2>
                         <p>Hello <strong>${fullName}</strong>,</p>
@@ -83,11 +98,10 @@ class NotificationService {
                         <p><strong>System ID:</strong> ${systemId}</p>
                         <p style="margin-top:20px; font-size:12px; color:gray;">Please change your password after your first login.</p>
                     </div>
-                `
-            });
+                `;
 
-            if (error) throw error;
-            console.log(`[Email] Registration sent to ${userEmail}`, data);
+            await this.sendViaEmailJS(userEmail, subject, html);
+            console.log(`[Email] Registration sent to ${userEmail}`);
         } catch (error) {
             console.error("[Email Error] Registration Email Failed:", error);
         }
@@ -95,12 +109,8 @@ class NotificationService {
 
     async sendBroadcastNotification({ recipientEmail, recipientName, title, message }: BulkNotifyOptions) {
         try {
-            await this.throttle();
-            const { data, error } = await resend.emails.send({
-                from: `Barangay 183 Alerts <${this.EMAIL_FROM}>`,
-                to: recipientEmail,
-                subject: `📢 ${title}`,
-                html: `
+            const subject = `📢 ${title}`;
+            const html = `
                     <div style="font-family: sans-serif; padding: 20px; border: 2px solid #ef4444; border-radius: 12px;">
                         <h2 style="color: #b91c1c; margin-top:0;">⚠️ ${title}</h2>
                         <p>Attention ${recipientName},</p>
@@ -111,28 +121,23 @@ class NotificationService {
                             This is an official emergency broadcast from the Barangay 183 Command Center.
                         </p>
                     </div>
-                `
-            });
+                `;
 
-            if (error) throw error;
-            return data;
+            const response = await this.sendViaEmailJS(recipientEmail, subject, html);
+            return response.data;
         } catch (error) {
-            console.error(`[Email Error] Broadcast failed to ${recipientEmail}`, error);
+            console.error(`[Email Error] Broadcast failed to ${recipientEmail}`);
             return null;
         }
     }
 
     async sendPasswordResetEmail(userEmail: string, fullName: string, resetToken: string) {
         try {
-            await this.throttle();
             const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173/';
             const resetLink = `${baseUrl}reset-password/${resetToken}`;
 
-            const { data, error } = await resend.emails.send({
-                from: `Barangay 183 Security <${this.EMAIL_FROM}>`,
-                to: userEmail,
-                subject: "Password Reset Request - Barangay 183",
-                html: `
+            const subject = "Password Reset Request - Barangay 183";
+            const html = `
                 <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
                     <div style="text-align: center; margin-bottom: 20px;">
                         <h2 style="color: #1e293b; margin: 0;">Password Reset</h2>
@@ -160,11 +165,10 @@ class NotificationService {
                         <a href="${resetLink}" style="color: #2563eb; word-break: break-all;">${resetLink}</a>
                     </p>
                 </div>
-            `
-            });
+            `;
 
-            if (error) throw error;
-            console.log(`[Email] Reset link sent to ${userEmail}`, data);
+            await this.sendViaEmailJS(userEmail, subject, html);
+            console.log(`[Email] Reset link sent to ${userEmail}`);
             return true;
         } catch (error) {
             console.error("[Email Error] Password Reset Email Failed:", error);

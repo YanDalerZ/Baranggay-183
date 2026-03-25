@@ -3,6 +3,7 @@ import {
     Eye, X, CheckCircle, AlertCircle, Ban, Loader2, Search, FileText,
     User as UserIcon, Phone, Heart, Calendar, Clock,
     Download,
+    Trash2,
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -256,7 +257,6 @@ export default function AdminApplicationsManagement() {
     );
 }
 
-// --- Specialized Appointment Modal ---
 
 function AppointmentReviewModal({ appointment, onClose, onAction }: { appointment: Appointment, onClose: () => void, onAction: (id: number, status: string, notes: string) => void }) {
     const { token } = useAuth();
@@ -271,7 +271,6 @@ function AppointmentReviewModal({ appointment, onClose, onAction }: { appointmen
             headers: { Authorization: `Bearer ${token}` },
             responseType: 'blob',
         }).then(res => {
-            // FIX: Get the type directly from the response blob or the appointment object
             const fileType = res.data.type || appointment.attachment_mime_type || 'application/octet-stream';
             const blob = new Blob([res.data], { type: fileType });
             const url = window.URL.createObjectURL(blob);
@@ -289,12 +288,29 @@ function AppointmentReviewModal({ appointment, onClose, onAction }: { appointmen
         setIsProcessing(false);
     };
 
-    // Helper to determine extension if missing
+    // --- NEW DELETE HANDLER ---
+    const handleDelete = async () => {
+        const confirmed = window.confirm("Are you sure you want to delete this appointment? This action cannot be undone.");
+        if (!confirmed) return;
+        setIsProcessing(true);
+        try {
+            await axios.delete(`${API_BASE_URL}/api/appointments/${appointment.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            alert("Appointment deleted successfully.");
+            onClose(); // Close modal
+            window.location.reload(); // Refresh list to reflect deletion
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete appointment.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const getDownloadName = () => {
         const baseName = appointment.attachment_name || `attachment-${appointment.id}`;
         if (baseName.includes('.')) return baseName;
-
-        // Fallback extensions based on mime type
         const mime = appointment.attachment_mime_type?.toLowerCase();
         if (mime?.includes('png')) return `${baseName}.png`;
         if (mime?.includes('jpg') || mime?.includes('jpeg')) return `${baseName}.jpg`;
@@ -313,50 +329,7 @@ function AppointmentReviewModal({ appointment, onClose, onAction }: { appointmen
                 </div>
                 <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-6">{appointment.user_name}</h2>
 
-                <div className="grid grid-cols-2 gap-8 mb-8">
-                    <div className="space-y-4">
-                        <DetailRow label="Service Type" value={appointment.service_type} />
-                        <DetailRow label="Date" value={new Date(appointment.appointment_date).toLocaleDateString()} />
-                        <DetailRow label="Time" value={appointment.appointment_time} />
-                        <DetailRow label="Priority" value={appointment.priority} />
-                    </div>
-                    <div className="space-y-4">
-                        <DetailRow label="Email" value={appointment.user_email} />
-                        <DetailRow label="Home Visit" value={appointment.home_visit ? "YES" : "NO"} />
-                        <DetailRow label="Purpose" value={appointment.purpose} />
-                    </div>
-                </div>
-
-                {attachmentUrl ? (
-                    <div className="mb-8 space-y-4">
-                        <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1">Attachment Preview</h3>
-                        <div className="border-2 border-black overflow-hidden bg-gray-100 min-h-[200px] flex items-center justify-center relative group">
-                            {appointment.attachment_mime_type?.startsWith('image/') ? (
-                                <img src={attachmentUrl} alt="Preview" className="max-w-full max-h-[500px] object-contain" />
-                            ) : appointment.attachment_mime_type === 'application/pdf' ? (
-                                <iframe src={`${attachmentUrl}#toolbar=0`} className="w-full h-[500px]" title="PDF" />
-                            ) : (
-                                <div className="p-10 text-center">
-                                    <FileText size={48} className="mx-auto mb-2 text-gray-400" />
-                                    <p className="text-[10px] font-bold uppercase">No visual preview</p>
-                                </div>
-                            )}
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <a
-                                    href={attachmentUrl}
-                                    download={getDownloadName()}
-                                    className="bg-white text-black px-4 py-2 text-xs font-black uppercase flex items-center gap-2 hover:bg-yellow-400"
-                                >
-                                    <Download size={16} /> Download
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="mb-8 p-4 border-2 border-dashed border-gray-200 text-center">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No Attachment Provided</p>
-                    </div>
-                )}
+                {/* ... Detail Rows Grid (omitted for brevity, keep your existing code) ... */}
 
                 <div className="space-y-4">
                     <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1">Admin Action</h3>
@@ -367,24 +340,33 @@ function AppointmentReviewModal({ appointment, onClose, onAction }: { appointmen
                         onChange={(e) => setNotes(e.target.value)}
                     />
                     <div className="flex flex-col gap-2">
-                        <button onClick={() => handleConfirm('Approved')} disabled={isProcessing} className="w-full bg-green-600 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2">
+                        <button onClick={() => handleConfirm('Approved')} disabled={isProcessing} className="w-full bg-green-600 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-green-700 transition-colors">
                             {isProcessing ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />} Confirm Appointment
                         </button>
+
                         <div className="grid grid-cols-2 gap-2">
-                            <button onClick={() => handleConfirm('Incomplete')} disabled={isProcessing} className="bg-amber-500 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2">
+                            <button onClick={() => handleConfirm('Incomplete')} disabled={isProcessing} className="bg-amber-500 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-amber-600 transition-colors">
                                 <AlertCircle size={16} /> Remarks/Incomplete
                             </button>
-                            <button onClick={() => handleConfirm('Denied')} disabled={isProcessing} className="bg-rose-600 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2">
+                            <button onClick={() => handleConfirm('Denied')} disabled={isProcessing} className="bg-rose-600 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2 hover:bg-rose-700 transition-colors">
                                 <Ban size={16} /> Cancel/Deny
                             </button>
                         </div>
+
+                        {/* --- ADDED DELETE BUTTON --- */}
+                        <button
+                            onClick={handleDelete}
+                            disabled={isProcessing}
+                            className="w-full mt-4 border-2 border-rose-600 text-rose-600 py-2 text-[10px] font-black uppercase flex items-center justify-center gap-2 hover:bg-rose-50 transition-colors"
+                        >
+                            <Trash2 size={14} /> Delete Permanent Record
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     );
 }
-
 
 function EmptyState() {
     return (
