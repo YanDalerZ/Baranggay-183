@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar, Clock, Home, CheckCircle2, MessageSquare,
   X, Loader2, ChevronRight,
-  Info, ChevronDown, ClipboardList, Timer, Plus
+  Info, ChevronDown, ClipboardList, Timer, Plus, Trash2
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
@@ -39,7 +39,7 @@ const AppointmentsPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [services, setServices] = useState<ServiceGuide[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
   // Accordion & Modal States
   const [expandedServiceId, setExpandedServiceId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +57,22 @@ const AppointmentsPage: React.FC = () => {
   });
 
   const { token } = useAuth();
-
+  const handleDelete = async (id: number) => {
+    const confirmed = window.confirm("Are you sure you want to delete this appointment? This action cannot be undone.");
+    if (!confirmed) return;
+    setIsDeleting(id);
+    try {
+      await axios.delete(`${API_BASE_URL}/api/appointments/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAppointments(prev => prev.filter(apt => apt.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Delete failed. Check permissions.");
+    } finally {
+      setIsDeleting(null);
+    }
+  };
   const fetchData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -190,6 +205,13 @@ const AppointmentsPage: React.FC = () => {
                   {apt.priority === 'High Priority' && <div className="px-3 py-1 bg-orange-50 text-orange-700 border border-orange-100 text-xs font-bold uppercase">{apt.priority}</div>}
                   <h2 className="text-xl font-bold text-gray-900 ml-2 uppercase tracking-tight">{apt.service_type}</h2>
                   <span className="text-[10px] text-gray-400 font-black uppercase ml-auto">Applied: {new Date(apt.created_at).toLocaleDateString()}</span>
+                  <button
+                    onClick={() => handleDelete(apt.id)}
+                    disabled={isDeleting === apt.id}
+                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all rounded"
+                  >
+                    {isDeleting === apt.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                  </button>
                 </div>
                 <div className="bg-gray-50/50 p-4 border-l-4 border-gray-200">
                   <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Purpose:</p>

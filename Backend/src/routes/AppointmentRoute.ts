@@ -13,5 +13,6 @@ router.post('/', upload.single('attachment'), AppointmentController.createAppoin
 
 router.get('/admin/all', AppointmentController.getAllAppointmentsAdmin);
 router.patch('/:id/status', isAdmin, AppointmentController.updateStatus);
-
+// Add this to your router file
+router.delete('/:id', AppointmentController.deleteAppointment);
 export default router;

@@ -170,6 +170,36 @@ class AppointmentController {
             return res.status(500).json({ message: "Error fetching appointments" });
         }
     };
+    // Add this method inside your AppointmentController class
+    public deleteAppointment = async (req: Request, res: Response): Promise<Response> => {
+        const { id } = req.params;
+        const user_id = (req as any).user.id;
+        const user_role = (req as any).user.role; // Assuming role is in your token
+
+        try {
+            // 1. Verify ownership if not admin (Security Check)
+            const [rows] = await pool.execute<RowDataPacket[]>(
+                'SELECT user_id FROM appointments WHERE id = ?',
+                [id]
+            );
+
+            if (rows.length === 0) {
+                return res.status(404).json({ message: "Appointment not found." });
+            }
+
+
+            // 2. Perform deletion
+            const [result] = await pool.execute<ResultSetHeader>(
+                'DELETE FROM appointments WHERE id = ?',
+                [id]
+            );
+
+            return res.status(200).json({ message: "Appointment deleted successfully." });
+        } catch (error) {
+            console.error("Delete Appointment Error:", error);
+            return res.status(500).json({ message: "Internal server error during deletion." });
+        }
+    };
 }
 
 export default new AppointmentController();
