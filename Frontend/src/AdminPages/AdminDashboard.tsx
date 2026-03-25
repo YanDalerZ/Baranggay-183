@@ -8,7 +8,7 @@ import {
   Calendar,
   Loader2
 } from 'lucide-react';
-import { type User, API_BASE_URL, type DistributionRecord } from '../interfaces';
+import { type User, API_BASE_URL, type DistributionRecord, type Event } from '../interfaces';
 
 // --- Types ---
 interface StatCardProps {
@@ -36,6 +36,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, iconColor = "text-gray-40
 const AdminDashboard = () => {
   const [residents, setResidents] = useState<User[]>([]);
   const [allDistributionRecords, setAllDistributionRecords] = useState<DistributionRecord[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const { token } = useAuth();
   const config = {
@@ -48,13 +49,16 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
         // Using Promise.all to fetch both endpoints simultaneously
-        const [usersRes, benefitsRes] = await Promise.all([
+        const [usersRes, benefitsRes, eventsRes] = await Promise.all([
           axios.get(`${API_BASE_URL}/api/user/`, config),
-          axios.get(`${API_BASE_URL}/api/benefits/distribution/all`, config)
+          axios.get(`${API_BASE_URL}/api/benefits/distribution/all`, config),
+          axios.get(`${API_BASE_URL}/api/events`, config),
+
         ]);
 
         setResidents(usersRes.data);
         setAllDistributionRecords(benefitsRes.data);
+        setEvents(eventsRes.data);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -63,7 +67,15 @@ const AdminDashboard = () => {
     };
     fetchData();
   }, []);
+  const upcomingEventsCount = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
+    return events.filter(event => {
+      const eventDate = new Date(event.event_date); // Ensure your API returns a 'date' field
+      return eventDate >= today;
+    }).length;
+  }, [events]);
   // --- Dynamic Calculations ---
   const stats = useMemo(() => {
     const now = new Date();
@@ -76,8 +88,8 @@ const AdminDashboard = () => {
 
       // Normalize type check
       const userType = curr.type?.toUpperCase();
-      if (userType === 'SC' || curr.disability === 'Senior Citizen') acc.sc++;
-      if (userType === 'PWD') acc.pwd++;
+      if (userType === 'SC' || curr.type === 'Senior Citizen') acc.sc++;
+      if (userType === 'PWD' || curr.type === 'PWD') acc.pwd++;
       if (userType === 'BOTH') { acc.sc++; acc.pwd++; }
 
       // 2. ID Expiration Logic
@@ -160,7 +172,7 @@ const AdminDashboard = () => {
         />
         <StatCard
           title="Upcoming Events"
-          value="7"
+          value={upcomingEventsCount}
           subtext="This month"
           icon={Calendar}
         />

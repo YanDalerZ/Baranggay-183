@@ -546,14 +546,21 @@ class UserController {
     // Inside your UserController class in UserController.ts/js
     public updateUserCoordinates = async (req: Request, res: Response): Promise<Response> => {
         const { id } = req.params;
+        // Extract coordinates from body
         const { coordinates } = req.body;
 
-        if (!coordinates) {
-            return res.status(400).json({ message: "Coordinates are required." });
+        /**
+         * FIX: Use 'undefined' check instead of '!coordinates'.
+         * This allows 'null' (clearing) to pass through, but rejects 
+         * requests where the 'coordinates' key is missing entirely.
+         */
+        if (coordinates === undefined) {
+            return res.status(400).json({ message: "Coordinates field is required in the request body." });
         }
 
         try {
-            // We use 'id' because the Risk Map uses the numeric primary key, not the system_id string
+            // If coordinates is null, MySQL will set the column to NULL 
+            // (provided the column isn't marked NOT NULL)
             const [result]: any = await pool.execute(
                 `UPDATE users SET coordinates = ? WHERE id = ?`,
                 [coordinates, id]
@@ -565,7 +572,7 @@ class UserController {
 
             return res.status(200).json({
                 success: true,
-                message: "Coordinates updated successfully.",
+                message: coordinates === null ? "Coordinates cleared successfully." : "Coordinates updated successfully.",
                 data: { id, coordinates }
             });
         } catch (error: any) {
