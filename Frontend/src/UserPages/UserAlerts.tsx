@@ -171,12 +171,24 @@ export default function Dashboard() {
         }
     };
     const markAllAsRead = async () => {
+        if (!user?.id) return;
+
         setMarkingRead(true);
         try {
-            await axios.post(`${API_BASE_URL}/api/notifications/mark-all-read`, { user_id: user?.id }, config);
-            setNotifications(prev => prev.map(n => ({ ...n, isNew: false })));
+            // Updated to match your mark-all-read endpoint
+            await axios.post(`${API_BASE_URL}/api/notifications/mark-all-read`, {
+                user_id: user.id
+            }, config);
+
+            // Update local state so all notifications immediately lose the "New" badge
+            setNotifications(prev => prev.map(n => ({
+                ...n,
+                isNew: false
+            })));
+
         } catch (error) {
             console.error("Error marking all as read", error);
+            alert("Failed to mark all as read. Please try again.");
         } finally {
             setMarkingRead(false);
         }

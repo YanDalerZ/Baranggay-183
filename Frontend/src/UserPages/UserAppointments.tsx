@@ -52,7 +52,8 @@ const AppointmentsPage: React.FC = () => {
     time: '',
     purpose: '',
     priority: 'Normal',
-    home_visit: false
+    home_visit: false,
+    file: null
   });
 
   const { token } = useAuth();
@@ -76,45 +77,52 @@ const AppointmentsPage: React.FC = () => {
   }, [token]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedService || !token) return;
 
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } };
-      await axios.post(`${API_BASE_URL}/api/appointments`, {
-        service_id: selectedService.id,
-        service_type: selectedService.title,
-        appointment_date: formData.date,
-        appointment_time: formData.time,
-        purpose: formData.purpose,
-        priority: formData.priority,
-        home_visit: formData.home_visit
-      }, config);
+      const submitData = new FormData();
+      submitData.append('service_id', String(selectedService.id));
+      submitData.append('service_type', selectedService.title);
+      submitData.append('appointment_date', formData.date);
+      submitData.append('appointment_time', formData.time);
+      submitData.append('purpose', formData.purpose);
+      submitData.append('priority', formData.priority || 'Normal');
+      submitData.append('home_visit', String(formData.home_visit));
+
+      if (formData.file) {
+        submitData.append('attachment', formData.file);
+      }
+
+      await axios.post(`${API_BASE_URL}/api/appointments`, submitData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+          // Do NOT set Content-Type manually; Axios sets it automatically for FormData
+        }
+      });
 
       setIsModalOpen(false);
       setActiveTab('my');
       fetchData();
     } catch (err) {
       alert("Failed to book appointment");
+      console.error(err);
     }
   };
 
-  const handleCustomBooking = async (customData: any) => {
+  // customData is ALREADY a FormData object here because of how CustomRequestModal is built
+  const handleCustomBooking = async (customData: FormData) => {
     if (!token) return;
 
     try {
-      await axios.post(`${API_BASE_URL}/api/appointments`, {
-        service_id: null,
-        service_type: customData.service_type,
-        appointment_date: customData.date,
-        appointment_time: customData.time,
-        purpose: customData.purpose,
-        priority: 'Normal',
-        home_visit: customData.home_visit
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+      // Since customData is FormData, we append the missing default priority here
+      customData.append('priority', 'Normal');
+
+      await axios.post(`${API_BASE_URL}/api/appointments`, customData, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
 
       setIsCustomModalOpen(false);
@@ -125,7 +133,6 @@ const AppointmentsPage: React.FC = () => {
       alert("Submission failed. Check console for details.");
     }
   };
-
   if (loading) return (
     <div className="h-screen flex items-center justify-center">
       <Loader2 className="animate-spin text-blue-600" size={40} />

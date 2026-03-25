@@ -75,10 +75,10 @@ class LedgerController {
                     FROM users u 
                     WHERE u.status = 'Active' AND (
                         -- Case 1: Batch is for BOTH groups
-                        (b.target_group = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
+                        (b.target_group = 'BOTH' AND u.type IN ('Senior Citizen', 'PWD', 'BOTH')) OR
                         
                         -- Case 2: Batch is for SC (Residents marked BOTH are also SC)
-                        (b.target_group = 'SC' AND u.type IN ('SC', 'BOTH')) OR
+                        (b.target_group = 'SC' AND u.type IN ('Senior Citizen', 'BOTH')) OR
                         
                         -- Case 3: Batch is for PWD (Residents marked BOTH are also PWD)
                         (b.target_group = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
@@ -168,8 +168,8 @@ class LedgerController {
     LEFT JOIN distribution d ON u.id = d.resident_id AND d.batch_id = ?
     LEFT JOIN inventory i ON d.inventory_id = i.id
     WHERE u.status = 'Active' AND (
-        (? = 'BOTH' AND u.type IN ('SC', 'PWD', 'BOTH')) OR
-        (? = 'SC' AND u.type IN ('SC', 'BOTH')) OR
+        (? = 'BOTH' AND u.type IN ('Senior Citizen', 'PWD', 'BOTH')) OR
+        (? = 'SC' AND u.type IN ('Senior Citizen', 'BOTH')) OR
         (? = 'PWD' AND u.type IN ('PWD', 'BOTH')) OR
         (u.type = ?)
     )
@@ -303,8 +303,8 @@ class LedgerController {
                 FROM distribution_batches db
                 LEFT JOIN distribution d ON d.batch_id = db.id AND d.resident_id = ?
                 WHERE 
-                    (db.target_group = 'BOTH' AND ? IN ('SC', 'PWD', 'BOTH')) OR
-                    (db.target_group = 'SC' AND ? IN ('SC', 'BOTH')) OR
+                    (db.target_group = 'BOTH' AND ? IN ('Senior Citizen', 'PWD', 'BOTH')) OR
+                    (db.target_group = 'SC' AND ? IN ('Senior Citizen', 'BOTH')) OR
                     (db.target_group = 'PWD' AND ? IN ('PWD', 'BOTH')) OR
                     (db.target_group = ?)
                 GROUP BY db.id
