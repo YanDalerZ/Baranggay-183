@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-    Eye, X, CheckCircle, AlertCircle, Ban, Loader2, Search, FileText, User as UserIcon, Phone, Heart
+    Eye, X, CheckCircle, AlertCircle, Ban, Loader2, Search, FileText,
+    User as UserIcon, Phone, Heart, Calendar, Clock,
+    Download,
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
@@ -8,8 +10,8 @@ import { API_BASE_URL } from '../interfaces';
 
 // --- Types ---
 type Status = 'Pending' | 'Approved' | 'Denied' | 'Incomplete';
-// Changed to match backend strings
-type AppType = 'PWD' | 'SC';
+type AppType = 'PWD' | 'SC' | 'APPOINTMENTS';
+type AppointmentStatus = 'Pending' | 'Confirmed' | 'Cancelled' | 'Incomplete';
 
 interface Application {
     id: number;
@@ -18,50 +20,73 @@ interface Application {
     status: Status;
     submittedDate: string;
     reviewedDate?: string;
-    application_type: string; // From backend
-    // These will be populated by the single fetch
+    application_type: string;
     details?: any;
     attachments?: { file_type: string; file_name: string; file_data: string; mime_type: string }[];
     [key: string]: any;
 }
 
+interface Appointment {
+    id: number;
+    user_id: number;
+    user_name: string;
+    user_email: string;
+    service_type: string;
+    appointment_date: string;
+    appointment_time: string;
+    purpose: string;
+    priority: string;
+    home_visit: number;
+    status: AppointmentStatus;
+    admin_notes?: string;
+    attachment?: string;
+    attachment_name?: string;
+    attachment_mime_type?: string;
+}
+
 export default function AdminApplicationsManagement() {
     const { token } = useAuth();
     const [applications, setApplications] = useState<Application[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedTab, setSelectedTab] = useState<AppType>('PWD');
     const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const fetchApplications = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${API_BASE_URL}/api/applications/admin/list`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const config = { headers: { Authorization: `Bearer ${token}` } };
 
-            const mappedData = response.data.map((app: any) => ({
+            const appRes = await axios.get(`${API_BASE_URL}/api/applications/admin/list`, config);
+            const mappedApps = appRes.data.map((app: any) => ({
                 ...app,
-                // Align the tab logic with the raw backend field
                 submittedDate: new Date(app.created_at).toLocaleDateString('en-US', {
                     month: 'long', day: 'numeric', year: 'numeric'
                 })
             }));
 
-            setApplications(mappedData);
+            const appointRes = await axios.get(`${API_BASE_URL}/api/appointments/admin/all`, config);
+
+            setApplications(mappedApps);
+            setAppointments(appointRes.data);
         } catch (err) {
-            console.error("Failed to fetch applications", err);
+            console.error("Failed to fetch data", err);
         } finally {
             setLoading(false);
         }
     }, [token]);
 
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
+
     const handleReviewClick = async (app: Application) => {
         setSelectedApp(app);
         setDetailsLoading(true);
         try {
-            // Use your specific single application endpoint to get BLOBs and full details
             const response = await axios.get(`${API_BASE_URL}/api/applications/${app.id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -80,11 +105,7 @@ export default function AdminApplicationsManagement() {
                 { status: newStatus, admin_notes: notes },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            setApplications(prev => prev.map(app =>
-                app.id === id ? { ...app, status: newStatus } : app
-            ));
-
+            setApplications(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
             setSelectedApp(null);
             alert(`Application ${newStatus} successfully.`);
         } catch (err) {
@@ -92,27 +113,46 @@ export default function AdminApplicationsManagement() {
         }
     };
 
-    useEffect(() => {
-        fetchApplications();
-    }, [fetchApplications]);
+    const handleUpdateAppointmentStatus = async (id: number, newStatus: string, notes: string) => {
+        try {
+            let dbStatus = newStatus;
+            if (newStatus === 'Approved') dbStatus = 'Confirmed';
+            if (newStatus === 'Denied') dbStatus = 'Cancelled';
+
+            await axios.patch(`${API_BASE_URL}/api/appointments/${id}/status`,
+                { status: dbStatus, admin_notes: notes },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: dbStatus as AppointmentStatus, admin_notes: notes } : apt));
+            setSelectedAppointment(null);
+            alert(`Appointment updated to ${dbStatus}.`);
+        } catch (err) {
+            alert("Failed to update appointment.");
+        }
+    };
 
     const filteredApps = applications.filter(app =>
         app.application_type === selectedTab &&
         (app.name?.toLowerCase() || "").includes(searchTerm.toLowerCase())
     );
 
+    const filteredAppointments = appointments.filter(apt =>
+        (apt.user_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+        (apt.service_type?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+    );
+
     const stats = {
-        pending: applications.filter(a => a.status === 'Pending').length,
+        pending: applications.filter(a => a.status === 'Pending').length + appointments.filter(a => a.status === 'Pending').length,
         incomplete: applications.filter(a => a.status === 'Incomplete').length,
-        approved: applications.filter(a => a.status === 'Approved').length,
-        denied: applications.filter(a => a.status === 'Denied').length,
+        approved: applications.filter(a => a.status === 'Approved').length + appointments.filter(a => a.status === 'Confirmed').length,
+        denied: applications.filter(a => a.status === 'Denied').length + appointments.filter(a => a.status === 'Cancelled').length,
     };
 
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-screen">
                 <Loader2 className="animate-spin text-blue-600 mb-2" size={40} />
-                <p className="font-black uppercase text-xs tracking-widest">Loading Applications...</p>
+                <p className="font-black uppercase text-xs tracking-widest">Loading Dashboard...</p>
             </div>
         );
     }
@@ -121,15 +161,15 @@ export default function AdminApplicationsManagement() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-12 space-y-6">
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-                        Applications Management
+                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                        Applications and Appointments
                     </h2>
                 </div>
                 <div className="relative w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input
                         type="text"
-                        placeholder="Search name..."
+                        placeholder="Search records..."
                         className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 outline-none text-sm font-bold"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -139,38 +179,59 @@ export default function AdminApplicationsManagement() {
 
             <main>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                    <StatCard label="Pending" value={stats.pending.toString()} />
-                    <StatCard label="Incomplete" value={stats.incomplete.toString()} />
-                    <StatCard label="Approved" value={stats.approved.toString()} color="text-green-600" />
-                    <StatCard label="Denied" value={stats.denied.toString()} color="text-red-600" />
+                    <StatCard label="Total Pending" value={stats.pending.toString()} />
+                    <StatCard label="App Incomplete" value={stats.incomplete.toString()} />
+                    <StatCard label="Total Approved" value={stats.approved.toString()} color="text-green-600" />
+                    <StatCard label="Total Denied" value={stats.denied.toString()} color="text-red-600" />
                 </div>
 
                 <div className="flex bg-gray-200 p-1 mb-6">
-                    <TabButton active={selectedTab === 'PWD'} label={`PWD (${applications.filter(a => a.application_type === 'PWD').length})`} onClick={() => setSelectedTab('PWD')} />
-                    <TabButton active={selectedTab === 'SC'} label={`SC (${applications.filter(a => a.application_type === 'SC').length})`} onClick={() => setSelectedTab('SC')} />
+                    <TabButton active={selectedTab === 'PWD'} label={`PWD Apps (${applications.filter(a => a.application_type === 'PWD').length})`} onClick={() => setSelectedTab('PWD')} />
+                    <TabButton active={selectedTab === 'SC'} label={`SC Apps (${applications.filter(a => a.application_type === 'SC').length})`} onClick={() => setSelectedTab('SC')} />
+                    <TabButton active={selectedTab === 'APPOINTMENTS'} label={`Appointments (${appointments.length})`} onClick={() => setSelectedTab('APPOINTMENTS')} />
                 </div>
 
                 <div className="space-y-4">
-                    {filteredApps.length > 0 ? filteredApps.map(app => (
-                        <div key={app.id} className="bg-white p-6 border border-gray-100 flex justify-between items-center hover:border-blue-300 transition-colors">
-                            <div>
-                                <div className="flex items-center gap-3">
-                                    <h3 className="font-bold text-lg">{app.name || `User ${app.user_system_id}`}</h3>
-                                    <StatusBadge status={app.status} />
+                    {selectedTab === 'APPOINTMENTS' ? (
+                        filteredAppointments.length > 0 ? filteredAppointments.map(apt => (
+                            <div key={apt.id} className="bg-white p-6 border border-gray-100 flex justify-between items-center hover:border-blue-300 transition-colors">
+                                <div>
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="font-bold text-lg">{apt.user_name}</h3>
+                                        <StatusBadge status={apt.status === 'Confirmed' ? 'Approved' : apt.status === 'Cancelled' ? 'Denied' : apt.status as any} />
+                                    </div>
+                                    <div className="flex gap-4 mt-1 text-sm text-gray-500">
+                                        <span className="flex items-center gap-1"><Calendar size={14} /> {new Date(apt.appointment_date).toLocaleDateString()}</span>
+                                        <span className="flex items-center gap-1"><Clock size={14} /> {apt.appointment_time}</span>
+                                        <span className="font-bold text-blue-600 uppercase text-xs">[{apt.service_type}]</span>
+                                    </div>
                                 </div>
-                                <p className="text-sm text-gray-500 mt-1">Submitted: {app.submittedDate}</p>
+                                <button
+                                    onClick={() => setSelectedAppointment(apt)}
+                                    className="flex items-center gap-2 border-2 border-black px-4 py-1.5 font-black uppercase hover:bg-black hover:text-white transition text-xs"
+                                >
+                                    <Eye size={16} /> Review
+                                </button>
                             </div>
-                            <button
-                                onClick={() => handleReviewClick(app)}
-                                className="flex items-center gap-2 border-2 border-black px-4 py-1.5 font-black uppercase hover:bg-black hover:text-white transition text-xs"
-                            >
-                                <Eye size={16} /> Review
-                            </button>
-                        </div>
-                    )) : (
-                        <div className="text-center py-20 bg-gray-50 border-2 border-dashed">
-                            <p className="font-bold text-gray-400 uppercase text-sm">No applications found</p>
-                        </div>
+                        )) : <EmptyState />
+                    ) : (
+                        filteredApps.length > 0 ? filteredApps.map(app => (
+                            <div key={app.id} className="bg-white p-6 border border-gray-100 flex justify-between items-center hover:border-blue-300 transition-colors">
+                                <div>
+                                    <div className="flex items-center gap-3">
+                                        <h3 className="font-bold text-lg">{app.name || `User ${app.user_system_id}`}</h3>
+                                        <StatusBadge status={app.status} />
+                                    </div>
+                                    <p className="text-sm text-gray-500 mt-1">Submitted: {app.submittedDate}</p>
+                                </div>
+                                <button
+                                    onClick={() => handleReviewClick(app)}
+                                    className="flex items-center gap-2 border-2 border-black px-4 py-1.5 font-black uppercase hover:bg-black hover:text-white transition text-xs"
+                                >
+                                    <Eye size={16} /> Review
+                                </button>
+                            </div>
+                        )) : <EmptyState />
                     )}
                 </div>
             </main>
@@ -183,11 +244,155 @@ export default function AdminApplicationsManagement() {
                     onAction={handleUpdateStatus}
                 />
             )}
+
+            {selectedAppointment && (
+                <AppointmentReviewModal
+                    appointment={selectedAppointment}
+                    onClose={() => setSelectedAppointment(null)}
+                    onAction={handleUpdateAppointmentStatus}
+                />
+            )}
         </div>
     );
 }
 
-// --- Sub-components ---
+// --- Specialized Appointment Modal ---
+
+function AppointmentReviewModal({ appointment, onClose, onAction }: { appointment: Appointment, onClose: () => void, onAction: (id: number, status: string, notes: string) => void }) {
+    const { token } = useAuth();
+    const [notes, setNotes] = useState(appointment.admin_notes || "");
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [attachmentUrl, setAttachmentUrl] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!appointment.id) return;
+
+        axios.get(`${API_BASE_URL}/api/appointments/${appointment.id}/attachment`, {
+            headers: { Authorization: `Bearer ${token}` },
+            responseType: 'blob',
+        }).then(res => {
+            // FIX: Get the type directly from the response blob or the appointment object
+            const fileType = res.data.type || appointment.attachment_mime_type || 'application/octet-stream';
+            const blob = new Blob([res.data], { type: fileType });
+            const url = window.URL.createObjectURL(blob);
+            setAttachmentUrl(url);
+        }).catch(err => console.error(err));
+
+        return () => {
+            if (attachmentUrl) window.URL.revokeObjectURL(attachmentUrl);
+        };
+    }, [appointment.id, token]);
+
+    const handleConfirm = async (status: string) => {
+        setIsProcessing(true);
+        await onAction(appointment.id, status, notes);
+        setIsProcessing(false);
+    };
+
+    // Helper to determine extension if missing
+    const getDownloadName = () => {
+        const baseName = appointment.attachment_name || `attachment-${appointment.id}`;
+        if (baseName.includes('.')) return baseName;
+
+        // Fallback extensions based on mime type
+        const mime = appointment.attachment_mime_type?.toLowerCase();
+        if (mime?.includes('png')) return `${baseName}.png`;
+        if (mime?.includes('jpg') || mime?.includes('jpeg')) return `${baseName}.jpg`;
+        if (mime?.includes('pdf')) return `${baseName}.pdf`;
+        return baseName;
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-2xl relative shadow-2xl p-8 max-h-[90vh] overflow-y-auto">
+                <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-black p-2"><X size={24} /></button>
+
+                <div className="flex items-center gap-2 mb-1">
+                    <StatusBadge status={appointment.status === 'Confirmed' ? 'Approved' : appointment.status === 'Cancelled' ? 'Denied' : appointment.status as any} />
+                    <span className="text-[10px] font-black uppercase text-gray-400">Appointment #{appointment.id}</span>
+                </div>
+                <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-6">{appointment.user_name}</h2>
+
+                <div className="grid grid-cols-2 gap-8 mb-8">
+                    <div className="space-y-4">
+                        <DetailRow label="Service Type" value={appointment.service_type} />
+                        <DetailRow label="Date" value={new Date(appointment.appointment_date).toLocaleDateString()} />
+                        <DetailRow label="Time" value={appointment.appointment_time} />
+                        <DetailRow label="Priority" value={appointment.priority} />
+                    </div>
+                    <div className="space-y-4">
+                        <DetailRow label="Email" value={appointment.user_email} />
+                        <DetailRow label="Home Visit" value={appointment.home_visit ? "YES" : "NO"} />
+                        <DetailRow label="Purpose" value={appointment.purpose} />
+                    </div>
+                </div>
+
+                {attachmentUrl ? (
+                    <div className="mb-8 space-y-4">
+                        <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1">Attachment Preview</h3>
+                        <div className="border-2 border-black overflow-hidden bg-gray-100 min-h-[200px] flex items-center justify-center relative group">
+                            {appointment.attachment_mime_type?.startsWith('image/') ? (
+                                <img src={attachmentUrl} alt="Preview" className="max-w-full max-h-[500px] object-contain" />
+                            ) : appointment.attachment_mime_type === 'application/pdf' ? (
+                                <iframe src={`${attachmentUrl}#toolbar=0`} className="w-full h-[500px]" title="PDF" />
+                            ) : (
+                                <div className="p-10 text-center">
+                                    <FileText size={48} className="mx-auto mb-2 text-gray-400" />
+                                    <p className="text-[10px] font-bold uppercase">No visual preview</p>
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <a
+                                    href={attachmentUrl}
+                                    download={getDownloadName()}
+                                    className="bg-white text-black px-4 py-2 text-xs font-black uppercase flex items-center gap-2 hover:bg-yellow-400"
+                                >
+                                    <Download size={16} /> Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="mb-8 p-4 border-2 border-dashed border-gray-200 text-center">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No Attachment Provided</p>
+                    </div>
+                )}
+
+                <div className="space-y-4">
+                    <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1">Admin Action</h3>
+                    <textarea
+                        className="w-full border-2 border-gray-200 p-3 text-sm h-24 outline-none focus:border-blue-600 font-medium"
+                        placeholder="Add remarks for this appointment..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                    />
+                    <div className="flex flex-col gap-2">
+                        <button onClick={() => handleConfirm('Approved')} disabled={isProcessing} className="w-full bg-green-600 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2">
+                            {isProcessing ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle size={16} />} Confirm Appointment
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button onClick={() => handleConfirm('Incomplete')} disabled={isProcessing} className="bg-amber-500 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2">
+                                <AlertCircle size={16} /> Remarks/Incomplete
+                            </button>
+                            <button onClick={() => handleConfirm('Denied')} disabled={isProcessing} className="bg-rose-600 text-white py-3 text-xs font-black uppercase flex items-center justify-center gap-2">
+                                <Ban size={16} /> Cancel/Deny
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
+function EmptyState() {
+    return (
+        <div className="text-center py-20 bg-gray-50 border-2 border-dashed">
+            <p className="font-bold text-gray-400 uppercase text-sm">No records found</p>
+        </div>
+    );
+}
 
 function ReviewModal({ app, isLoading, onClose, onAction }: { app: Application, isLoading: boolean, onClose: () => void, onAction: (id: number, status: Status, notes: string) => void }) {
     const [notes, setNotes] = useState(app.admin_notes || "");
@@ -220,7 +425,6 @@ function ReviewModal({ app, isLoading, onClose, onAction }: { app: Application, 
                         </h2>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                            {/* Personal & Medical Info */}
                             <div className="lg:col-span-2 space-y-8">
                                 <section>
                                     <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1 mb-4 flex items-center gap-2">
@@ -228,7 +432,7 @@ function ReviewModal({ app, isLoading, onClose, onAction }: { app: Application, 
                                     </h3>
                                     <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                                         <DetailRow label="Gender" value={app.gender} />
-                                        <DetailRow label="Birthday" value={new Date(app.birthday).toLocaleDateString()} />
+                                        <DetailRow label="Birthday" value={app.birthday ? new Date(app.birthday).toLocaleDateString() : 'N/A'} />
                                         <DetailRow label="Civil Status" value={app.civil_status} />
                                         <DetailRow label="Contact" value={app.contact_number} />
                                         <DetailRow label="Occupation" value={app.occupation} />
@@ -263,7 +467,6 @@ function ReviewModal({ app, isLoading, onClose, onAction }: { app: Application, 
                                 </section>
                             </div>
 
-                            {/* Documents & Assessment */}
                             <div className="space-y-8">
                                 <section>
                                     <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1 mb-4">Files & Evidence</h3>
@@ -290,7 +493,7 @@ function ReviewModal({ app, isLoading, onClose, onAction }: { app: Application, 
                                     <h3 className="font-black text-xs uppercase tracking-widest border-b-2 border-black pb-1 mb-4">Admin Assessment</h3>
                                     <textarea
                                         className="w-full border-2 border-gray-200 p-3 text-sm h-32 outline-none focus:border-blue-600 font-medium"
-                                        placeholder="Add internal notes or reason for denial..."
+                                        placeholder="Add internal notes..."
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
                                     />
@@ -347,14 +550,16 @@ function TabButton({ active, label, onClick }: any) {
 }
 
 function StatusBadge({ status }: { status: Status }) {
-    const styles: Record<Status, string> = {
+    const styles: Record<string, string> = {
         Pending: 'bg-amber-100 text-amber-700 border-amber-200',
         Approved: 'bg-green-100 text-green-700 border-green-200',
+        Confirmed: 'bg-green-100 text-green-700 border-green-200',
         Denied: 'bg-red-100 text-red-700 border-red-200',
+        Cancelled: 'bg-red-100 text-red-700 border-red-200',
         Incomplete: 'bg-gray-100 text-gray-700 border-gray-200',
     };
     return (
-        <span className={`px-2 py-0.5 border text-[10px] font-black uppercase ${styles[status]}`}>
+        <span className={`px-2 py-0.5 border text-[10px] font-black uppercase ${styles[status] || styles['Pending']}`}>
             {status}
         </span>
     );

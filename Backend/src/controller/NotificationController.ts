@@ -274,5 +274,37 @@ export class NotificationController {
             return res.status(500).json({ error: "Failed to hide notification" });
         }
     }
+    public async markAllRead(req: Request, res: Response): Promise<Response> {
+        try {
+            const { user_id } = req.body;
+
+            if (!user_id) {
+                return res.status(400).json({ error: "Missing user_id" });
+            }
+
+            // This query inserts a 'read' record for every notification targeting this user 
+            // (either 'all' or their specific type) that they haven't read yet.
+            const sql = `
+            INSERT IGNORE INTO notification_reads (notification_id, user_id)
+            SELECT n.id, ? 
+            FROM notifications n
+            WHERE (n.target_groups LIKE '%all%' 
+               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?))
+            AND n.id NOT IN (
+                SELECT notification_id FROM notification_reads WHERE user_id = ?
+            )
+        `;
+
+            await db.query(sql, [user_id, user_id, user_id]);
+
+            return res.status(200).json({
+                success: true,
+                message: "All notifications marked as read"
+            });
+        } catch (error) {
+            console.error("Error marking all as read:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
 }
 export default new NotificationController();

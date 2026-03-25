@@ -24,7 +24,9 @@ class NotificationService {
     private readonly SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
 
     private readonly EMAIL_FROM = 'admin@barangay-183.onrender.com';
-
+    private async throttle() {
+        return new Promise(resolve => setTimeout(resolve, 500));
+    }
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
 
@@ -66,6 +68,7 @@ class NotificationService {
 
     async sendRegistrationEmail(userEmail: string, fullName: string, systemId: string, rawPassword: string) {
         try {
+            await this.throttle();
             const { data, error } = await resend.emails.send({
                 from: `Barangay 183 Admin <${this.EMAIL_FROM}>`,
                 to: userEmail,
@@ -92,6 +95,7 @@ class NotificationService {
 
     async sendBroadcastNotification({ recipientEmail, recipientName, title, message }: BulkNotifyOptions) {
         try {
+            await this.throttle();
             const { data, error } = await resend.emails.send({
                 from: `Barangay 183 Alerts <${this.EMAIL_FROM}>`,
                 to: recipientEmail,
@@ -120,6 +124,7 @@ class NotificationService {
 
     async sendPasswordResetEmail(userEmail: string, fullName: string, resetToken: string) {
         try {
+            await this.throttle();
             const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173/';
             const resetLink = `${baseUrl}reset-password/${resetToken}`;
 
