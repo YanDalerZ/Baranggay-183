@@ -23,7 +23,7 @@ class NotificationService {
     private readonly SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
     private readonly SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
 
-    private readonly EMAIL_FROM = 'reyeslopez.contact@gmail.com';
+    private readonly EMAIL_FROM = 'admin@barangay-183.onrender.com';
 
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
