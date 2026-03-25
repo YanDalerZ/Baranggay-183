@@ -163,8 +163,9 @@ const AppointmentsPage: React.FC = () => {
           <button onClick={() => setActiveTab('my')} className={`pb-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'my' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
             My Appointments ({appointments.length})
           </button>
+          {/*Browse Services*/}
           <button onClick={() => setActiveTab('request')} className={`pb-4 text-sm font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === 'request' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400'}`}>
-            Browse Services
+
           </button>
         </nav>
       </div>

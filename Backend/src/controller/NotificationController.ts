@@ -178,8 +178,6 @@ export class NotificationController {
         try {
             const { id } = req.params;
 
-            // We use a LEFT JOIN to see if a record exists in notification_reads for this user.
-            // If nr.read_at is NULL, it means the user hasn't read it yet.
             const sql = `
             SELECT 
                 n.id,
@@ -213,6 +211,55 @@ export class NotificationController {
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
-}
+    async sendSupportRequest(req: Request, res: Response) {
+        try {
+            const { user_id, message, channel } = req.body;
 
+            const [residentRows]: any = await db.query(
+                "SELECT CONCAT(firstname, ' ', lastname) as full_name FROM users WHERE id = ?",
+                [user_id]
+            );
+
+            if (residentRows.length === 0) {
+                return res.status(404).json({ error: "Sender not found in database." });
+            }
+
+            const residentName = residentRows[0].full_name;
+
+            await db.query(
+                `INSERT INTO support_tickets (user_id, message, channel) VALUES (?, ?, ?)`,
+                [user_id, message, channel]
+            );
+
+            const [admins]: any = await db.query(
+                "SELECT email, contact_number, firstname FROM users WHERE role = 1"
+            );
+
+            if (admins.length === 0) {
+                return res.status(404).json({ error: "No administrators found." });
+            }
+
+            for (const admin of admins) {
+                if (channel === 'Email' && admin.email) {
+                    await NotificationService.sendBroadcastNotification({
+                        recipientEmail: admin.email,
+                        recipientName: admin.firstname,
+                        title: "New Support Request",
+                        message: `Resident ${residentName} (ID #${user_id}) sent a message: ${message}`
+                    });
+                } else if (channel === 'SMS' && admin.contact_number) {
+                    await NotificationService.sendSMS({
+                        phoneNumber: admin.contact_number,
+                        message: `Support Req from ${residentName}: ${message}`
+                    });
+                }
+            }
+
+            return res.status(200).json({ success: true, message: "Support request sent to Admin." });
+        } catch (error) {
+            console.error("Support Request Error:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
+}
 export default new NotificationController();

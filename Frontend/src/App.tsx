@@ -21,6 +21,9 @@ import UserEvents from './UserPages/UserEvents';
 import UserApply from './UserPages/UserApplyServices';
 import UserAppointments from './UserPages/UserAppointments';
 import UserGuide from './UserPages/UserServiceGuide';
+import ForgotPassword from './UserPages/UserComponents/ForgotPassword'
+import ResetPassword from './UserPages/UserComponents/ResetPassword'
+
 
 // Admin Pages
 import AdminLogin from './AdminPages/AdminLogin';
@@ -54,7 +57,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-    if (isAuthenticated && user) {
+  if (isAuthenticated && user) {
     return <Navigate to={user.role === 3 ? "/SuperAdminDashboard" : user.role === 1 ? "/AdminDashboard" : "/UserMainPage"} replace />;
   }
 
@@ -81,6 +84,8 @@ const AppContent: React.FC = () => {
       <Route path="/Login" element={<PublicRoute><UserLogin /></PublicRoute>} />
       <Route path="/AdminLogin" element={<PublicRoute><AdminLogin /></PublicRoute>} />
       <Route path="/SuperAdminLogin" element={<PublicRoute><SuperAdminLogin /></PublicRoute>} />
+      <Route path="/forgot-password" element={<PublicRoute><ForgotPassword></ForgotPassword></PublicRoute>} />
+      <Route path="/reset-password/:token" element={<PublicRoute><ResetPassword></ResetPassword></PublicRoute>} />
 
       {/* --- USER PROTECTED ROUTES --- */}
       <Route path="/UserMainPage" element={<ProtectedRoute><Navbar><UserMainPage /></Navbar></ProtectedRoute>} />

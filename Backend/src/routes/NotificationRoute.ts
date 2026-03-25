@@ -10,7 +10,7 @@ router.get('/stats', isAdmin, NotificationController.getStats);
 router.post('/broadcast', isAdmin, NotificationController.sendNotification);
 router.post('/send', isAdmin, NotificationController.sendNotification);
 router.delete('/:id', isAdmin, NotificationController.deleteNotification);
-
+router.post('/support', NotificationController.sendSupportRequest);
 router.post('/mark-read', NotificationController.markAsRead);
 
 export default router;

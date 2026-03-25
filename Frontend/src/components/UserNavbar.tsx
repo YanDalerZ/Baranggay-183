@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   User, FileText, Gift, History, Bell,
-  LogOut, Sun, Type, Volume2, Menu, X,
+  LogOut, Sun, Type, Volume2, X,
   Newspaper, Calendar, BookOpen,
   MoreHorizontal, Plus, Minus
 } from 'lucide-react';
@@ -33,7 +33,6 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Sync Accessibility Settings
   useEffect(() => {
     if (highContrast) {
       document.documentElement.classList.add('high-contrast');
@@ -73,13 +72,10 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     localStorage.setItem('ttsEnabled', ttsEnabled.toString());
   }, [highContrast, fontSize, ttsEnabled]);
 
-  // --- REFINED TTS LOGIC ---
-  // Using event delegation to capture text from any hovered element
   const handleGlobalMouseOver = (e: React.MouseEvent) => {
     if (!ttsEnabled) return;
 
     const target = e.target as HTMLElement;
-    // Get text but ignore very long blocks or empty containers
     const text = target.innerText?.trim();
 
     if (text && text.length > 0 && text.length < 300) {
@@ -160,7 +156,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
                   <Type size={18} strokeWidth={1.5} />
                 </button>
                 {isTypeDropdownOpen && (
-                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border border-gray-100 shadow-xl rounded-xl p-2 flex flex-col gap-2 z-[60]">
+                  <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border border-gray-100 shadow-xl rounded-xl p-2 flex flex-col gap-2 z-60">
                     <button onClick={() => setFontSize(prev => Math.min(prev + 1, 24))} className="p-2 hover:bg-gray-50 rounded-lg text-gray-600 flex items-center gap-2">
                       <Plus size={14} /> <span className="text-[10px] font-bold">Increase</span>
                     </button>
@@ -179,10 +175,6 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
               </button>
             </div>
 
-            <button className="relative text-black hover:text-[#FF9800]">
-              <Bell size={20} strokeWidth={1.5} />
-              <span className="absolute -top-1 -right-1 bg-[#FF9800] text-[8px] text-white w-4 h-4 rounded-full flex items-center justify-center font-bold">1</span>
-            </button>
 
             <button onClick={() => navigate('/UserProfile')} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#00308F] hover:text-white transition-all">
               <User size={16} strokeWidth={1.5} />
@@ -192,9 +184,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
               <LogOut size={18} strokeWidth={1.5} />
             </button>
 
-            <button className="lg:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+
           </div>
         </div>
       </nav>
@@ -217,7 +207,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
             </button>
           </div>
 
-          {menuItems.map((item, index) => (
+          {menuItems.map((item) => (
             <button
               key={item.name}
               onClick={() => { navigate(item.path); setIsMenuOpen(false); }}

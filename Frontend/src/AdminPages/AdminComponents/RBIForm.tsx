@@ -271,7 +271,7 @@ const ResidentModal = ({ isOpen, onClose, initialData }: ResidentModalProps) => 
 
     return (
         <div className="fixed inset-0 z-50 flex h-screen items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
-            <div className="w-full max-w-3xl max-h-[90vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div className="w-full max-w-3xl max-h-[80vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white">
                     <div>
                         <h2 className="text-xl font-bold text-slate-800">

@@ -241,7 +241,7 @@ export default function Dashboard() {
             )}
 
             <div>
-                <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
                     Notifications & Alerts
                 </h2>
                 <p className="text-gray-500 text-xs sm:text-sm">Welcome back, {user?.firstname || 'Resident'}</p>
@@ -253,6 +253,26 @@ export default function Dashboard() {
                 <StatCard title="Unread" value={stats.unread} subtext="New messages" colorClass="text-blue-600" />
                 <StatCard title="Emergency Alerts" value={stats.emergencies} subtext="Priority alerts" colorClass="text-red-600" />
             </div>
+            <section className="bg-red-50 border border-red-100 p-8">
+                <div className="flex items-center gap-2 text-red-700 mb-6">
+                    <AlertTriangle size={20} />
+                    <h2 className="font-bold uppercase tracking-widest text-sm">Emergency Hotlines</h2>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-red-400 mb-1">Emergency</span>
+                        <span className="text-2xl font-black text-red-900">911</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-red-400 mb-1">Barangay Office</span>
+                        <span className="text-2xl font-black text-red-900">123-4567</span>
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black uppercase text-red-400 mb-1">Health Center</span>
+                        <span className="text-2xl font-black text-red-900">890-1234</span>
+                    </div>
+                </div>
+            </section>
 
             {/* Notifications List Section */}
             <section className="space-y-4">
@@ -289,55 +309,7 @@ export default function Dashboard() {
                 </div>
             </section>
 
-            {/* Preferences Section */}
-            <section className="bg-white border border-gray-200 overflow-hidden shadow-sm">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <div>
-                        <h2 className="text-lg font-bold">Notification Preferences</h2>
-                        <p className="text-gray-500 text-sm">Manage how you receive notifications</p>
-                    </div>
-                </div>
-                <div className="divide-y divide-gray-100">
-                    {[
-                        { id: 'sms', label: 'SMS Notifications', sub: 'Receive alerts via SMS' },
-                        { id: 'email', label: 'Email Notifications', sub: 'Receive alerts via email' },
-                        { id: 'messenger', label: 'Messenger Notifications', sub: 'Receive alerts via Facebook Messenger' },
-                        { id: 'web', label: 'Web Notifications', sub: 'Receive browser notifications' },
-                    ].map((item) => (
-                        <div key={item.id} className="p-4 px-6 flex justify-between items-center group hover:bg-gray-50 transition-colors">
-                            <div>
-                                <p className="font-bold text-sm text-gray-800">{item.label}</p>
-                                <p className="text-xs text-gray-500">{item.sub}</p>
-                            </div>
-                            <button className="bg-gray-100 text-gray-800 text-[10px] font-bold px-3 py-1 border border-gray-200 uppercase">
-                                Enabled
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            </section>
 
-
-            <section className="bg-red-50 border border-red-100 p-8">
-                <div className="flex items-center gap-2 text-red-700 mb-6">
-                    <AlertTriangle size={20} />
-                    <h2 className="font-bold uppercase tracking-widest text-sm">Emergency Hotlines</h2>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-red-400 mb-1">Emergency</span>
-                        <span className="text-2xl font-black text-red-900">911</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-red-400 mb-1">Barangay Office</span>
-                        <span className="text-2xl font-black text-red-900">123-4567</span>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase text-red-400 mb-1">Health Center</span>
-                        <span className="text-2xl font-black text-red-900">890-1234</span>
-                    </div>
-                </div>
-            </section>
         </main>
     );
 }
