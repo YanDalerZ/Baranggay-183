@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import pool from '../database/db.js';
+import NotificationService from '../services/NotificationService.js';
 class UserController {
 
     public async fetchAllUsers(req: Request, res: Response): Promise<Response> {
@@ -246,7 +247,10 @@ class UserController {
             }
 
             await connection.commit();
-
+            if (email) {
+                const fullName = `${firstname} ${lastname}`;
+                NotificationService.sendRegistrationEmail(email, fullName, system_id, rawPassword);
+            }
             return res.status(201).json({
                 success: true,
                 message: "Resident registered successfully!",
