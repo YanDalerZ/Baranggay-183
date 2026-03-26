@@ -263,7 +263,7 @@ class LedgerController {
             );
 
             const [userData]: any = await connection.execute(
-                `SELECT email, firstname, lastname, phone_number FROM users WHERE id = ?`,
+                `SELECT email, firstname, lastname, contact_number FROM users WHERE id = ?`,
                 [residentId]
             );
 
@@ -309,9 +309,9 @@ class LedgerController {
                     message: `You have successfully claimed your items from ${batchName}. Thank you for using the Barangay 183 System.`
                 });
 
-                if (user.phone_number) {
+                if (user.contact_number) {
                     notificationService.sendSMS({
-                        phoneNumber: user.phone_number,
+                        phoneNumber: user.contact_number,
                         message: `BRGY 183: Your claim for ${batchName} was successful. Status: Claimed.`
                     });
                 }
