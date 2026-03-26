@@ -1,11 +1,10 @@
 import { Request, Response } from 'express';
 import pool from '../database/db.js';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-
+import NotificationService from '../services/NotificationService.js';
 class EventController {
     public async getAllEvents(req: Request, res: Response): Promise<Response> {
         try {
-            // We fetch the base64 string directly from MySQL
             const [rows] = await pool.execute<RowDataPacket[]>(
                 'SELECT id, title, type, event_date, event_time, location, attendees, description, TO_BASE64(event_bg) as event_bg FROM events ORDER BY event_date ASC, event_time ASC'
             );
@@ -15,12 +14,8 @@ class EventController {
 
                 if (event.event_bg) {
                     const b64 = event.event_bg;
-                    // Detect the format by checking the start of the base64 string
-                    // iVBORw0KGgo = PNG
-                    // /9j/ = JPEG
-                    // R0lGOD = GIF
-                    // UklGR = WebP
-                    let mimeType = 'image/jpeg'; // Default fallback
+
+                    let mimeType = 'image/jpeg';
 
                     if (b64.startsWith('iVBORw0KGgo')) {
                         mimeType = 'image/png';
@@ -56,7 +51,6 @@ class EventController {
             description
         } = req.body;
 
-        // multer adds the file to req.file
         const eventBg = req.file ? req.file.buffer : null;
 
         try {
@@ -90,7 +84,11 @@ class EventController {
                     eventBg
                 ]
             );
-
+            NotificationService.notifyTargetGroup(
+                validAttendees,
+                `New Event: ${title}`,
+                `A new ${type} event has been scheduled on ${date} at ${location}. We hope to see you there!`
+            );
             return res.status(201).json({
                 message: "Event created successfully",
                 eventId: result.insertId
@@ -125,7 +123,7 @@ class EventController {
                     location: 'Community',
                     attendees: 'All',
                     description: `Happy Birthday to ${user.firstname}!`,
-                    event_bg: null // Birthdays usually don't have custom backgrounds
+                    event_bg: null
                 };
             });
 
@@ -150,7 +148,6 @@ class EventController {
         const eventBg = req.file ? req.file.buffer : null;
 
         try {
-            // Check if event exists
             const [exists] = await pool.execute<RowDataPacket[]>(
                 'SELECT id FROM events WHERE id = ?',
                 [id]
@@ -160,7 +157,6 @@ class EventController {
                 return res.status(404).json({ message: "Event not found." });
             }
 
-            // Construct query dynamically to handle optional image update
             let query = `
                 UPDATE events 
                 SET title = ?, type = ?, event_date = ?, event_time = ?, 
@@ -177,7 +173,11 @@ class EventController {
             params.push(id);
 
             await pool.execute<ResultSetHeader>(query, params);
-
+            NotificationService.notifyTargetGroup(
+                attendees,
+                `Event Updated: ${title}`,
+                `The event "${title}" has been updated. Please check the portal for new details regarding the date, time, or location.`
+            );
             return res.status(200).json({ message: "Event updated successfully." });
         } catch (error) {
             console.error("Update Event Error:", error);

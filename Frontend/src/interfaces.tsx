@@ -120,6 +120,7 @@ export interface DistributionRecord {
     date: string;
     batch_id: string;
     batch_name?: string;
+    has_interested?: string;
 }
 
 export interface Batch {
