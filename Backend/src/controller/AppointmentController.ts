@@ -84,7 +84,7 @@ class AppointmentController {
         try {
             // 1. Fetch User and Appointment details for the notification
             const [appointmentData]: any = await pool.execute(
-                `SELECT a.service_type, a.appointment_date, a.appointment_time, u.email, u.firstname, u.phone_number 
+                `SELECT a.service_type, a.appointment_date, a.appointment_time, u.email, u.firstname, u.contact_number 
                  FROM appointments a
                  JOIN users u ON a.user_id = u.id
                  WHERE a.id = ?`, [id]
@@ -104,7 +104,7 @@ class AppointmentController {
             );
 
             // 3. NOTIFICATION: Alert the resident
-            const { email, firstname, phone_number, service_type, appointment_date, appointment_time } = appointmentData[0];
+            const { email, firstname, contact_number, service_type, appointment_date, appointment_time } = appointmentData[0];
             const dateStr = new Date(appointment_date).toLocaleDateString();
 
             notificationService.sendBroadcastNotification({
@@ -114,9 +114,9 @@ class AppointmentController {
                 message: `Your appointment for ${service_type} on ${dateStr} at ${appointment_time} is now ${status}. ${admin_notes ? `Note: ${admin_notes}` : ''}`
             });
 
-            if (phone_number) {
+            if (contact_number) {
                 notificationService.sendSMS({
-                    phoneNumber: phone_number,
+                    phoneNumber: contact_number,
                     message: `BRGY 183: Your ${service_type} appointment on ${dateStr} is ${status}. ${admin_notes ? `Note: ${admin_notes}` : ''}`
                 });
             }

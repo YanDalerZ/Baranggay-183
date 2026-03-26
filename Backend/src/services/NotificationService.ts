@@ -20,7 +20,7 @@ interface TargetUser extends RowDataPacket {
     email: string;
     firstname: string;
     lastname: string;
-    phone_number: string;
+    contact_number: string;
 }
 
 class NotificationService {
@@ -52,7 +52,7 @@ class NotificationService {
 
     public async notifyTargetGroup(attendeeType: 'SC' | 'PWD' | 'BOTH', title: string, message: string) {
         try {
-            let query = 'SELECT email, firstname, lastname, phone_number FROM users WHERE status = "active"';
+            let query = 'SELECT email, firstname, lastname, contact_number FROM users WHERE status = "active"';
             const params: any[] = [];
 
             if (attendeeType !== 'BOTH') {
@@ -72,9 +72,9 @@ class NotificationService {
                     message: message
                 });
 
-                if (user.phone_number) {
+                if (user.contact_number) {
                     await this.sendSMS({
-                        phoneNumber: user.phone_number,
+                        phoneNumber: user.contact_number,
                         message: `${title}: ${message}`
                     });
                 }
