@@ -166,12 +166,14 @@ export class NotificationController {
                 CASE WHEN nr.read_at IS NULL THEN 'unread' ELSE 'read' END as status
             FROM notifications n
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_id = ?
-            WHERE n.target_groups LIKE '%all%' 
-               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?)
+            LEFT JOIN hidden_notifications hn ON n.id = hn.notification_id AND hn.user_id = ?
+            WHERE (n.target_groups LIKE '%all%' 
+               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?))
+               AND hn.id IS NULL  -- This line filters out notifications the user has hidden
             ORDER BY n.created_at DESC
             LIMIT 50
         `;
-            const [rows] = await db.query(sql, [id, id]);
+            const [rows] = await db.query(sql, [id, id, id]);
             const formattedNotifications = rows.map((row) => ({
                 id: row.id,
                 title: row.title,
@@ -220,6 +222,67 @@ export class NotificationController {
         }
         catch (error) {
             console.error("Support Request Error:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
+    async hideNotif(req, res) {
+        const { user_id, notification_id } = req.body;
+        try {
+            await db.query('INSERT IGNORE INTO hidden_notifications (user_id, notification_id) VALUES (?, ?)', [user_id, notification_id]);
+            return res.status(200).json({ message: "Notification hidden for user" });
+        }
+        catch (error) {
+            console.error("Hide Error:", error);
+            return res.status(500).json({ error: "Failed to hide notification" });
+        }
+    }
+    async getSupportTicketsByUser(req, res) {
+        try {
+            const { id } = req.params;
+            const sql = `
+                SELECT 
+                    id, 
+                    message, 
+                    channel, 
+                    created_at as date 
+                FROM support_tickets 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC
+            `;
+            const [rows] = await db.query(sql, [id]);
+            return res.status(200).json(rows);
+        }
+        catch (error) {
+            console.error("Error fetching user support tickets:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
+    async markAllRead(req, res) {
+        try {
+            const { user_id } = req.body;
+            if (!user_id) {
+                return res.status(400).json({ error: "Missing user_id" });
+            }
+            // This query inserts a 'read' record for every notification targeting this user 
+            // (either 'all' or their specific type) that they haven't read yet.
+            const sql = `
+            INSERT IGNORE INTO notification_reads (notification_id, user_id)
+            SELECT n.id, ? 
+            FROM notifications n
+            WHERE (n.target_groups LIKE '%all%' 
+               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?))
+            AND n.id NOT IN (
+                SELECT notification_id FROM notification_reads WHERE user_id = ?
+            )
+        `;
+            await db.query(sql, [user_id, user_id, user_id]);
+            return res.status(200).json({
+                success: true,
+                message: "All notifications marked as read"
+            });
+        }
+        catch (error) {
+            console.error("Error marking all as read:", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import axios from 'axios';
 import { RowDataPacket } from 'mysql2';
-import pool from '../database/db';
+import pool from '../database/db.js';
 
 dotenv.config();
 
