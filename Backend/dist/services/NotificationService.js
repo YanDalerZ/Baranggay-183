@@ -1,25 +1,17 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import pool from '../database/db';
 dotenv.config();
 class NotificationService {
-    transporter;
     SENDER_LABEL = "BRGY 183 ALERT";
     SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
     SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
+    // EmailJS Configuration
+    EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
+    SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
+    PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
+    TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
     constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: "smtp.gmail.com",
-            port: 465,
-            secure: true,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            tls: {
-                rejectUnauthorized: false
-            }
-        });
     }
     formatPhoneNumber(phone) {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
@@ -31,6 +23,50 @@ class NotificationService {
         }
         return cleanPhone;
     }
+    async notifyTargetGroup(attendeeType, title, message) {
+        try {
+            let query = 'SELECT email, firstname, lastname, phone_number FROM users WHERE status = "active"';
+            const params = [];
+            if (attendeeType !== 'BOTH') {
+                query += ' AND type = ?';
+                params.push(attendeeType);
+            }
+            const [users] = await pool.execute(query, params);
+            const notificationPromises = users.map(async (user) => {
+                const fullName = `${user.firstname} ${user.lastname}`;
+                await this.sendBroadcastNotification({
+                    recipientEmail: user.email,
+                    recipientName: fullName,
+                    title: title,
+                    message: message
+                });
+                if (user.phone_number) {
+                    await this.sendSMS({
+                        phoneNumber: user.phone_number,
+                        message: `${title}: ${message}`
+                    });
+                }
+            });
+            await Promise.allSettled(notificationPromises);
+            console.log(`[Notification] Broadcast completed for ${users.length} users.`);
+        }
+        catch (error) {
+            console.error("[Notification Error] Bulk notify failed:", error);
+        }
+    }
+    async sendViaEmailJS(toEmail, subject, htmlContent) {
+        const payload = {
+            service_id: this.SERVICE_ID,
+            template_id: this.TEMPLATE_ID,
+            user_id: this.PUBLIC_KEY,
+            template_params: {
+                to_email: toEmail,
+                subject: subject,
+                html_content: htmlContent,
+            },
+        };
+        return await axios.post(this.EMAILJS_API_URL, payload);
+    }
     async sendSMS({ phoneNumber, message }) {
         try {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
@@ -40,7 +76,6 @@ class NotificationService {
                 message: `[${this.SENDER_LABEL}]\n${message}`,
                 sendername: 'BARANGAY183',
             };
-            //
             const response = await axios.post(this.SEMAPHORE_API_URL, payload);
             console.log(`[SMS Success] sent to ${formattedPhone}:`, response.data);
             return response.data;
@@ -58,11 +93,8 @@ class NotificationService {
     }
     async sendRegistrationEmail(userEmail, fullName, systemId, rawPassword) {
         try {
-            const mailOptions = {
-                from: `"Barangay 183 Admin" <${process.env.EMAIL_USER}>`,
-                to: userEmail,
-                subject: "Account Created - Barangay 183 System",
-                html: `
+            const subject = "Account Created - Barangay 183 System";
+            const html = `
                     <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                         <h2 style="color: #2563eb;">Welcome to Barangay 183</h2>
                         <p>Hello <strong>${fullName}</strong>,</p>
@@ -72,24 +104,45 @@ class NotificationService {
                         <p><strong>System ID:</strong> ${systemId}</p>
                         <p style="margin-top:20px; font-size:12px; color:gray;">Please change your password after your first login.</p>
                     </div>
-                `
-            };
-            await this.transporter.sendMail(mailOptions);
+                `;
+            await this.sendViaEmailJS(userEmail, subject, html);
             console.log(`[Email] Registration sent to ${userEmail}`);
         }
         catch (error) {
             console.error("[Email Error] Registration Email Failed:", error);
         }
     }
+    async sendExpiryWarningEmail(userEmail, fullName, timeLeft, expiryDate) {
+        try {
+            const subject = "⚠️ Action Required: ID Expiry Warning - Barangay 183";
+            const html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #fbbf24; border-radius: 10px;">
+                <h2 style="color: #d97706;">ID Expiry Notice</h2>
+                <p>Hello <strong>${fullName}</strong>,</p>
+                <p>This is a friendly reminder that your registered ID in our system is approaching its expiration date.</p>
+                
+                <div style="background:#fff7ed; padding:15px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+                    <p style="margin:0;"><strong>Status:</strong> Expiring in ${timeLeft}</p>
+                    <p style="margin:5px 0 0 0;"><strong>Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</p>
+                </div>
+
+                <p>Please ensure you renew your documentation and update your profile to maintain uninterrupted access to barangay services.</p>
+                <p style="margin-top:20px; font-size:12px; color:gray;">If you have already renewed your ID, please ignore this email.</p>
+            </div>
+        `;
+            await this.sendViaEmailJS(userEmail, subject, html);
+            console.log(`[Email] Expiry warning sent to ${userEmail}`);
+        }
+        catch (error) {
+            console.error("[Email Error] Expiry Warning Failed:", error);
+        }
+    }
     async sendBroadcastNotification({ recipientEmail, recipientName, title, message }) {
         try {
-            const mailOptions = {
-                from: `"Barangay 183 Alerts" <${process.env.EMAIL_USER}>`,
-                to: recipientEmail,
-                subject: `📢 ${title}`,
-                html: `
+            const subject = `📢 ${title}`;
+            const html = `
                     <div style="font-family: sans-serif; padding: 20px; border: 2px solid #ef4444; border-radius: 12px;">
-                        <h2 style="color: #b91c1c; margin-top:0;">⚠️ ${title}</h2>
+                        <h2 style="color: #b91c1c; margin-top:0;">${title}</h2>
                         <p>Attention ${recipientName},</p>
                         <div style="background:#fef2f2; padding:15px; border-radius:8px; color:#991b1b; font-weight:bold;">
                             ${message}
@@ -98,9 +151,9 @@ class NotificationService {
                             This is an official emergency broadcast from the Barangay 183 Command Center.
                         </p>
                     </div>
-                `
-            };
-            return await this.transporter.sendMail(mailOptions);
+                `;
+            const response = await this.sendViaEmailJS(recipientEmail, subject, html);
+            return response.data;
         }
         catch (error) {
             console.error(`[Email Error] Broadcast failed to ${recipientEmail}`);
@@ -109,15 +162,10 @@ class NotificationService {
     }
     async sendPasswordResetEmail(userEmail, fullName, resetToken) {
         try {
-            // Use the environment variable if it exists, otherwise fallback to local
-            // In Render, set FRONTEND_URL to https://baranggay-183.onrender.com
             const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173/';
             const resetLink = `${baseUrl}reset-password/${resetToken}`;
-            const mailOptions = {
-                from: `"Barangay 183 Security" <${process.env.EMAIL_USER}>`,
-                to: userEmail,
-                subject: "Password Reset Request - Barangay 183",
-                html: `
+            const subject = "Password Reset Request - Barangay 183";
+            const html = `
                 <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
                     <div style="text-align: center; margin-bottom: 20px;">
                         <h2 style="color: #1e293b; margin: 0;">Password Reset</h2>
@@ -130,7 +178,7 @@ class NotificationService {
                     <div style="text-align: center; margin: 35px 0;">
                         <a href="${resetLink}" 
                            style="background-color: #2563eb; color: #ffffff; padding: 14px 28px; text-decoration: none; font-weight: bold; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);">
-                           Reset My Password
+                            Reset My Password
                         </a>
                     </div>
                     
@@ -145,9 +193,8 @@ class NotificationService {
                         <a href="${resetLink}" style="color: #2563eb; word-break: break-all;">${resetLink}</a>
                     </p>
                 </div>
-            `
-            };
-            await this.transporter.sendMail(mailOptions);
+            `;
+            await this.sendViaEmailJS(userEmail, subject, html);
             console.log(`[Email] Reset link sent to ${userEmail}`);
             return true;
         }

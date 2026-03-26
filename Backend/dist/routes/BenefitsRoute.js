@@ -13,6 +13,7 @@ router.get('/batches', LedgerController.fetchBatches);
 router.get('/distribution/all', LedgerController.fetchAllDistributions);
 router.get('/distribution/:batchId', LedgerController.fetchDistributionByBatch);
 router.post('/distribution/batch-generate', LedgerController.generateBatch);
+router.post('/interest', LedgerController.markInterest);
 router.patch('/claim', LedgerController.claimBenefit);
 export default router;
 //# sourceMappingURL=BenefitsRoute.js.map

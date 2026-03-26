@@ -9,10 +9,9 @@ class RiskMapController {
              FROM users
              WHERE role=2`);
             const residents = rows.map(user => {
-                // Construct address string for searching
                 const fullAddress = [
                     user.street,
-                    "Pasay City", // Adding context for Leaflet search
+                    "Pasay City",
                     "Philippines"
                 ].filter(Boolean).join(', ');
                 return {
@@ -20,7 +19,7 @@ class RiskMapController {
                     system_id: user.system_id,
                     name: `${user.firstname} ${user.lastname}`,
                     address: fullAddress,
-                    coordinates: user.coordinates, // This will be null initially
+                    coordinates: user.coordinates,
                     vulnerability: user.disability || 'None',
                     isHighRisk: !!user.is_flood_prone
                 };

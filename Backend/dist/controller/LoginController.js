@@ -27,6 +27,24 @@ class LoginController {
             if (user.status !== 'active') {
                 return res.status(403).json({ message: "Account is not active." });
             }
+            if (user.id_expiry_date) {
+                const today = new Date();
+                const expiryDate = new Date(user.id_expiry_date);
+                const diffTime = expiryDate.getTime() - today.getTime();
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays > 0 && diffDays <= 365) {
+                    const monthsLeft = Math.floor(diffDays / 30);
+                    const remainingDays = diffDays % 30;
+                    let timeString = "";
+                    if (monthsLeft > 0) {
+                        timeString = `${monthsLeft} month(s) and ${remainingDays} day(s)`;
+                    }
+                    else {
+                        timeString = `${diffDays} day(s)`;
+                    }
+                    NotificationService.sendExpiryWarningEmail(user.email, `${user.firstname} ${user.lastname}`, timeString, user.id_expiry_date);
+                }
+            }
             const token = this.generateToken(user);
             const { password: _, ...userData } = user;
             userData.fullname = `${user.firstname} ${user.lastname}`.trim();
