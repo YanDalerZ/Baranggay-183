@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 import axios from 'axios';
+import { RowDataPacket } from 'mysql2';
+import pool from '../database/db';
 
 dotenv.config();
 
@@ -14,6 +16,12 @@ interface SMSOptions {
     phoneNumber: string | number;
     message: string;
 }
+interface TargetUser extends RowDataPacket {
+    email: string;
+    firstname: string;
+    lastname: string;
+    phone_number: string;
+}
 
 class NotificationService {
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
@@ -27,7 +35,6 @@ class NotificationService {
     private readonly TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID!;
 
     constructor() {
-        // Transporter removed as it is no longer needed for API-based sending
     }
 
     private formatPhoneNumber(phone: string | number): string {
@@ -43,7 +50,42 @@ class NotificationService {
         return cleanPhone;
     }
 
+    public async notifyTargetGroup(attendeeType: 'SC' | 'PWD' | 'BOTH', title: string, message: string) {
+        try {
+            let query = 'SELECT email, firstname, lastname, phone_number FROM users WHERE status = "active"';
+            const params: any[] = [];
 
+            if (attendeeType !== 'BOTH') {
+                query += ' AND type = ?';
+                params.push(attendeeType);
+            }
+
+            const [users] = await pool.execute<TargetUser[]>(query, params);
+
+            const notificationPromises = users.map(async (user) => {
+                const fullName = `${user.firstname} ${user.lastname}`;
+
+                await this.sendBroadcastNotification({
+                    recipientEmail: user.email,
+                    recipientName: fullName,
+                    title: title,
+                    message: message
+                });
+
+                if (user.phone_number) {
+                    await this.sendSMS({
+                        phoneNumber: user.phone_number,
+                        message: `${title}: ${message}`
+                    });
+                }
+            });
+
+            await Promise.allSettled(notificationPromises);
+            console.log(`[Notification] Broadcast completed for ${users.length} users.`);
+        } catch (error) {
+            console.error("[Notification Error] Bulk notify failed:", error);
+        }
+    }
     private async sendViaEmailJS(toEmail: string, subject: string, htmlContent: string) {
         const payload = {
             service_id: this.SERVICE_ID,
@@ -106,13 +148,37 @@ class NotificationService {
             console.error("[Email Error] Registration Email Failed:", error);
         }
     }
+    async sendExpiryWarningEmail(userEmail: string, fullName: string, timeLeft: string, expiryDate: string) {
+        try {
+            const subject = "⚠️ Action Required: ID Expiry Warning - Barangay 183";
+            const html = `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #fbbf24; border-radius: 10px;">
+                <h2 style="color: #d97706;">ID Expiry Notice</h2>
+                <p>Hello <strong>${fullName}</strong>,</p>
+                <p>This is a friendly reminder that your registered ID in our system is approaching its expiration date.</p>
+                
+                <div style="background:#fff7ed; padding:15px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+                    <p style="margin:0;"><strong>Status:</strong> Expiring in ${timeLeft}</p>
+                    <p style="margin:5px 0 0 0;"><strong>Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</p>
+                </div>
 
+                <p>Please ensure you renew your documentation and update your profile to maintain uninterrupted access to barangay services.</p>
+                <p style="margin-top:20px; font-size:12px; color:gray;">If you have already renewed your ID, please ignore this email.</p>
+            </div>
+        `;
+
+            await this.sendViaEmailJS(userEmail, subject, html);
+            console.log(`[Email] Expiry warning sent to ${userEmail}`);
+        } catch (error) {
+            console.error("[Email Error] Expiry Warning Failed:", error);
+        }
+    }
     async sendBroadcastNotification({ recipientEmail, recipientName, title, message }: BulkNotifyOptions) {
         try {
             const subject = `📢 ${title}`;
             const html = `
                     <div style="font-family: sans-serif; padding: 20px; border: 2px solid #ef4444; border-radius: 12px;">
-                        <h2 style="color: #b91c1c; margin-top:0;">⚠️ ${title}</h2>
+                        <h2 style="color: #b91c1c; margin-top:0;">${title}</h2>
                         <p>Attention ${recipientName},</p>
                         <div style="background:#fef2f2; padding:15px; border-radius:8px; color:#991b1b; font-weight:bold;">
                             ${message}

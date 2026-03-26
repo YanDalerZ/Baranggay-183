@@ -7,6 +7,7 @@ router.use(authenticateToken);
 router.get('/user/:id', NotificationController.getNotificationsByUser);
 router.get('/history', isAdmin, NotificationController.getHistory);
 router.get('/stats', isAdmin, NotificationController.getStats);
+router.get('/support/:id', NotificationController.getSupportTicketsByUser);
 router.post('/broadcast', isAdmin, NotificationController.sendNotification);
 router.post('/send', isAdmin, NotificationController.sendNotification);
 router.delete('/:id', isAdmin, NotificationController.deleteNotification);

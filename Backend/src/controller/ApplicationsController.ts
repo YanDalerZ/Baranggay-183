@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import pool from '../database/db.js';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import notificationService from '../services/NotificationService.js';
 
 class ServiceController {
-    // Citizen Side: Submit
     public async submitApplication(req: Request, res: Response): Promise<Response> {
         const {
             user_system_id,
@@ -21,7 +21,6 @@ class ServiceController {
         } = req.body;
 
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-
         const doc_medical_cert = files?.['medical_cert'] ? files['medical_cert'][0].buffer : null;
         const doc_id_proof = files?.['id_proof'] ? files['id_proof'][0].buffer : null;
         const doc_psa_birth = files?.['psa_birth'] ? files['psa_birth'][0].buffer : null;
@@ -29,41 +28,30 @@ class ServiceController {
         try {
             const [result] = await pool.execute<ResultSetHeader>(
                 `INSERT INTO service_applications (
-                    user_system_id, 
-                    application_type, 
-                    disability_type, 
-                    medical_condition, 
-                    gsis_sss_number, 
-                    maintenance_meds, 
-                    healthcare_provider, 
-                    is_living_alone, 
-                    is_bedridden, 
-                    emergency_contact_id, 
-                    employment_status, 
-                    blood_type,
-                    doc_medical_cert,
-                    doc_id_proof,
-                    doc_psa_birth,
-                    status
+                    user_system_id, application_type, disability_type, medical_condition, 
+                    gsis_sss_number, maintenance_meds, healthcare_provider, is_living_alone, 
+                    is_bedridden, emergency_contact_id, employment_status, blood_type,
+                    doc_medical_cert, doc_id_proof, doc_psa_birth, status
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')`,
                 [
-                    user_system_id,
-                    application_type,
-                    disability_type || null,
-                    medical_condition || null,
-                    gsis_sss_number || null,
-                    maintenance_meds || null,
-                    healthcare_provider || null,
+                    user_system_id, application_type, disability_type || null, medical_condition || null,
+                    gsis_sss_number || null, maintenance_meds || null, healthcare_provider || null,
                     is_living_alone === 'true' || is_living_alone === true ? 1 : 0,
                     is_bedridden === 'true' || is_bedridden === true ? 1 : 0,
-                    emergency_contact_id || null,
-                    employment_status || null,
-                    blood_type || null,
-                    doc_medical_cert,
-                    doc_id_proof,
-                    doc_psa_birth
+                    emergency_contact_id || null, employment_status || null, blood_type || null,
+                    doc_medical_cert, doc_id_proof, doc_psa_birth
                 ]
             );
+
+            const [user]: any = await pool.execute(`SELECT email, firstname FROM users WHERE system_id = ?`, [user_system_id]);
+            if (user.length > 0) {
+                notificationService.sendBroadcastNotification({
+                    recipientEmail: user[0].email,
+                    recipientName: user[0].firstname,
+                    title: "Application Received",
+                    message: `Your application for ${application_type} has been submitted successfully and is now 'Pending' review.`
+                });
+            }
 
             return res.status(201).json({
                 message: "Application submitted successfully",
@@ -74,7 +62,6 @@ class ServiceController {
             return res.status(500).json({ message: "Internal server error." });
         }
     }
-
     // Admin Side: Get All Applications (with user names)
     public async getAllApplications(req: Request, res: Response): Promise<Response> {
         try {
@@ -185,26 +172,55 @@ class ServiceController {
         const { id } = req.params;
         const { status, admin_notes } = req.body;
 
+        const cleanStatus = status?.trim();
         const validStatuses = ['Pending', 'Approved', 'Denied', 'Incomplete'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ message: "Invalid status provided." });
+
+        if (!cleanStatus || !validStatuses.includes(cleanStatus)) {
+            return res.status(400).json({
+                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
+            });
         }
 
         try {
+            // 1. Fetch User details before updating so we can notify them
+            const [appData]: any = await pool.execute(
+                `SELECT sa.application_type, u.email, u.firstname, u.phone_number 
+                 FROM service_applications sa
+                 JOIN users u ON sa.user_system_id = u.system_id
+                 WHERE sa.id = ?`, [id]
+            );
+
+            if (appData.length === 0) {
+                return res.status(404).json({ message: "Application not found." });
+            }
+
             const [result] = await pool.execute<ResultSetHeader>(
                 `UPDATE service_applications 
                  SET status = ?, admin_notes = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?`,
-                [status, admin_notes || null, id]
+                [cleanStatus, admin_notes || null, id]
             );
 
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: "Application not found." });
+            const { email, firstname, phone_number, application_type } = appData[0];
+
+            notificationService.sendBroadcastNotification({
+                recipientEmail: email,
+                recipientName: firstname,
+                title: `Application Update: ${cleanStatus}`,
+                message: `Your application for ${application_type} has been marked as ${cleanStatus}. ${admin_notes ? `Admin Notes: ${admin_notes}` : ''}`
+            });
+
+            // SMS Notification (Crucial for residents without constant data)
+            if (phone_number) {
+                notificationService.sendSMS({
+                    phoneNumber: phone_number,
+                    message: `BRGY 183: Your ${application_type} application is now ${cleanStatus}. ${admin_notes ? `Note: ${admin_notes}` : 'Please check your portal for details.'}`
+                });
             }
 
-            return res.status(200).json({ message: `Application marked as ${status}.` });
-        } catch (error) {
-            console.error("Update Status Error:", error);
+            return res.status(200).json({ message: `Application marked as ${cleanStatus}.` });
+        } catch (error: any) {
+            console.error("Update Status Error:", error.message);
             return res.status(500).json({ message: "Error updating application status." });
         }
     }

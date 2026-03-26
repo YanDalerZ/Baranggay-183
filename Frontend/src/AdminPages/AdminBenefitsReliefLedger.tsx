@@ -407,6 +407,7 @@ const BenefitsReliefLedger = () => {
                     <tr>
                       <th className="px-6 py-4">Resident Information</th>
                       <th className="px-6 py-4">Package Content</th>
+                      <th className="px-6 py-4">User Interest</th>
                       <th className="px-6 py-4">Current Status</th>
                       <th className="px-6 py-4">Date Claimed</th>
                       <th className="px-6 py-4 text-right">Process</th>
@@ -423,6 +424,15 @@ const BenefitsReliefLedger = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-xs italic text-gray-600 max-w-xs">{r.item_description}</td>
+                        <td className="px-6 py-4">
+                          {r.has_interested ? (
+                            <span className="flex items-center gap-1 text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded w-fit italic">
+                              <CheckCircle size={10} /> Interested
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-gray-300 uppercase italic">No Intent</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4">
                           <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 w-fit ${r.status === 'Claimed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                             {r.status === 'Claimed' ? <CheckCircle size={10} /> : <Clock size={10} />}
@@ -446,7 +456,7 @@ const BenefitsReliefLedger = () => {
                       </tr>
                     )) : (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400 italic text-sm">No matching residents found.</td>
+                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400 italic text-sm">No matching residents found.</td>
                       </tr>
                     )}
                   </tbody>

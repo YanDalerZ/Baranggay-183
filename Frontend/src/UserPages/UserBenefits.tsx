@@ -28,24 +28,66 @@ interface Benefit {
     date_posted: string;
     quantity?: number;
 }
-
-// Modal Component defined in the same file for full working code
+interface BenefitDetailsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    benefit: any | null;
+    onRefresh?: () => void;
+}
 const BenefitDetailsModal = ({
     isOpen,
     onClose,
-    benefit
-}: {
-    isOpen: boolean;
-    onClose: () => void;
-    benefit: Benefit | null
-}) => {
+    benefit,
+    onRefresh
+}: BenefitDetailsModalProps) => {
+    const { token, user } = useAuth();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [hasInterested, setHasInterested] = useState(false);
+
+    // Sync state with backend status whenever modal opens or benefit changes
+    useEffect(() => {
+        if (isOpen && benefit) {
+            // Check if status is anything other than 'To Claim'
+            // This includes 'Interested', 'Claimed', 'Approved', etc.
+            const isAlreadyNoted = benefit.status !== 'To Claim';
+            setHasInterested(isAlreadyNoted);
+        }
+    }, [isOpen, benefit]);
+
     if (!isOpen || !benefit) return null;
 
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'Claimed': return 'bg-green-100 text-green-700 border-green-200';
             case 'Approved': return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'Interested': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
             default: return 'bg-orange-100 text-orange-700 border-orange-200';
+        }
+    };
+
+    const handleInterested = async (batchId: number) => {
+        if (hasInterested || isSubmitting) return;
+
+        setIsSubmitting(true);
+        try {
+            const config = { headers: { Authorization: `Bearer ${token}` } };
+
+            await axios.post(`${API_BASE_URL}/api/benefits/interest`, {
+                batchId,
+                userId: user?.id
+            }, config);
+
+            setHasInterested(true);
+            alert("We've noted your interest in this benefit!");
+
+            // Trigger re-fetch in parent component to update the main list status
+            if (onRefresh) onRefresh();
+
+        } catch (err) {
+            console.error("Interest Error:", err);
+            alert("Failed to record interest. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -69,6 +111,22 @@ const BenefitDetailsModal = ({
                         <span className="text-[10px] bg-gray-900 text-white px-2 py-0.5 font-black uppercase rounded italic">
                             {benefit.target_group}
                         </span>
+
+                        {/* Persistent Interest Button */}
+                        <button
+                            onClick={() => handleInterested(benefit.batch_id)}
+                            disabled={hasInterested || isSubmitting}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold border rounded-lg transition-all uppercase italic ${hasInterested
+                                ? 'bg-green-50 text-green-700 border-green-600 cursor-default'
+                                : 'bg-blue-50 text-blue-700 border-blue-600 hover:bg-blue-100 active:scale-95'
+                                }`}
+                        >
+                            {hasInterested ? (
+                                <><CheckCircle2 className="w-4 h-4" /> Interest Sent</>
+                            ) : (
+                                <><Check className="w-4 h-4" /> I'm Interested</>
+                            )}
+                        </button>
                     </div>
 
                     <h2 className="text-2xl font-black text-gray-900 uppercase leading-none italic tracking-tight">
@@ -92,14 +150,14 @@ const BenefitDetailsModal = ({
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Calendar size={18} /></div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase">Date Posted</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Date Posted</p>
                                     <p className="text-sm font-bold text-gray-900">{benefit.date_posted}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-purple-50 text-purple-600 rounded-lg"><Users size={18} /></div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase">Eligibility</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Eligibility</p>
                                     <p className="text-sm font-bold text-gray-900">
                                         {benefit.target_group === 'BOTH' ? 'Seniors & PWDs' :
                                             benefit.target_group === 'SC' ? 'Senior Citizens Only' : 'PWD Only'}
@@ -112,7 +170,7 @@ const BenefitDetailsModal = ({
                             <div className="flex items-start gap-3">
                                 <div className="p-2 bg-orange-50 text-orange-600 rounded-lg"><MapPin size={18} /></div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase">Pickup Location</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Pickup Location</p>
                                     <p className="text-sm font-bold text-gray-900">Barangay Hall Main Office</p>
                                 </div>
                             </div>
@@ -121,9 +179,13 @@ const BenefitDetailsModal = ({
                                     {benefit.status === 'Claimed' ? <CheckCircle2 size={18} /> : <Clock size={18} />}
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase">Claim Status</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Claim Status</p>
                                     <p className="text-sm font-bold text-gray-900">
-                                        {benefit.status === 'Claimed' ? `Claimed on ${benefit.date_claimed}` : 'Ready for Processing'}
+                                        {benefit.status === 'Claimed'
+                                            ? `Claimed on ${benefit.date_claimed}`
+                                            : benefit.status === 'Interested'
+                                                ? 'Awaiting Processing'
+                                                : 'Ready for Processing'}
                                     </p>
                                 </div>
                             </div>
@@ -134,7 +196,7 @@ const BenefitDetailsModal = ({
                         <AlertCircle className="text-amber-600 shrink-0" size={20} />
                         <div>
                             <p className="text-xs font-black text-amber-800 uppercase italic">Requirement Notice</p>
-                            <p className="text-[11px] text-amber-900 font-bold">
+                            <p className="text-[11px] text-amber-900 font-bold leading-tight">
                                 Please bring your original Barangay ID and a photocopy of your Senior/PWD ID to claim this benefit.
                             </p>
                         </div>
@@ -148,7 +210,6 @@ const BenefitDetailsModal = ({
                     >
                         Close Window
                     </button>
-
                 </div>
             </div>
         </div>
@@ -397,7 +458,6 @@ export default function MyBenefits() {
                         </div>
                     </div>
 
-                    {/* How to Apply Sidebar (Right 1 Column) */}
                     <div className="space-y-4">
                         <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 sticky top-8">
                             <h2 className="text-lg font-black text-gray-900 uppercase italic mb-6 border-b pb-2 border-gray-100">

@@ -188,13 +188,15 @@ export class NotificationController {
                 CASE WHEN nr.read_at IS NULL THEN 'unread' ELSE 'read' END as status
             FROM notifications n
             LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_id = ?
-            WHERE n.target_groups LIKE '%all%' 
-               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?)
+            LEFT JOIN hidden_notifications hn ON n.id = hn.notification_id AND hn.user_id = ?
+            WHERE (n.target_groups LIKE '%all%' 
+               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?))
+               AND hn.id IS NULL  -- This line filters out notifications the user has hidden
             ORDER BY n.created_at DESC
             LIMIT 50
         `;
 
-            const [rows]: any = await db.query(sql, [id, id]);
+            const [rows]: any = await db.query(sql, [id, id, id]);
 
             const formattedNotifications = rows.map((row: any) => ({
                 id: row.id,
@@ -272,6 +274,26 @@ export class NotificationController {
         } catch (error) {
             console.error("Hide Error:", error);
             return res.status(500).json({ error: "Failed to hide notification" });
+        }
+    }
+    public async getSupportTicketsByUser(req: Request, res: Response): Promise<Response> {
+        try {
+            const { id } = req.params;
+            const sql = `
+                SELECT 
+                    id, 
+                    message, 
+                    channel, 
+                    created_at as date 
+                FROM support_tickets 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC
+            `;
+            const [rows]: any = await db.query(sql, [id]);
+            return res.status(200).json(rows);
+        } catch (error) {
+            console.error("Error fetching user support tickets:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
         }
     }
     public async markAllRead(req: Request, res: Response): Promise<Response> {

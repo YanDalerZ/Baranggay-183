@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../database/db.js';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import notificationService from '../services/NotificationService.js';
 
 class AppointmentController {
     public getAttachment = async (req: Request, res: Response): Promise<any> => {
@@ -74,12 +75,26 @@ class AppointmentController {
         const { id } = req.params;
         const { status, admin_notes } = req.body;
 
-        const validStatuses = ['Pending', 'Confirmed', 'Cancelled'];
+        const validStatuses = ['Pending', 'Confirmed', 'Cancelled', 'Denied', 'Incomplete'];
+
         if (status && !validStatuses.includes(status)) {
             return res.status(400).json({ message: "Invalid status value." });
         }
 
         try {
+            // 1. Fetch User and Appointment details for the notification
+            const [appointmentData]: any = await pool.execute(
+                `SELECT a.service_type, a.appointment_date, a.appointment_time, u.email, u.firstname, u.phone_number 
+                 FROM appointments a
+                 JOIN users u ON a.user_id = u.id
+                 WHERE a.id = ?`, [id]
+            );
+
+            if (appointmentData.length === 0) {
+                return res.status(404).json({ message: "Appointment not found." });
+            }
+
+            // 2. Update the record
             const [result] = await pool.execute<ResultSetHeader>(
                 `UPDATE appointments 
                  SET status = COALESCE(?, status), 
@@ -88,14 +103,28 @@ class AppointmentController {
                 [status || null, admin_notes || null, id]
             );
 
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: "Appointment not found." });
+            // 3. NOTIFICATION: Alert the resident
+            const { email, firstname, phone_number, service_type, appointment_date, appointment_time } = appointmentData[0];
+            const dateStr = new Date(appointment_date).toLocaleDateString();
+
+            notificationService.sendBroadcastNotification({
+                recipientEmail: email,
+                recipientName: firstname,
+                title: `Appointment Status: ${status}`,
+                message: `Your appointment for ${service_type} on ${dateStr} at ${appointment_time} is now ${status}. ${admin_notes ? `Note: ${admin_notes}` : ''}`
+            });
+
+            if (phone_number) {
+                notificationService.sendSMS({
+                    phoneNumber: phone_number,
+                    message: `BRGY 183: Your ${service_type} appointment on ${dateStr} is ${status}. ${admin_notes ? `Note: ${admin_notes}` : ''}`
+                });
             }
 
             return res.status(200).json({
                 message: `Appointment ${id} updated to ${status || 'current status'} successfully.`
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Update Status Error:", error);
             return res.status(500).json({ message: "Internal server error during update." });
         }
@@ -113,26 +142,16 @@ class AppointmentController {
         } = req.body;
 
         const user_id = (req as any).user.id;
-
-        // Multer puts the file buffer in req.file if a file was uploaded
         const attachmentBuffer = req.file ? req.file.buffer : null;
 
         try {
             const [result] = await pool.execute<ResultSetHeader>(
                 `INSERT INTO appointments (
-                    user_id, 
-                    service_id, 
-                    service_type, 
-                    appointment_date, 
-                    appointment_time, 
-                    purpose, 
-                    priority, 
-                    home_visit,
-                    attachment
+                    user_id, service_id, service_type, appointment_date, 
+                    appointment_time, purpose, priority, home_visit, attachment
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     user_id,
-                    // Handle FormData sending literal strings like "null" or "undefined"
                     service_id && service_id !== 'null' ? parseInt(service_id) : null,
                     service_type || null,
                     appointment_date || null,
@@ -144,16 +163,24 @@ class AppointmentController {
                 ]
             );
 
+            const [user]: any = await pool.execute(`SELECT email, firstname FROM users WHERE id = ?`, [user_id]);
+
+            if (user.length > 0) {
+                notificationService.sendBroadcastNotification({
+                    recipientEmail: user[0].email,
+                    recipientName: user[0].firstname,
+                    title: "Appointment Request Sent",
+                    message: `Your request for a ${service_type} appointment on ${appointment_date} has been received and is pending approval.`
+                });
+            }
+
             return res.status(201).json({
                 message: "Appointment requested successfully",
                 id: result.insertId
             });
         } catch (error: any) {
             console.error("SQL Error:", error.message);
-            return res.status(500).json({
-                message: "Database Error",
-                details: error.message
-            });
+            return res.status(500).json({ message: "Database Error", details: error.message });
         }
     };
 
@@ -170,14 +197,12 @@ class AppointmentController {
             return res.status(500).json({ message: "Error fetching appointments" });
         }
     };
-    // Add this method inside your AppointmentController class
     public deleteAppointment = async (req: Request, res: Response): Promise<Response> => {
         const { id } = req.params;
         const user_id = (req as any).user.id;
-        const user_role = (req as any).user.role; // Assuming role is in your token
+        const user_role = (req as any).user.role;
 
         try {
-            // 1. Verify ownership if not admin (Security Check)
             const [rows] = await pool.execute<RowDataPacket[]>(
                 'SELECT user_id FROM appointments WHERE id = ?',
                 [id]
@@ -188,7 +213,6 @@ class AppointmentController {
             }
 
 
-            // 2. Perform deletion
             const [result] = await pool.execute<ResultSetHeader>(
                 'DELETE FROM appointments WHERE id = ?',
                 [id]

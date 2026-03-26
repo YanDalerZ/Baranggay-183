@@ -71,25 +71,32 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     localStorage.setItem('fontSize', fontSize.toString());
     localStorage.setItem('ttsEnabled', ttsEnabled.toString());
   }, [highContrast, fontSize, ttsEnabled]);
-
   const handleGlobalMouseOver = (e: React.MouseEvent) => {
     if (!ttsEnabled) return;
 
     const target = e.target as HTMLElement;
     const text = target.innerText?.trim();
 
-    if (text && text.length > 0 && text.length < 300) {
-      window.speechSynthesis.cancel();
+    if (text && text.length > 0 && text.length < 200) {
+      console.log(`[TTS] Attempting to speak: "${text.substring(0, 20)}..."`);
+
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.2;
+      utterance.rate = 1.3;
+
+      utterance.onstart = () => console.log("[TTS] Speech officially STARTED");
+      utterance.onerror = (event) => console.error("[TTS] Speech ERROR:", event.error);
+
       window.speechSynthesis.speak(utterance);
     }
   };
 
   const handleGlobalMouseOut = () => {
-    if (ttsEnabled) window.speechSynthesis.cancel();
+    if (ttsEnabled) {
+      // --- ADD THIS LINE ---
+      console.log("[TTS] Mouse out - cancelling current queue");
+      window.speechSynthesis.cancel();
+    }
   };
-
   const handleLogout = () => {
     logout();
     navigate('/Login');

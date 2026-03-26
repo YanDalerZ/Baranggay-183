@@ -503,24 +503,20 @@ class UserController {
             LIMIT 50
         `;
 
-            // Note: Using pool.query or db.query depending on your setup
             const [rows]: any = await pool.query(sql);
 
             const formattedResidents = rows.map((row: any) => {
                 const tags: string[] = [];
                 let priorityLabel = "";
 
-                // 1. Determine the Label (High, Mid, or None)
                 if (row.priority_level === 1) {
                     priorityLabel = "High Priority";
                 } else if (row.priority_level === 2) {
                     priorityLabel = "Mid Priority";
                 }
 
-                // 2. Determine Tags
                 if (row.is_flood_prone) tags.push('Flood-Prone');
                 if (row.type === 'BOTH') tags.push('SC/PWD');
-                // If you still use 'PWD' or 'SC' individual types elsewhere:
                 if (row.type === 'PWD') tags.push('PWD');
                 if (row.type === 'SC') tags.push('Senior Citizen');
 
@@ -529,8 +525,8 @@ class UserController {
                     name: row.name,
                     address: row.address,
                     phone: row.phone,
-                    priority: row.priority_level, // Changed from row.priority to priority_level
-                    priorityLabel: priorityLabel, // Pass this to the frontend
+                    priority: row.priority_level,
+                    priorityLabel: priorityLabel,
                     tags: tags
                 };
             });
@@ -541,26 +537,17 @@ class UserController {
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
-    // Add this method inside your UserController class
 
-    // Inside your UserController class in UserController.ts/js
     public updateUserCoordinates = async (req: Request, res: Response): Promise<Response> => {
         const { id } = req.params;
-        // Extract coordinates from body
         const { coordinates } = req.body;
 
-        /**
-         * FIX: Use 'undefined' check instead of '!coordinates'.
-         * This allows 'null' (clearing) to pass through, but rejects 
-         * requests where the 'coordinates' key is missing entirely.
-         */
         if (coordinates === undefined) {
             return res.status(400).json({ message: "Coordinates field is required in the request body." });
         }
 
         try {
-            // If coordinates is null, MySQL will set the column to NULL 
-            // (provided the column isn't marked NOT NULL)
+
             const [result]: any = await pool.execute(
                 `UPDATE users SET coordinates = ? WHERE id = ?`,
                 [coordinates, id]
