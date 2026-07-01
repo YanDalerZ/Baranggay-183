@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-    Database, HardDrive, ShieldCheck, RefreshCw, AlertTriangle, CloudLightning, Cpu, Server, Table, Activity
+    Database, HardDrive, RefreshCw, AlertTriangle, CloudLightning, Cpu, Server, Table, Activity
 } from 'lucide-react';
 import { API_BASE_URL } from "../interfaces";
 
@@ -83,7 +83,7 @@ export const SuperAdminDatabase = () => {
             {/* Header section */}
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tighter bg-gradient-to-r from-blue-800 to-indigo-900 bg-clip-text text-transparent flex items-center gap-2">
+                    <h2 className="text-3xl font-black uppercase tracking-tighter bg-linear-to-r from-blue-800 to-indigo-900 bg-clip-text text-transparent flex items-center gap-2">
                         <Database className="text-blue-800" size={28} /> Database Maintenance
                     </h2>
                     <p className="text-xs text-slate-500 mt-1">Live infrastructure metrics and query optimization data.</p>
@@ -224,7 +224,7 @@ interface CardProps {
 }
 
 const StatusCard = ({ title, value, sub, icon, statusColor = "text-slate-900" }: CardProps) => (
-    <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm flex flex-col justify-between min-h-[115px]">
+    <div className="bg-white p-5 rounded-md border border-slate-200 shadow-sm flex flex-col justify-between min-h-28.75">
         <div className="flex justify-between items-start">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{title}</span>
             <div className="text-slate-400">{icon}</div>
