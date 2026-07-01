@@ -1,66 +1,59 @@
 import { useState, useEffect } from 'react';
-import { 
-  Save, RefreshCw, AlertTriangle, Settings, Map, 
-  MessageSquare, HeartHandshake, ShieldCheck, Siren, CheckCircle2 
+import {
+  Save, RefreshCw, AlertTriangle, Settings, CheckCircle2, Loader2, Eye, EyeOff
 } from 'lucide-react';
+import { API_BASE_URL } from '../interfaces';
+import { useAuth } from '../context/AuthContext';
 
-// --- Types & Constants ---
-interface ConfigState {
-  idExpiration: number;
-  autoArchive: number;
-  sessionTimeout: number;
-  maintenanceMode: string;
-  floodRiskRadius: number;
-  mapZoom: number;
-  gisApiKey: string;
-  smsGatewayUrl: string;
-  smsApiKey: string;
-  messengerBridgeUrl: string;
-  messengerApiKey: string;
-  maxNotificationRetries: number;
-  notificationBatchSize: number;
-  defaultBenefitAmount: number;
-  reliefDistributionCycle: string;
-  vulnerabilityScoreWeight: number;
-  dataRetentionPeriod: number;
-  consentRenewalPeriod: number;
-  auditLogRetention: number;
-  emergencyContact: string;
-  emergencyEmail: string;
-  autoEscalationTime: number;
-}
+// Dynamic type definition accommodating arbitrary key-value pairs fetched from the DB
+type DynamicConfigState = Record<string, string | number>;
 
-const DEFAULT_CONFIG: ConfigState = {
-  idExpiration: 90,
-  autoArchive: 365,
-  sessionTimeout: 30,
-  maintenanceMode: 'Disabled',
-  floodRiskRadius: 500,
-  mapZoom: 15,
-  gisApiKey: '****************',
-  smsGatewayUrl: 'https://api.sms-gateway.example.com',
-  smsApiKey: '****************',
-  messengerBridgeUrl: 'https://api.messenger.example.com',
-  messengerApiKey: '****************',
-  maxNotificationRetries: 3,
-  notificationBatchSize: 50,
-  defaultBenefitAmount: 1500,
-  reliefDistributionCycle: 'Monthly',
-  vulnerabilityScoreWeight: 0.7,
-  dataRetentionPeriod: 5,
-  consentRenewalPeriod: 12,
-  auditLogRetention: 730,
-  emergencyContact: '+63-917-123-4567',
-  emergencyEmail: 'emergency@b183.gov.ph',
-  autoEscalationTime: 30,
+const API_CONFIG_URL = `${API_BASE_URL}/api/config`;
+
+// Utility helper to turn database camelCase keys into clean, readable labels
+const formatLabel = (key: string): string => {
+  const result = key.replace(/([A-Z])/g, " $1");
+  return result.charAt(0).toUpperCase() + result.slice(1);
 };
 
 export const SuperAdminConfiguration = () => {
-  const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
+  const { token } = useAuth();
+  const [config, setConfig] = useState<DynamicConfigState>({});
+  const [initialConfig, setInitialConfig] = useState<DynamicConfigState>({});
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [toast, setToast] = useState<{ message: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Auto-dismiss toast
+  // 1. Fetch live dynamic configurations from backend table on mount
+  useEffect(() => {
+    const fetchConfiguration = async () => {
+      try {
+        setIsLoading(true);
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        };
+
+        const response = await fetch(API_CONFIG_URL, { headers });
+        if (!response.ok) {
+          throw new Error('Failed to fetch system configurations.');
+        }
+        const data = await response.json();
+        setConfig(data);
+        setInitialConfig(data);
+      } catch (error) {
+        console.error('Error fetching configuration:', error);
+        setToast({ message: 'Error loading settings from server.', type: 'error' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConfiguration();
+  }, [token]);
+
+  // Auto-dismiss toast messages
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
@@ -68,29 +61,67 @@ export const SuperAdminConfiguration = () => {
     }
   }, [toast]);
 
-  const handleInputChange = (field: keyof ConfigState, value: any) => {
-    setConfig(prev => ({ ...prev, [field]: value }));
-    setHasUnsavedChanges(true);
+  const handleInputChange = (field: string, value: string | number) => {
+    setConfig(prev => {
+      const updated = { ...prev, [field]: value };
+      // Check if current modified configuration state mismatches the baseline server load
+      const differences = Object.keys(updated).some(k => updated[k] !== initialConfig[k]);
+      setHasUnsavedChanges(differences);
+      return updated;
+    });
   };
 
-  const handleSave = () => {
-    console.log('Saving Configuration:', config);
-    setHasUnsavedChanges(false);
-    setToast({ message: 'Changes saved successfully!' });
+  // 2. Persist modified configurations back to database
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      };
+
+      const response = await fetch(API_CONFIG_URL, {
+        method: 'PUT',
+        headers: headers,
+        body: JSON.stringify(config),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update system configurations.');
+      }
+
+      setInitialConfig(config);
+      setHasUnsavedChanges(false);
+      setToast({ message: 'Changes saved successfully to database!', type: 'success' });
+    } catch (error) {
+      console.error('Error saving configuration:', error);
+      setToast({ message: 'Failed to save updates to server.', type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleReset = () => {
-    setConfig(DEFAULT_CONFIG);
+    setConfig(initialConfig);
     setHasUnsavedChanges(false);
-    setToast({ message: 'Reset to default configuration' });
+    setToast({ message: 'Reset changes back to last fetched state.', type: 'success' });
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 gap-3">
+        <Loader2 className="animate-spin text-slate-700" size={32} />
+        <p className="text-sm font-medium text-slate-500">Retrieving runtime configurations...</p>
+      </div>
+    );
+  }
+
   return (
-    <div /*className="p-4 md:p-8 bg-slate-50 min-h-screen"*/>
+    <div className="p-4 md:p-8 bg-slate-50 min-h-screen">
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded sm shadow-2xl z-50 animate-in slide-in-from-bottom-4 fade-in duration-300">
-          <CheckCircle2 className="text-emerald-400" size={20} />
+        <div className={`fixed bottom-6 right-6 flex items-center gap-3 text-white px-6 py-4 rounded sm shadow-2xl z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 ${toast.type === 'error' ? 'bg-rose-600' : 'bg-slate-900'}`}>
+          <CheckCircle2 className={toast.type === 'error' ? 'text-rose-200' : 'text-emerald-400'} size={20} />
           <p className="font-medium">{toast.message}</p>
         </div>
       )}
@@ -99,18 +130,27 @@ export const SuperAdminConfiguration = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <h1 className="text-3xl md:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
-            Global Configuration
+            System Environment
           </h1>
           <p className="text-xs md:text-base text-gray-500 font-medium mt-2">
-            Define system-wide rules and parameters that govern platform behavior
+            Runtime configurations loaded directly from the database schema
           </p>
         </div>
         <div className="flex gap-3">
-          <button onClick={handleReset} className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded sm text-sm font-semibold text-slate-700 hover:bg-slate-100 transition">
-            <RefreshCw size={16} /> Reset
+          <button
+            onClick={handleReset}
+            disabled={isSaving || !hasUnsavedChanges}
+            className="flex items-center gap-2 px-4 py-2 border border-slate-200 bg-white rounded sm text-sm font-semibold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
+          >
+            <RefreshCw size={16} /> Discard Changes
           </button>
-          <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded sm text-sm font-semibold hover:bg-slate-800 transition">
-            <Save size={16} /> Save Changes
+          <button
+            onClick={handleSave}
+            disabled={isSaving || !hasUnsavedChanges}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded sm text-sm font-semibold hover:bg-slate-800 transition disabled:opacity-50"
+          >
+            {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -119,94 +159,93 @@ export const SuperAdminConfiguration = () => {
       {hasUnsavedChanges && (
         <div className="mb-8 p-4 bg-amber-50 border-l-4 border-amber-500 text-amber-700 flex items-center gap-3 rounded-r-lg shadow-sm">
           <AlertTriangle />
-          <p className="text-sm font-medium">You have unsaved changes. Click "Save Changes" to apply configuration.</p>
+          <p className="text-sm font-medium">You have unsaved runtime shifts. Click "Save Changes" to overwrite settings.</p>
         </div>
       )}
 
-      {/* Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ConfigSection title="System Settings" sub="Core system parameters and thresholds" icon={<Settings size={20}/>}>
-          <Input label="ID Expiration Threshold (days)" type="number" value={config.idExpiration} onChange={(v: any) => handleInputChange('idExpiration', v)} hint="Number of days before PWD/SC IDs expire" />
-          <Input label="Auto-Archive Period (days)" type="number" value={config.autoArchive} onChange={(v: any) => handleInputChange('autoArchive', v)} hint="Inactive records archive after this period" />
-          <Input label="Session Timeout (minutes)" type="number" value={config.sessionTimeout} onChange={(v: any) => handleInputChange('sessionTimeout', v)} hint="Admin/staff sessions expire after inactivity" />
-          <Select label="Maintenance Mode" value={config.maintenanceMode} onChange={(v: any) => handleInputChange('maintenanceMode', v)} options={['Disabled', 'Enabled']} />
-        </ConfigSection>
+      {/* Main Container - Dynamically looping over table key entries */}
+      <div className="bg-white p-6 rounded sm border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+          <div className="text-slate-600"><Settings size={20} /></div>
+          <div>
+            <h3 className="font-bold text-slate-900">Active Database Properties</h3>
+            <p className="text-sm text-slate-500">Modifying fields executes dynamic database updates runtime mapping.</p>
+          </div>
+        </div>
 
-        <ConfigSection title="GIS & Risk Mapping" sub="Geospatial settings and flood risk parameters" icon={<Map size={20}/>}>
-          <Input label="Flood Risk Radius (meters)" type="number" value={config.floodRiskRadius} onChange={(v: any) => handleInputChange('floodRiskRadius', v)} />
-          <Input label="Default Map Zoom Level" type="number" value={config.mapZoom} onChange={(v: any) => handleInputChange('mapZoom', v)} />
-          <Input label="GIS Service API Key" type="password" value={config.gisApiKey} onChange={(v: any) => handleInputChange('gisApiKey', v)} />
-        </ConfigSection>
+        {Object.keys(config).length === 0 ? (
+          <div className="p-8 text-center text-sm text-slate-400 font-medium">
+            No active properties detected inside global_configurations table.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+            {Object.entries(config).map(([key, value]) => {
+              const isNumberType = typeof value === 'number';
+              const isSensitive = key.toLowerCase().includes('password') || key.toLowerCase().includes('apikey');
 
-        <ConfigSection title="Multi-Channel Notifications" sub="SMS and Messenger gateway configuration" icon={<MessageSquare size={20}/>}>
-          <Input label="SMS Gateway URL" value={config.smsGatewayUrl} onChange={(v: any) => handleInputChange('smsGatewayUrl', v)} />
-          <Input label="SMS API Key" type="password" value={config.smsApiKey} onChange={(v: any) => handleInputChange('smsApiKey', v)} />
-          <Input label="Messenger Bridge URL" value={config.messengerBridgeUrl} onChange={(v: any) => handleInputChange('messengerBridgeUrl', v)} />
-          <Input label="Messenger API Key" type="password" value={config.messengerApiKey} onChange={(v: any) => handleInputChange('messengerApiKey', v)} />
-          <Input label="Max Notification Retries" type="number" value={config.maxNotificationRetries} onChange={(v: any) => handleInputChange('maxNotificationRetries', v)} />
-        </ConfigSection>
+              return (
+                <div key={key} className="space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {formatLabel(key)}
+                  </label>
 
-        <ConfigSection title="Benefits & Relief Settings" sub="Default values and distribution rules" icon={<HeartHandshake size={20}/>}>
-          <Input label="Default Benefit Amount (PHP)" type="number" value={config.defaultBenefitAmount} onChange={(v: any) => handleInputChange('defaultBenefitAmount', v)} />
-          <Select label="Relief Distribution Cycle" value={config.reliefDistributionCycle} onChange={(v: any) => handleInputChange('reliefDistributionCycle', v)} options={['Weekly', 'Monthly', 'Quarterly']} />
-          <Input label="Vulnerability Score Weight (0-1)" type="number" value={config.vulnerabilityScoreWeight} onChange={(v: any) => handleInputChange('vulnerabilityScoreWeight', v)} />
-        </ConfigSection>
+                  {isSensitive ? (
+                    <PasswordField
+                      value={value}
+                      onChange={(nextVal) => handleInputChange(key, nextVal)}
+                    />
+                  ) : (
+                    <input
+                      type={isNumberType ? 'number' : 'text'}
+                      value={value ?? ''}
+                      onChange={(e) => {
+                        const rawVal = e.target.value;
+                        const nextValue = isNumberType ? (rawVal === '' ? 0 : Number(rawVal)) : rawVal;
+                        handleInputChange(key, nextValue);
+                      }}
+                      className="w-full px-3 py-2 border border-slate-200 rounded sm text-sm focus:ring-2 focus:ring-slate-400 outline-none transition"
+                    />
+                  )}
 
-        <ConfigSection title="Compliance & Data Governance" sub="RA 10173 (Data Privacy Act) compliance" icon={<ShieldCheck size={20}/>}>
-          <Input label="Data Retention Period (years)" type="number" value={config.dataRetentionPeriod} onChange={(v: any) => handleInputChange('dataRetentionPeriod', v)} />
-          <Input label="Consent Renewal Period (months)" type="number" value={config.consentRenewalPeriod} onChange={(v: any) => handleInputChange('consentRenewalPeriod', v)} />
-          <Input label="Audit Log Retention (days)" type="number" value={config.auditLogRetention} onChange={(v: any) => handleInputChange('auditLogRetention', v)} />
-        </ConfigSection>
-
-        <ConfigSection title="Emergency Alert System" sub="Emergency contact and escalation settings" icon={<Siren size={20}/>}>
-          <Input label="Emergency Contact Number" value={config.emergencyContact} onChange={(v: any) => handleInputChange('emergencyContact', v)} />
-          <Input label="Emergency Email Recipient" value={config.emergencyEmail} onChange={(v: any) => handleInputChange('emergencyEmail', v)} />
-          <Input label="Auto-Escalation Time (minutes)" type="number" value={config.autoEscalationTime} onChange={(v: any) => handleInputChange('autoEscalationTime', v)} />
-        </ConfigSection>
+                  <span className="text-[10px] font-mono text-slate-400 block tracking-tight">
+                    DB Key Reference: {key}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-// --- Sub-components ---
+// --- Per-Field Sensitive Input Box Sub-component ---
+interface PasswordFieldProps {
+  value: string | number;
+  onChange: (value: string) => void;
+}
 
-const ConfigSection = ({ title, sub, icon, children }: any) => (
-  <div className="bg-white p-6 rounded sm border border-slate-200 shadow-sm">
-    <div className="flex items-center gap-3 mb-6">
-      <div className="text-slate-600">{icon}</div>
-      <div>
-        <h3 className="font-bold text-slate-900">{title}</h3>
-        <p className="text-sm text-slate-500">{sub}</p>
-      </div>
+const PasswordField = ({ value, onChange }: PasswordFieldProps) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <div className="relative flex items-center">
+      <input
+        type={showPassword ? 'text' : 'password'}
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 pr-10 border border-slate-200 rounded sm text-sm focus:ring-2 focus:ring-slate-400 outline-none transition"
+      />
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="absolute right-3 text-slate-400 hover:text-slate-600 transition"
+      >
+        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
     </div>
-    <div className="space-y-4">{children}</div>
-  </div>
-);
-
-const Input = ({ label, type = "text", value, onChange, hint }: any) => (
-  <div>
-    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
-    <input 
-      type={type} 
-      value={value} 
-      onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)}
-      className="w-full px-3 py-2 border border-slate-200 rounded sm text-sm focus:ring-2 focus:ring-slate-400 outline-none transition"
-    />
-    {hint && <p className="text-xs text-slate-400 mt-1">{hint}</p>}
-  </div>
-);
-
-const Select = ({ label, value, onChange, options }: any) => (
-  <div>
-    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
-    <select 
-      value={value} 
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border border-slate-200 bg-white rounded sm text-sm focus:ring-2 focus:ring-slate-400 outline-none transition cursor-pointer"
-    >
-      {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-    </select>
-  </div>
-);
+  );
+};
 
 export default SuperAdminConfiguration;

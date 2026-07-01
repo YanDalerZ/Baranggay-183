@@ -7,4 +7,7 @@ export { default as ServiceGuideRoute } from "./ServiceGuideRoute.js";
 export { default as AppointmentRoute } from "./AppointmentRoute.js";
 export { default as ApplicationsRoute } from "./ApplicationsRoute.js";
 export { default as RiskMapRoute } from "./RiskMapRoute.js";
+export { default as SuperAdminRoute } from "./SuperAdminUserRoute.js";
+export { default as GlobalConfigurationRoute } from "./GlobalConfigurationRoute.js";
+export { default as DatabaseRoute } from "./DatabaseRoute.js";
 //# sourceMappingURL=AllRoutes.js.map

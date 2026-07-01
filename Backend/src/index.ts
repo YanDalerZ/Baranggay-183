@@ -46,6 +46,9 @@ app.use('/api/serviceguide', AllRoutes.ServiceGuideRoute);
 app.use('/api/appointments', AllRoutes.AppointmentRoute);
 app.use('/api/applications', AllRoutes.ApplicationsRoute);
 app.use('/api/risk', AllRoutes.RiskMapRoute);
+app.use('/api/superadmin', AllRoutes.SuperAdminRoute);
+app.use('/api/config', AllRoutes.GlobalConfigurationRoute);
+app.use('/api/database', AllRoutes.DatabaseRoute);
 
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 

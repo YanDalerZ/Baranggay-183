@@ -364,29 +364,44 @@ class UserController {
         const connection = await pool.getConnection();
         try {
             await connection.beginTransaction();
-            const [rows] = await connection.execute(`SELECT id FROM users WHERE system_id = ?`, [system_id]);
+            // 1. Fetch user details (ID, Email, Firstname) first
+            const [rows] = await connection.execute(`SELECT id, email, firstname FROM users WHERE system_id = ?`, [system_id]);
             if (rows.length === 0) {
                 await connection.rollback();
                 return res.status(404).json({ message: "User not found." });
             }
-            const userId = rows[0].id;
+            const { id: userId, email, firstname } = rows[0];
+            // 2. Send the "Account Deleted" notification BEFORE the data is gone
+            // We do this while the user record still exists in case the service needs to verify the recipient
+            await NotificationService.sendBroadcastNotification({
+                recipientEmail: email,
+                recipientName: firstname,
+                title: `Account Deletion Notice`,
+                message: `Hello ${firstname}, your account (System ID: ${system_id}) has been successfully deleted from our system as requested or per administrative action.`
+            });
+            // 3. Delete from emergency_contacts
             await connection.execute(`DELETE FROM emergency_contacts WHERE user_id = ?`, [userId]);
+            // 4. Delete from support_tickets
+            await connection.execute(`DELETE FROM support_tickets WHERE user_id = ?`, [userId]);
+            // 5. Finally, delete the user record
             const [deleteResult] = await connection.execute(`DELETE FROM users WHERE id = ?`, [userId]);
             if (deleteResult.affectedRows === 0) {
                 throw new Error("Failed to delete user record.");
             }
             await connection.commit();
             return res.status(200).json({
-                message: `User with System ID ${system_id} has been deleted successfully.`
+                message: `User with System ID ${system_id} and all related records have been deleted successfully.`
             });
         }
         catch (error) {
-            await connection.rollback();
+            if (connection)
+                await connection.rollback();
             console.error("Deletion Error:", error);
             return res.status(500).json({ message: "Internal server error during deletion." });
         }
         finally {
-            connection.release();
+            if (connection)
+                connection.release();
         }
     };
     async getPriority(req, res) {

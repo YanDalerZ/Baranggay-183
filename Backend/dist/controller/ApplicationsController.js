@@ -150,7 +150,7 @@ class ServiceController {
         }
         try {
             // 1. Fetch User details before updating so we can notify them
-            const [appData] = await pool.execute(`SELECT sa.application_type, u.email, u.firstname, u.phone_number 
+            const [appData] = await pool.execute(`SELECT sa.application_type, u.email, u.firstname, u.contact_number 
                  FROM service_applications sa
                  JOIN users u ON sa.user_system_id = u.system_id
                  WHERE sa.id = ?`, [id]);
@@ -160,7 +160,7 @@ class ServiceController {
             const [result] = await pool.execute(`UPDATE service_applications 
                  SET status = ?, admin_notes = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE id = ?`, [cleanStatus, admin_notes || null, id]);
-            const { email, firstname, phone_number, application_type } = appData[0];
+            const { email, firstname, contact_number, application_type } = appData[0];
             notificationService.sendBroadcastNotification({
                 recipientEmail: email,
                 recipientName: firstname,
@@ -168,9 +168,9 @@ class ServiceController {
                 message: `Your application for ${application_type} has been marked as ${cleanStatus}. ${admin_notes ? `Admin Notes: ${admin_notes}` : ''}`
             });
             // SMS Notification (Crucial for residents without constant data)
-            if (phone_number) {
+            if (contact_number) {
                 notificationService.sendSMS({
-                    phoneNumber: phone_number,
+                    phoneNumber: contact_number,
                     message: `BRGY 183: Your ${application_type} application is now ${cleanStatus}. ${admin_notes ? `Note: ${admin_notes}` : 'Please check your portal for details.'}`
                 });
             }

@@ -1,17 +1,34 @@
-import dotenv from 'dotenv';
 import axios from 'axios';
-import pool from '../database/db';
-dotenv.config();
+import pool from '../database/db.js';
 class NotificationService {
     SENDER_LABEL = "BRGY 183 ALERT";
     SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
-    SEMAPHORE_API_KEY = 'a7b3f101637f65bb2bb01bfd0ac5595c';
-    // EmailJS Configuration
     EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
-    SERVICE_ID = process.env.EMAILJS_SERVICE_ID;
-    PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY;
-    TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
-    constructor() {
+    // In-memory cache map normalized to lowercase keys for flexible, case-insensitive lookups
+    configCache = null;
+    constructor() { }
+    /**
+     * Resolves a key value out of the dynamic DB configurations table case-insensitively.
+     */
+    async getConfigValue(key) {
+        if (!this.configCache) {
+            this.configCache = new Map();
+            try {
+                const [rows] = await pool.query('SELECT `key`, `value` FROM global_configurations');
+                for (const row of rows) {
+                    if (row.key) {
+                        // Store everything in lowercase and strip underscores to normalize comparisons
+                        const normalizedKey = row.key.toLowerCase().replace(/_/g, '');
+                        this.configCache.set(normalizedKey, String(row.value ?? ''));
+                    }
+                }
+            }
+            catch (err) {
+                console.error('[Notification Config Error] Failed to initialize DB configuration values:', err);
+            }
+        }
+        const lookupKey = key.toLowerCase().replace(/_/g, '');
+        return this.configCache.get(lookupKey) || '';
     }
     formatPhoneNumber(phone) {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
@@ -25,13 +42,16 @@ class NotificationService {
     }
     async notifyTargetGroup(attendeeType, title, message) {
         try {
-            let query = 'SELECT email, firstname, lastname, phone_number FROM users WHERE status = "active"';
+            let query = 'SELECT email, firstname, lastname, contact_number FROM users WHERE status = "active"';
             const params = [];
             if (attendeeType !== 'BOTH') {
                 query += ' AND type = ?';
                 params.push(attendeeType);
             }
             const [users] = await pool.execute(query, params);
+            // Force cache flush before long loops to ensure values are freshly captured
+            this.configCache = null;
+            await this.getConfigValue('smsApiKey');
             const notificationPromises = users.map(async (user) => {
                 const fullName = `${user.firstname} ${user.lastname}`;
                 await this.sendBroadcastNotification({
@@ -40,9 +60,9 @@ class NotificationService {
                     title: title,
                     message: message
                 });
-                if (user.phone_number) {
+                if (user.contact_number) {
                     await this.sendSMS({
-                        phoneNumber: user.phone_number,
+                        phoneNumber: user.contact_number,
                         message: `${title}: ${message}`
                     });
                 }
@@ -55,10 +75,14 @@ class NotificationService {
         }
     }
     async sendViaEmailJS(toEmail, subject, htmlContent) {
+        // Looks up case-insensitively; handles 'emailJsServiceId', 'EMAILJS_SERVICE_ID', etc.
+        const serviceId = await this.getConfigValue('emailJsServiceId');
+        const templateId = await this.getConfigValue('emailJsTemplateId');
+        const publicKey = await this.getConfigValue('emailJsPublicKey');
         const payload = {
-            service_id: this.SERVICE_ID,
-            template_id: this.TEMPLATE_ID,
-            user_id: this.PUBLIC_KEY,
+            service_id: serviceId,
+            template_id: templateId,
+            user_id: publicKey,
             template_params: {
                 to_email: toEmail,
                 subject: subject,
@@ -70,8 +94,9 @@ class NotificationService {
     async sendSMS({ phoneNumber, message }) {
         try {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
+            const smsApiKey = await this.getConfigValue('smsApiKey');
             const payload = {
-                apikey: this.SEMAPHORE_API_KEY,
+                apikey: smsApiKey,
                 number: formattedPhone,
                 message: `[${this.SENDER_LABEL}]\n${message}`,
                 sendername: 'BARANGAY183',
@@ -95,16 +120,16 @@ class NotificationService {
         try {
             const subject = "Account Created - Barangay 183 System";
             const html = `
-                    <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                        <h2 style="color: #2563eb;">Welcome to Barangay 183</h2>
-                        <p>Hello <strong>${fullName}</strong>,</p>
-                        <p>Your account has been set up. Credentials:</p>
-                        <p><strong>Email:</strong> ${userEmail}</p>
-                        <p><strong>Password:</strong> ${rawPassword}</p>
-                        <p><strong>System ID:</strong> ${systemId}</p>
-                        <p style="margin-top:20px; font-size:12px; color:gray;">Please change your password after your first login.</p>
-                    </div>
-                `;
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #2563eb;">Welcome to Barangay 183</h2>
+                    <p>Hello <strong>${fullName}</strong>,</p>
+                    <p>Your account has been set up. Credentials:</p>
+                    <p><strong>Email:</strong> ${userEmail}</p>
+                    <p><strong>Password:</strong> ${rawPassword}</p>
+                    <p><strong>System ID:</strong> ${systemId}</p>
+                    <p style="margin-top:20px; font-size:12px; color:gray;">Please change your password after your first login.</p>
+                </div>
+            `;
             await this.sendViaEmailJS(userEmail, subject, html);
             console.log(`[Email] Registration sent to ${userEmail}`);
         }
@@ -116,20 +141,20 @@ class NotificationService {
         try {
             const subject = "⚠️ Action Required: ID Expiry Warning - Barangay 183";
             const html = `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #fbbf24; border-radius: 10px;">
-                <h2 style="color: #d97706;">ID Expiry Notice</h2>
-                <p>Hello <strong>${fullName}</strong>,</p>
-                <p>This is a friendly reminder that your registered ID in our system is approaching its expiration date.</p>
-                
-                <div style="background:#fff7ed; padding:15px; border-left: 4px solid #f59e0b; margin: 20px 0;">
-                    <p style="margin:0;"><strong>Status:</strong> Expiring in ${timeLeft}</p>
-                    <p style="margin:5px 0 0 0;"><strong>Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</p>
-                </div>
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #fbbf24; border-radius: 10px;">
+                    <h2 style="color: #d97706;">ID Expiry Notice</h2>
+                    <p>Hello <strong>${fullName}</strong>,</p>
+                    <p>This is a friendly reminder that your registered ID in our system is approaching its expiration date.</p>
+                    
+                    <div style="background:#fff7ed; padding:15px; border-left: 4px solid #f59e0b; margin: 20px 0;">
+                        <p style="margin:0;"><strong>Status:</strong> Expiring in ${timeLeft}</p>
+                        <p style="margin:5px 0 0 0;"><strong>Expiry Date:</strong> ${new Date(expiryDate).toLocaleDateString()}</p>
+                    </div>
 
-                <p>Please ensure you renew your documentation and update your profile to maintain uninterrupted access to barangay services.</p>
-                <p style="margin-top:20px; font-size:12px; color:gray;">If you have already renewed your ID, please ignore this email.</p>
-            </div>
-        `;
+                    <p>Please ensure you renew your documentation and update your profile to maintain uninterrupted access to barangay services.</p>
+                    <p style="margin-top:20px; font-size:12px; color:gray;">If you have already renewed your ID, please ignore this email.</p>
+                </div>
+            `;
             await this.sendViaEmailJS(userEmail, subject, html);
             console.log(`[Email] Expiry warning sent to ${userEmail}`);
         }
@@ -141,17 +166,17 @@ class NotificationService {
         try {
             const subject = `📢 ${title}`;
             const html = `
-                    <div style="font-family: sans-serif; padding: 20px; border: 2px solid #ef4444; border-radius: 12px;">
-                        <h2 style="color: #b91c1c; margin-top:0;">${title}</h2>
-                        <p>Attention ${recipientName},</p>
-                        <div style="background:#fef2f2; padding:15px; border-radius:8px; color:#991b1b; font-weight:bold;">
-                            ${message}
-                        </div>
-                        <p style="font-size: 11px; color: #6b7280; margin-top: 20px;">
-                            This is an official emergency broadcast from the Barangay 183 Command Center.
-                        </p>
+                <div style="font-family: sans-serif; padding: 20px; border: 2px solid #ef4444; border-radius: 12px;">
+                    <h2 style="color: #b91c1c; margin-top:0;">${title}</h2>
+                    <p>Attention ${recipientName},</p>
+                    <div style="background:#fef2f2; padding:15px; border-radius:8px; color:#991b1b; font-weight:bold;">
+                        ${message}
                     </div>
-                `;
+                    <p style="font-size: 11px; color: #6b7280; margin-top: 20px;">
+                        This is an official emergency broadcast from the Barangay 183 Command Center.
+                    </p>
+                </div>
+            `;
             const response = await this.sendViaEmailJS(recipientEmail, subject, html);
             return response.data;
         }
@@ -162,8 +187,9 @@ class NotificationService {
     }
     async sendPasswordResetEmail(userEmail, fullName, resetToken) {
         try {
-            const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173/';
-            const resetLink = `${baseUrl}reset-password/${resetToken}`;
+            const frontendUrl = await this.getConfigValue('frontendUrl');
+            const baseUrl = frontendUrl || 'http://localhost:5173/';
+            const resetLink = `${baseUrl}/reset-password/${resetToken}`;
             const subject = "Password Reset Request - Barangay 183";
             const html = `
                 <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">

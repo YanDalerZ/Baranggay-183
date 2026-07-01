@@ -31,7 +31,7 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 };
 
 export const isAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (req.user && req.user.role === 1) {
+    if (req.user && req.user.role === 1 || req.user && req.user.role === 3) {
         next();
     } else {
         res.status(403).json({ message: "Access denied. Admins only." });
