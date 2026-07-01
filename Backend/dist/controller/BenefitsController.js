@@ -230,7 +230,7 @@ class LedgerController {
         try {
             await connection.beginTransaction();
             const [batchData] = await connection.execute(`SELECT batch_name FROM distribution_batches WHERE id = ?`, [batchId]);
-            const [userData] = await connection.execute(`SELECT email, firstname, lastname, phone_number FROM users WHERE id = ?`, [residentId]);
+            const [userData] = await connection.execute(`SELECT email, firstname, lastname, contact_number FROM users WHERE id = ?`, [residentId]);
             const [batchItems] = await connection.execute(`SELECT inventory_id, qty FROM batch_items WHERE batch_id = ?`, [batchId]);
             if (batchItems.length === 0)
                 throw new Error("No items found for this batch.");
@@ -255,9 +255,9 @@ class LedgerController {
                     title: "Benefit Claimed Successfully",
                     message: `You have successfully claimed your items from ${batchName}. Thank you for using the Barangay 183 System.`
                 });
-                if (user.phone_number) {
+                if (user.contact_number) {
                     notificationService.sendSMS({
-                        phoneNumber: user.phone_number,
+                        phoneNumber: user.contact_number,
                         message: `BRGY 183: Your claim for ${batchName} was successful. Status: Claimed.`
                     });
                 }

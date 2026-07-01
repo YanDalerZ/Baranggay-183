@@ -16,7 +16,7 @@ export const authenticateToken = (req, res, next) => {
     }
 };
 export const isAdmin = (req, res, next) => {
-    if (req.user && req.user.role === 1) {
+    if (req.user && req.user.role === 1 || req.user && req.user.role === 3) {
         next();
     }
     else {

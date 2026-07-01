@@ -98,6 +98,8 @@ export interface User {
     proof_of_residency?: string | File | null;
     attachments?: any[];
     medical_history?: string;
+
+    role?: number;
 }
 
 export interface InventoryItem {
