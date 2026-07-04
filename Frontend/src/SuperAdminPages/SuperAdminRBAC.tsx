@@ -140,15 +140,15 @@ export const SuperAdminRBAC = () => {
     return (
         <div>
             {toast && (
-                <div className="fixed bottom-5 right-5 z-[100] flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-sm shadow-xl animate-in slide-in-from-top-4 duration-300">
-                    <CheckCircle className="text-emerald-400 flex-shrink-0" size={20} />
+                <div className="fixed bottom-5 right-5 z-100 flex items-center gap-3 bg-slate-900 text-white px-6 py-4 rounded-sm shadow-xl animate-in slide-in-from-top-4 duration-300">
+                    <CheckCircle className="text-emerald-400 shrink-0" size={20} />
                     <p className="font-semibold text-sm select-all">{toast.msg}</p>
                 </div>
             )}
 
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
                 <div>
-                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+                    <h2 className="text-2xl md:text-3xl lg:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
                         User Role-Based Access Control Management
                     </h2>
                     <p className="text-sm md:text-base text-gray-500 font-medium mt-1">
@@ -315,7 +315,7 @@ const UserModal = ({
 
     return (
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/50 h-svh">
-            <div className="bg-white p-6 sm:p-8 rounded-sm w-full max-w-[450px] shadow-xl max-h-[85svh] overflow-y-auto">
+            <div className="bg-white p-6 sm:p-8 rounded-sm w-full max-w-112.5 shadow-xl max-h-[85svh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="font-bold text-lg">
                         {user ? `Edit User (${user.system_id})` : 'Create New User'}

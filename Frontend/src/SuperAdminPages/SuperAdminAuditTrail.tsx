@@ -437,7 +437,7 @@ export const SuperAdminAuditTrail = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
         <div>
-          <h2 className="text-3xl md:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-gradient-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
+          <h2 className="text-3xl md:text-5xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-linear-to-r from-[#00308F] to-[#00308F] bg-clip-text text-transparent">
             Master Audit Trail
           </h2>
           <p className="text-xs md:text-base text-gray-500 font-medium mt-2">
@@ -538,7 +538,7 @@ const StatCard = ({ title, value, sub, icon, valueColor = "text-slate-900" }: an
 );
 
 const SelectFilter = ({ value, onChange, options }: { value: string, onChange: (v: string) => void, options: string[] }) => (
-  <div className="relative flex-1 md:flex-none min-w-[160px]">
+  <div className="relative flex-1 md:flex-none min-w-40">
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
