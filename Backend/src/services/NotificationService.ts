@@ -28,7 +28,7 @@ interface ConfigurationRow extends RowDataPacket {
 
 class NotificationService {
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
-    private readonly SEMAPHORE_API_URL = 'https://api.semaphore.co/api/v4/messages';
+    private readonly IPROG_API_URL = 'https://sms.iprogtech.com/api/v1/sms_messages';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
     // In-memory cache map normalized to lowercase keys for flexible, case-insensitive lookups
@@ -136,16 +136,15 @@ class NotificationService {
     async sendSMS({ phoneNumber, message }: SMSOptions) {
         try {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
-            const smsApiKey = await this.getConfigValue('smsApiKey');
+            const smsApiToken = await this.getConfigValue('smsApiKey');
 
             const payload = {
-                apikey: smsApiKey,
+                api_token: smsApiToken,
                 number: formattedPhone,
-                message: `[${this.SENDER_LABEL}]\n${message}`,
-                sendername: 'BARANGAY183',
+                message: `[${this.SENDER_LABEL}]\n${message}`
             };
 
-            const response = await axios.post(this.SEMAPHORE_API_URL, payload);
+            const response = await axios.post(this.IPROG_API_URL, payload);
             console.log(`[SMS Success] sent to ${formattedPhone}:`, response.data);
             return response.data;
         } catch (error: any) {
