@@ -27,19 +27,14 @@ interface ConfigurationRow extends RowDataPacket {
 }
 
 class NotificationService {
-    // Moved into the text content since free tiers cannot push custom alpha tags to the gateway
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
-    private readonly IPROG_API_URL = 'https://sms.iprogtech.com/api/v1/sms_messages';
+    private readonly UNISMS_API_URL = 'https://unismsapi.com/api/sms';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
-    // In-memory cache map normalized to lowercase keys for flexible, case-insensitive lookups
     private configCache: Map<string, string> | null = null;
 
     constructor() { }
 
-    /**
-     * Resolves a key value out of the dynamic DB configurations table case-insensitively.
-     */
     private async getConfigValue(key: string): Promise<string> {
         if (!this.configCache) {
             this.configCache = new Map<string, string>();
@@ -47,7 +42,6 @@ class NotificationService {
                 const [rows] = await pool.query<ConfigurationRow[]>('SELECT `key`, `value` FROM global_configurations');
                 for (const row of rows) {
                     if (row.key) {
-                        // Store everything in lowercase and strip underscores to normalize comparisons
                         const normalizedKey = row.key.toLowerCase().replace(/_/g, '');
                         this.configCache.set(normalizedKey, String(row.value ?? ''));
                     }
@@ -70,7 +64,7 @@ class NotificationService {
             cleanPhone = '63' + cleanPhone;
         }
 
-        return cleanPhone;
+        return '+' + cleanPhone;
     }
 
     public async notifyTargetGroup(attendeeType: 'SC' | 'PWD' | 'BOTH', title: string, message: string) {
@@ -85,7 +79,6 @@ class NotificationService {
 
             const [users] = await pool.execute<TargetUser[]>(query, params);
 
-            // Force cache flush before long loops to ensure values are freshly captured
             this.configCache = null;
             await this.getConfigValue('smsApiKey');
 
@@ -115,7 +108,6 @@ class NotificationService {
     }
 
     private async sendViaEmailJS(toEmail: string, subject: string, htmlContent: string) {
-        // Looks up case-insensitively; handles 'emailJsServiceId', 'EMAILJS_SERVICE_ID', etc.
         const serviceId = await this.getConfigValue('emailJsServiceId');
         const templateId = await this.getConfigValue('emailJsTemplateId');
         const publicKey = await this.getConfigValue('emailJsPublicKey');
@@ -135,28 +127,39 @@ class NotificationService {
         return await axios.post(this.EMAILJS_API_URL, payload);
     }
 
+    // UPDATED: Fetches sender_id dynamically from global_configurations table
     async sendSMS({ phoneNumber, message }: SMSOptions) {
         try {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
             const smsApiToken = await this.getConfigValue('smsApiKey');
+            const smsSenderId = await this.getConfigValue('smsSenderId');
 
-            // Free tier compliance: Do NOT supply a custom sender_name key here.
-            // Keeping payload simple avoids gateway rejections.
+            // Fallback default value to "UniSMS" if database configuration returns empty string
+            const finalSenderId = smsSenderId || "UniSMS";
+
             const payload = {
-                api_token: smsApiToken,
-                number: formattedPhone,
-                message: `[${this.SENDER_LABEL}]\n${message}`
+                recipient: formattedPhone,
+                content: `[${this.SENDER_LABEL}]\n${message}`,
+                sender_id: finalSenderId
             };
 
-            const response = await axios.post(this.IPROG_API_URL, payload);
-            console.log(`[SMS Success] sent to ${formattedPhone}:`, response.data);
+            const tokenBase64 = Buffer.from(`${smsApiToken}:`).toString('base64');
+
+            const response = await axios.post(this.UNISMS_API_URL, payload, {
+                headers: {
+                    'Authorization': `Basic ${tokenBase64}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            console.log(`[SMS Success] sent via UniSMS to ${formattedPhone}:`, response.data);
             return response.data;
         } catch (error: any) {
             if (error.response) {
-                console.error(`[SMS Error] status: ${error.response.status}`);
-                console.error(`[SMS Error] data:`, error.response.data);
+                console.error(`[SMS Error] UniSMS status: ${error.response.status}`);
+                console.error(`[SMS Error] UniSMS response data:`, error.response.data);
             } else {
-                console.error(`[SMS Error] message: ${error.message}`);
+                console.error(`[SMS Error] Network/Configuration message: ${error.message}`);
             }
             return null;
         }
