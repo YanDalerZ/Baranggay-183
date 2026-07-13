@@ -27,7 +27,7 @@ interface ConfigurationRow extends RowDataPacket {
 }
 
 class NotificationService {
-    private readonly SENDER_LABEL = "BRGY 183 ALERT";
+    private readonly SENDER_LABEL = "This is a message from Villamor Town Hall.";
     private readonly UNISMS_API_URL = 'https://unismsapi.com/api/sms';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
