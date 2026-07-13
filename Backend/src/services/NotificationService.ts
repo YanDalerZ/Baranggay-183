@@ -27,7 +27,8 @@ interface ConfigurationRow extends RowDataPacket {
 }
 
 class NotificationService {
-    private readonly SENDER_LABEL = "This is a message from Villamor Town Hall.";
+    // Kept clean and simple to comply with the spam filter rules
+    private readonly SENDER_LABEL = "Villamor Town Hall";
     private readonly UNISMS_API_URL = 'https://unismsapi.com/api/sms';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
@@ -79,8 +80,10 @@ class NotificationService {
 
             const [users] = await pool.execute<TargetUser[]>(query, params);
 
+            // FIXED: Flush cache and explicitly preload both keys before launching the map loop
             this.configCache = null;
             await this.getConfigValue('smsApiKey');
+            await this.getConfigValue('smsSenderId');
 
             const notificationPromises = users.map(async (user) => {
                 const fullName = `${user.firstname} ${user.lastname}`;
@@ -127,19 +130,18 @@ class NotificationService {
         return await axios.post(this.EMAILJS_API_URL, payload);
     }
 
-    // UPDATED: Fetches sender_id dynamically from global_configurations table
     async sendSMS({ phoneNumber, message }: SMSOptions) {
         try {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
             const smsApiToken = await this.getConfigValue('smsApiKey');
             const smsSenderId = await this.getConfigValue('smsSenderId');
 
-            // Fallback default value to "UniSMS" if database configuration returns empty string
             const finalSenderId = smsSenderId || "UniSMS";
 
+            // Structuring the content message safely to avoid spam triggers
             const payload = {
                 recipient: formattedPhone,
-                content: `[${this.SENDER_LABEL}]\n${message}`,
+                content: `Notice from ${this.SENDER_LABEL}: ${message}`,
                 sender_id: finalSenderId
             };
 
