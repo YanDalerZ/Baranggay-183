@@ -28,8 +28,7 @@ interface ConfigurationRow extends RowDataPacket {
 
 class NotificationService {
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
-    // UPDATED: Changed from IPROG to official UniSMS API Endpoint
-    private readonly UNISMS_API_URL = 'https://api.unisms.ap-east-1.myhuaweicloud.com/v1/sms/send';
+    private readonly UNISMS_API_URL = 'https://unismsapi.com/api/sms';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
     private configCache: Map<string, string> | null = null;
@@ -56,7 +55,6 @@ class NotificationService {
         return this.configCache.get(lookupKey) || '';
     }
 
-    // UPDATED: UniSMS requires international E.164 strings with the '+' sign included
     private formatPhoneNumber(phone: string | number): string {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
 
@@ -129,21 +127,27 @@ class NotificationService {
         return await axios.post(this.EMAILJS_API_URL, payload);
     }
 
-    // UPDATED: Refactored for UniSMS API schemas and authorization requirements
+    // UPDATED: Fetches sender_id dynamically from global_configurations table
     async sendSMS({ phoneNumber, message }: SMSOptions) {
         try {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
             const smsApiToken = await this.getConfigValue('smsApiKey');
+            const smsSenderId = await this.getConfigValue('smsSenderId');
 
-            // Payload structure tailored strictly to UniSMS schema mappings
+            // Fallback default value to "UniSMS" if database configuration returns empty string
+            const finalSenderId = smsSenderId || "UniSMS";
+
             const payload = {
-                to: formattedPhone,
-                text: `[${this.SENDER_LABEL}]\n${message}`
+                recipient: formattedPhone,
+                content: `[${this.SENDER_LABEL}]\n${message}`,
+                sender_id: finalSenderId
             };
+
+            const tokenBase64 = Buffer.from(`${smsApiToken}:`).toString('base64');
 
             const response = await axios.post(this.UNISMS_API_URL, payload, {
                 headers: {
-                    'Authorization': `Bearer ${smsApiToken}`,
+                    'Authorization': `Basic ${tokenBase64}`,
                     'Content-Type': 'application/json'
                 }
             });
