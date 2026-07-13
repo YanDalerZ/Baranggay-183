@@ -64,9 +64,9 @@ class NotificationService {
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
 
         if (cleanPhone.startsWith('0')) {
-            cleanPhone = '63' + cleanPhone.substring(1);
+            cleanPhone = '+63' + cleanPhone.substring(1);
         } else if (cleanPhone.startsWith('9') && cleanPhone.length === 10) {
-            cleanPhone = '63' + cleanPhone;
+            cleanPhone = '+63' + cleanPhone;
         }
 
         return cleanPhone;
