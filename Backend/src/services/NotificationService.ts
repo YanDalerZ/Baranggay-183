@@ -70,7 +70,7 @@ class NotificationService {
             cleanPhone = '63' + cleanPhone;
         }
 
-        return '+' + cleanPhone;
+        return cleanPhone;
     }
 
     public async notifyTargetGroup(attendeeType: 'SC' | 'PWD' | 'BOTH', title: string, message: string) {
