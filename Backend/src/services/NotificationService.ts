@@ -27,6 +27,7 @@ interface ConfigurationRow extends RowDataPacket {
 }
 
 class NotificationService {
+    // Moved into the text content since free tiers cannot push custom alpha tags to the gateway
     private readonly SENDER_LABEL = "BRGY 183 ALERT";
     private readonly IPROG_API_URL = 'https://sms.iprogtech.com/api/v1/sms_messages';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
@@ -127,6 +128,7 @@ class NotificationService {
                 to_email: toEmail,
                 subject: subject,
                 html_content: htmlContent,
+                to_name: '',
             },
         };
 
@@ -138,6 +140,8 @@ class NotificationService {
             const formattedPhone = this.formatPhoneNumber(phoneNumber);
             const smsApiToken = await this.getConfigValue('smsApiKey');
 
+            // Free tier compliance: Do NOT supply a custom sender_name key here.
+            // Keeping payload simple avoids gateway rejections.
             const payload = {
                 api_token: smsApiToken,
                 number: formattedPhone,
