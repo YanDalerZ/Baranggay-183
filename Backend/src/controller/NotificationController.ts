@@ -7,36 +7,47 @@ export class NotificationController {
         try {
             const { title, message, target_groups, channels, sender_id } = req.body;
 
-            const groupsArray = Array.isArray(target_groups) ? target_groups : target_groups.split(',');
+            // Ensure groupsArray contains cleaned, trimmed strings
+            const rawGroups = Array.isArray(target_groups)
+                ? target_groups
+                : (target_groups ? target_groups.split(',') : []);
+
+            const groupsArray = rawGroups.map((g: string) => g.trim().toLowerCase());
+
             let userSql = "SELECT email, contact_number, CONCAT(firstname, ' ', lastname) as full_name FROM users WHERE 1=0";
             let userParams: any[] = [];
 
             groupsArray.forEach((group: string) => {
-                if (group === 'all') userSql += " OR 1=1";
-                else if (group === 'pwd') userSql += " OR type = 'PWD'";
-                else if (group === 'sc') userSql += " OR type = 'SC'";
-                else if (group === 'flood_prone') userSql += " OR is_flood_prone = 1";
-                else {
-                    userSql += " OR type = ?";
+                if (group === 'all') {
+                    userSql += " OR 1=1";
+                } else if (group === 'pwd') {
+                    userSql += " OR LOWER(type) = 'pwd'";
+                } else if (group === 'sc') {
+                    userSql += " OR LOWER(type) = 'sc'";
+                } else if (group === 'flood_prone') {
+                    userSql += " OR is_flood_prone = 1";
+                } else {
+                    userSql += " OR LOWER(type) = LOWER(?)";
                     userParams.push(group);
                 }
             });
 
             const [users]: any = await db.query(userSql, userParams);
-            if (users.length === 0) {
+            if (!users || users.length === 0) {
                 return res.status(404).json({ error: "No recipients found for the selected groups" });
             }
 
             const channelOptions = ['Email', 'SMS', 'Web'];
-            const bits = channelOptions.map(ch => channels.includes(ch) ? "1" : "0");
+            const bits = channelOptions.map(ch => (channels && channels.includes(ch)) ? "1" : "0");
             const bitmaskString = bits.join(",");
 
             const [result]: any = await db.query(
                 `INSERT INTO notifications (sender_id, target_groups, channels_bitmask, title, message, recipient_count) 
-             VALUES (?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?)`,
                 [sender_id, groupsArray.join(','), bitmaskString, title, message, users.length]
             );
 
+            // Channel 0: Email
             if (bits[0] === "1") {
                 users.forEach((user: any) => {
                     if (user.email) {
@@ -50,6 +61,7 @@ export class NotificationController {
                 });
             }
 
+            // Channel 1: SMS
             if (bits[1] === "1") {
                 users.forEach((user: any) => {
                     if (user.contact_number) {
@@ -61,19 +73,99 @@ export class NotificationController {
                 });
             }
 
+            // Channel 2: Web
             if (bits[2] === "1") {
-
                 console.log("[Web Alert] Notification pushed to web dashboard");
             }
 
             return res.status(201).json({
                 success: true,
-                message: `Alert sent via: ${channels.join(' & ')}`,
+                message: `Alert sent via: ${channels ? channels.join(' & ') : 'None'}`,
                 recipient_count: users.length
             });
 
         } catch (error) {
             console.error("Broadcast Error:", error);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    }
+
+    public async getNotificationsByUser(req: Request, res: Response): Promise<Response> {
+        try {
+            const { id } = req.params;
+
+            // 1. Fetch user attributes first to accurately check targeting
+            const [userRows]: any = await db.query(
+                "SELECT LOWER(type) as type, is_flood_prone FROM users WHERE id = ?",
+                [id]
+            );
+
+            if (!userRows || userRows.length === 0) {
+                return res.status(404).json({ error: "User not found" });
+            }
+
+            const currentUser = userRows[0];
+            const userType = currentUser.type || '';
+            const isFloodProne = currentUser.is_flood_prone == 1;
+
+            // 2. Query notifications using proper string matching conditions
+            const sql = `
+                SELECT 
+                    n.id,
+                    n.title,
+                    n.message as \`desc\`,
+                    n.created_at as date,
+                    n.target_groups,
+                    n.channels_bitmask,
+                    CASE WHEN nr.read_at IS NULL THEN 'unread' ELSE 'read' END as status
+                FROM notifications n
+                LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_id = ?
+                LEFT JOIN hidden_notifications hn ON n.id = hn.notification_id AND hn.user_id = ?
+                WHERE hn.id IS NULL
+                  AND (
+                     LOWER(n.target_groups) LIKE '%all%'
+                     OR (? != '' AND FIND_IN_SET(?, LOWER(n.target_groups)) > 0)
+                     OR (? != '' AND LOWER(n.target_groups) LIKE CONCAT('%', ?, '%'))
+                     OR (? = 1 AND LOWER(n.target_groups) LIKE '%flood_prone%')
+                  )
+                ORDER BY n.created_at DESC
+                LIMIT 50
+            `;
+
+            const [rows]: any = await db.query(sql, [
+                id,
+                id,
+                userType,
+                userType,
+                userType,
+                userType,
+                isFloodProne ? 1 : 0
+            ]);
+
+            const channelMap = ['Email', 'SMS', 'Web'];
+
+            const formattedNotifications = rows.map((row: any) => {
+                // Parse channels bitmask if available (e.g., "1,0,1" -> ['Email', 'Web'])
+                let activeChannels: string[] = ['Web', 'SMS'];
+                if (row.channels_bitmask) {
+                    const bits = row.channels_bitmask.split(',');
+                    const mapped = channelMap.filter((_, idx) => bits[idx] === '1');
+                    if (mapped.length > 0) activeChannels = mapped;
+                }
+
+                return {
+                    id: row.id,
+                    title: row.title,
+                    message: row.desc,
+                    date: row.date,
+                    status: row.status,
+                    channels: activeChannels
+                };
+            });
+
+            return res.status(200).json(formattedNotifications);
+        } catch (error) {
+            console.error("Error fetching user notifications:", error);
             return res.status(500).json({ error: "Internal Server Error" });
         }
     }
@@ -174,45 +266,7 @@ export class NotificationController {
         }
     }
 
-    public async getNotificationsByUser(req: Request, res: Response): Promise<Response> {
-        try {
-            const { id } = req.params;
 
-            const sql = `
-            SELECT 
-                n.id,
-                n.title,
-                n.message as \`desc\`,
-                n.created_at as date,
-                n.target_groups,
-                CASE WHEN nr.read_at IS NULL THEN 'unread' ELSE 'read' END as status
-            FROM notifications n
-            LEFT JOIN notification_reads nr ON n.id = nr.notification_id AND nr.user_id = ?
-            LEFT JOIN hidden_notifications hn ON n.id = hn.notification_id AND hn.user_id = ?
-            WHERE (n.target_groups LIKE '%all%' 
-               OR n.target_groups LIKE (SELECT CONCAT('%', type, '%') FROM users WHERE id = ?))
-               AND hn.id IS NULL  -- This line filters out notifications the user has hidden
-            ORDER BY n.created_at DESC
-            LIMIT 50
-        `;
-
-            const [rows]: any = await db.query(sql, [id, id, id]);
-
-            const formattedNotifications = rows.map((row: any) => ({
-                id: row.id,
-                title: row.title,
-                message: row.desc,
-                date: row.date,
-                status: row.status,
-                channels: ['Web', 'SMS']
-            }));
-
-            return res.status(200).json(formattedNotifications);
-        } catch (error) {
-            console.error("Error fetching user notifications:", error);
-            return res.status(500).json({ error: "Internal Server Error" });
-        }
-    }
     async sendSupportRequest(req: Request, res: Response) {
         try {
             const { user_id, message, channel } = req.body;
