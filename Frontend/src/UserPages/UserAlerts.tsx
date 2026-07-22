@@ -132,7 +132,7 @@ export default function Dashboard() {
         } finally {
             setLoading(false);
         }
-    }, [token, user?.id, API_BASE_URL, config]);
+    }, [token, user?.id]);
 
     useEffect(() => {
         fetchNotifications();
