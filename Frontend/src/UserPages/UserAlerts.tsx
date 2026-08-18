@@ -191,6 +191,7 @@ export default function Dashboard() {
             alert("Failed to mark all as read. Please try again.");
         } finally {
             setMarkingRead(false);
+            window.location.reload();
         }
     };
 
@@ -259,7 +260,10 @@ export default function Dashboard() {
                                 Hide from Feed
                             </button>
                             <button
-                                onClick={() => setSelectedNotification(null)}
+                                onClick={() => {
+                                    setSelectedNotification(null);
+                                    window.location.reload();
+                                }}
                                 className="px-6 py-2 bg-gray-900 text-white font-bold text-sm uppercase tracking-widest hover:bg-gray-800 transition-colors"
                             >
                                 Close Detail

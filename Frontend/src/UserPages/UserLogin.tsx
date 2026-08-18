@@ -67,8 +67,8 @@ const UserLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md flex flex-col items-center">
+    <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4" style={{ backgroundImage: 'url("loginbg.jpg")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md flex flex-col items-center " style={{ opacity: 0.90 }}>
         <img className="size-24 mb-4" src="Logo.png" alt="Logo" />
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Barangay 183</h1>
         <p className="text-gray-500 text-sm mb-8 text-center font-medium">
@@ -86,7 +86,7 @@ const UserLogin: React.FC = () => {
             <label className="block text-gray-800 font-bold mb-2 ml-1">Email</label>
             <input
               type="email"
-              className="w-full px-4 py-3 rounded-xl bg-gray-100 border-transparent focus:border-blue-500 focus:bg-white text-gray-700 transition duration-200 outline-none"
+              className="w-full px-4 py-3 rounded-xl bg-gray-200 border-transparent focus:border-blue-500 focus:bg-white transition duration-200 outline-none"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -97,7 +97,7 @@ const UserLogin: React.FC = () => {
             <label className="block text-gray-800 font-bold mb-2 ml-1">Password</label>
             <input
               type="password"
-              className="w-full px-4 py-3 rounded-xl bg-gray-100 border-transparent focus:border-blue-500 focus:bg-white text-gray-700 transition duration-200 outline-none"
+              className="w-full px-4 py-3 rounded-xl bg-gray-200 border-transparent focus:border-blue-500 focus:bg-white text-gray-700 transition duration-200 outline-none"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

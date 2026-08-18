@@ -61,11 +61,11 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     };
 
-    const formatCurrency = (val: any) => {
-        if (!val) return 'N/A';
-        const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
-        return isNaN(num) ? 'N/A' : `₱${num.toLocaleString()}`;
-    };
+    // const formatCurrency = (val: any) => {
+    //     if (!val) return 'N/A';
+    //     const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+    //     return isNaN(num) ? 'N/A' : `₱${num.toLocaleString()}`;
+    // };
 
     const profilePic = displayData.attachments?.find((a: any) => a.file_type === 'photo_2x2');
 
@@ -156,7 +156,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                     <DataRow label="Ownership" value={displayData.ownership_type} />
                                     <DataRow label="Residency" value={`${displayData.years_of_residency || 0}Y`} />
                                 </div>
-                                <DataRow label="Income" value={formatCurrency(displayData.monthly_income)} />
+                                <DataRow label="Income" value={displayData.monthly_income} />
                                 <DataRow label="Education" value={displayData.education} />
                             </div>
                         </div>

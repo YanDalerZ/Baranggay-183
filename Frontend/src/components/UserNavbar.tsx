@@ -6,7 +6,9 @@ import {
   MoreHorizontal, Plus, Minus
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../hooks/useAuth';
+import { API_BASE_URL } from '../interfaces';
 
 interface NavbarProps {
   children: React.ReactNode;
@@ -16,6 +18,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
 
   // Accessibility States
   const [highContrast, setHighContrast] = useState(() => localStorage.getItem('highContrast') === 'true');
@@ -23,7 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
   const [ttsEnabled, setTtsEnabled] = useState(() => localStorage.getItem('ttsEnabled') === 'true');
 
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, token, user } = useAuth();
   const location = useLocation();
   const typeDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -32,6 +35,27 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Fetch unread notifications count
+  useEffect(() => {
+    const fetchUnreadCount = async () => {
+      if (!token || !user?.id) return;
+      try {
+        const response = await axios.get(
+          `${API_BASE_URL}/api/notifications/user/${user.id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const unread = response.data.filter((item: any) => item.status === 'unread').length;
+        setUnreadCount(unread);
+      } catch (error) {
+        console.error("Failed to fetch unread notification count in Navbar", error);
+      }
+    };
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, [token, user?.id, location.pathname]);
 
   useEffect(() => {
     if (highContrast) {
@@ -71,6 +95,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     localStorage.setItem('fontSize', fontSize.toString());
     localStorage.setItem('ttsEnabled', ttsEnabled.toString());
   }, [highContrast, fontSize, ttsEnabled]);
+
   const handleGlobalMouseOver = (e: React.MouseEvent) => {
     if (!ttsEnabled) return;
 
@@ -92,11 +117,11 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
 
   const handleGlobalMouseOut = () => {
     if (ttsEnabled) {
-      // --- ADD THIS LINE ---
       console.log("[TTS] Mouse out - cancelling current queue");
       window.speechSynthesis.cancel();
     }
   };
+
   const handleLogout = () => {
     logout();
     navigate('/Login');
@@ -119,7 +144,7 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
     { name: 'Alerts', shortName: 'Alerts', icon: Bell, path: '/UserAlerts' },
     { name: 'Events Calendar', shortName: 'Events', icon: Calendar, path: '/UserEvents' },
     { name: 'Appointment', shortName: 'Appointment', icon: History, path: '/UserAppointments' },
-    { name: 'Services Guide', shortName: 'Guide', icon: BookOpen, path: '/UserGuide' },
+    { name: 'Benefits Guide', shortName: 'Guide', icon: BookOpen, path: '/UserGuide' },
   ];
 
   return (
@@ -144,9 +169,14 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
               <button
                 key={item.name}
                 onClick={() => navigate(item.path)}
-                className={`text-[11px] font-bold uppercase tracking-widest hover:text-[#00308F] transition-colors ${location.pathname === item.path ? 'border-b-2 border-[#00308F] pb-1 text-[#00308F]' : 'text-gray-500'}`}
+                className={`relative text-[11px] font-bold uppercase tracking-widest hover:text-[#00308F] transition-colors flex items-center gap-1.5 ${location.pathname === item.path ? 'border-b-2 border-[#00308F] pb-1 text-[#00308F]' : 'text-gray-500'}`}
               >
                 {item.name}
+                {item.name === 'Alerts' && unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full min-w-4.5 text-center leading-none">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -182,7 +212,6 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
               </button>
             </div>
 
-
             <button onClick={() => navigate('/UserProfile')} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#00308F] hover:text-white transition-all">
               <User size={16} strokeWidth={1.5} />
             </button>
@@ -190,8 +219,6 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
             <button onClick={handleLogout} className="hidden md:block text-gray-500 hover:text-[#FF9800]">
               <LogOut size={18} strokeWidth={1.5} />
             </button>
-
-
           </div>
         </div>
       </nav>
@@ -218,8 +245,13 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
             <button
               key={item.name}
               onClick={() => { navigate(item.path); setIsMenuOpen(false); }}
-              className={`flex flex-col items-center justify-center p-6 rounded-2xl border ${location.pathname === item.path ? 'bg-[#00308F] text-white' : 'bg-white text-gray-600'}`}
+              className={`relative flex flex-col items-center justify-center p-6 rounded-2xl border ${location.pathname === item.path ? 'bg-[#00308F] text-white' : 'bg-white text-gray-600'}`}
             >
+              {item.name === 'Alerts' && unreadCount > 0 && (
+                <span className="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full min-w-5 text-center">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
               <item.icon size={24} className="mb-2" />
               <span className="text-[10px] font-bold uppercase tracking-wider">{item.name}</span>
             </button>
@@ -240,10 +272,17 @@ const Navbar: React.FC<NavbarProps> = ({ children }) => {
         <div className="flex justify-around items-center">
           {menuItems.slice(0, 4).map((item) => {
             const isActive = location.pathname === item.path;
+            const isAlerts = item.name === 'Alerts';
+
             return (
               <button key={item.name} onClick={() => { navigate(item.path); setIsMenuOpen(false); }} className="flex flex-col items-center gap-1.5 min-w-15">
-                <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-[#00308F] text-white scale-110' : 'text-gray-400'}`}>
+                <div className={`relative p-2 rounded-xl transition-all ${isActive ? 'bg-[#00308F] text-white scale-110' : 'text-gray-400'}`}>
                   <item.icon size={20} strokeWidth={isActive ? 2.5 : 1.5} />
+                  {isAlerts && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-extrabold px-1 rounded-full min-w-3.75 h-3.75 flex items-center justify-center border-2 border-white leading-none">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                 </div>
                 <span className={`text-[8px] font-bold uppercase tracking-tighter ${isActive ? 'text-[#00308F]' : 'text-gray-400'}`}>{item.shortName}</span>
               </button>

@@ -181,7 +181,9 @@ const UserMainPage: React.FC = () => {
                                                     transition: 'transform 1000ms ease'
                                                 }}
                                             />
-                                            <div className="hero-content relative z-10 ">
+                                            {/* Gray overlay with opacity */}
+                                            <div className="absolute inset-0 bg-gray-900/50 z-1" />
+                                            <div className="hero-content relative z-10">
                                                 <span className="hero-badge bg-[#00308F]">Upcoming Event</span>
                                                 <h2 className="hero-title text-white">{slide.title}</h2>
                                                 <p className="hero-desc text-white/90">
@@ -194,7 +196,16 @@ const UserMainPage: React.FC = () => {
                             );
                         })
                     ) : (
-                        <div className="flex items-center justify-center h-full text-gray-400">No Upcoming Events</div>
+                        <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 py-10 space-y-4">
+                            <img
+                                src="Logo.png"
+                                alt="Barangay 183 Logo"
+                                className="w-50 h-50 object-contain"
+                            />
+                            <h3 className="text-xl font-bold text-gray-950">
+                                No Upcoming Events Barangay 183 Villamor
+                            </h3>
+                        </div>
                     )}
                 </div>
 
@@ -207,11 +218,11 @@ const UserMainPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Services Guide */}
+            {/* Benefits Guide */}
             <section id="services" className="section-container bg-gray-50 py-20">
                 <div className="section-header mb-12">
                     <div>
-                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-[#00308F]">Services Guide</h2>
+                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tighter text-[#00308F]">Latest Benefits Guide</h2>
                         <p className="text-gray-400 font-bold text-[11px] uppercase tracking-[0.2em] mt-3">Requirements & Processes</p>
                     </div>
                 </div>

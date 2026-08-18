@@ -320,7 +320,7 @@ export default function MyBenefits() {
                 {/* Header Section */}
                 <div className="mb-6">
                     <h2 className="text-2xl md:text-3xl lg:text-6xl font-black uppercase leading-[0.9] tracking-tighter -skew-x-12 inline-block bg-[#00308F] bg-clip-text text-transparent italic">
-                        My Benefits
+                        My Claims
                     </h2>
                     <p className="text-gray-900 font-bold uppercase text-xs tracking-widest mt-2">
                         Stay informed and manage your eligible claims
@@ -330,7 +330,7 @@ export default function MyBenefits() {
                 {/* 3-Column Stat Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <StatCard
-                        label="Eligible Benefits"
+                        label="All Claims"
                         value={stats.total}
                         subtext="Available for you"
                         colorClass="text-black"
@@ -338,7 +338,7 @@ export default function MyBenefits() {
                         onClick={() => setActiveFilter('All')}
                     />
                     <StatCard
-                        label="Benefits Claimed"
+                        label="Claimed"
                         value={stats.claimed}
                         subtext="Total completed"
                         colorClass="text-green-600"
@@ -346,7 +346,7 @@ export default function MyBenefits() {
                         onClick={() => setActiveFilter('Claimed')}
                     />
                     <StatCard
-                        label="Pending Claims"
+                        label="Pending"
                         value={stats.pending}
                         subtext="Awaiting pickup / review"
                         colorClass="text-orange-500"
