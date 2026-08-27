@@ -87,11 +87,11 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
         });
     };
 
-    const formatCurrency = (val: any) => {
-        if (!val) return '—';
-        const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
-        return isNaN(num) ? '—' : `₱${num.toLocaleString()}`;
-    };
+    // const formatCurrency = (val: any) => {
+    //     if (!val) return '—';
+    //     const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+    //     return isNaN(num) ? '—' : `₱${num.toLocaleString()}`;
+    // };
 
     const getDaysLeft = (dateString?: string) => {
         if (!dateString) return null;
@@ -221,7 +221,7 @@ const ViewUserDetails: React.FC<ViewUserDetailsProps> = ({ isOpen, onClose, user
                                 <SectionHeader icon={<Briefcase size={16} />} title="Socio-Economic" />
                                 <div className="space-y-3">
                                     <DetailRow label="Occupation" value={displayData.occupation} />
-                                    <DetailRow label="Monthly Income" value={formatCurrency(displayData.monthly_income)} />
+                                    <DetailRow label="Monthly Income" value={displayData.monthly_income} />
                                     <DetailRow label="Education" value={displayData.education} />
                                     <div className="mt-4">
                                         <SectionHeader icon={<Shield size={16} />} title="ID Validity" />
