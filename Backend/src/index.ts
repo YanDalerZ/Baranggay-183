@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from './database/db.js';
 import * as AllRoutes from './routes/AllRoutes.js';
+import LoginController from './controller/LoginController.js';
 
 const app: Application = express();
 
@@ -49,7 +50,8 @@ app.use('/api/risk', AllRoutes.RiskMapRoute);
 app.use('/api/superadmin', AllRoutes.SuperAdminRoute);
 app.use('/api/config', AllRoutes.GlobalConfigurationRoute);
 app.use('/api/database', AllRoutes.DatabaseRoute);
-
+app.post('/api/proxy/request-otp', LoginController.RequestProxyOTP);
+app.post('/api/proxy/login', LoginController.ProxyLogin);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 const frontendPath = path.join(__dirname, '../../Frontend/dist');

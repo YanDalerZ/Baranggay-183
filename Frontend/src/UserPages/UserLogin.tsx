@@ -3,7 +3,7 @@ import axios from 'axios';
 import API_BASE_URL from '../interfaces';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, X } from 'lucide-react'; // Optional: for icons
+import { ShieldCheck, X, UserCheck, KeyRound } from 'lucide-react';
 
 const UserLogin: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -12,9 +12,20 @@ const UserLogin: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // New States for Privacy Pop-up
+  // States for Privacy Pop-up
   const [showPrivacyModal, setShowPrivacyModal] = useState<boolean>(false);
   const [isAgreed, setIsAgreed] = useState<boolean>(false);
+
+  // States for Proxy / Caretaker Modal
+  const [showProxyModal, setShowProxyModal] = useState<boolean>(false);
+  const [proxyStep, setProxyStep] = useState<'details' | 'otp'>('details');
+  const [residentFullName, setResidentFullName] = useState<string>('');
+  const [residentbirthday, setResidentbirthday] = useState<string>('');
+  const [otpCode, setOtpCode] = useState<string>('');
+  const [proxyUserId, setProxyUserId] = useState<number | null>(null);
+  const [maskedContact, setMaskedContact] = useState<string>('');
+  const [proxyError, setProxyError] = useState<string | null>(null);
+  const [proxyLoading, setProxyLoading] = useState<boolean>(false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -29,7 +40,6 @@ const UserLogin: React.FC = () => {
     }
   }, []);
 
-  // Updated handler: Intercepts the login to show the modal first
   const handlePreSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -38,7 +48,7 @@ const UserLogin: React.FC = () => {
 
   const executeLogin = async () => {
     setLoading(true);
-    setShowPrivacyModal(false); // Close modal and proceed
+    setShowPrivacyModal(false);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/api/login`, {
@@ -66,9 +76,63 @@ const UserLogin: React.FC = () => {
     }
   };
 
+  const handleRequestProxyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProxyError(null);
+    setProxyLoading(true);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/proxy/request-otp`, {
+        fullName: residentFullName,
+        birthday: residentbirthday,
+      });
+
+      setProxyUserId(response.data.userId);
+      setMaskedContact(response.data.maskedContact);
+      setProxyStep('otp');
+    } catch (err: any) {
+      setProxyError(err.response?.data?.message || 'Failed to request OTP. Please verify resident credentials.');
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const handleVerifyProxyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProxyError(null);
+    setProxyLoading(true);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/proxy/login`, {
+        userId: proxyUserId,
+        otp: otpCode,
+      });
+
+      const { token, user } = response.data;
+      login(token, user);
+      setShowProxyModal(false);
+      window.location.href = '/UserMainPage';
+    } catch (err: any) {
+      setProxyError(err.response?.data?.message || 'Invalid OTP code.');
+    } finally {
+      setProxyLoading(false);
+    }
+  };
+
+  const resetProxyModal = () => {
+    setShowProxyModal(false);
+    setProxyStep('details');
+    setResidentFullName('');
+    setResidentbirthday('');
+    setOtpCode('');
+    setProxyUserId(null);
+    setMaskedContact('');
+    setProxyError(null);
+  };
+
   return (
     <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4" style={{ backgroundImage: 'url("loginbg.jpg")', backgroundSize: 'cover', backgroundPosition: 'center' }}>
-      <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md flex flex-col items-center " style={{ opacity: 0.90 }}>
+      <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md flex flex-col items-center" style={{ opacity: 0.90 }}>
         <img className="size-24 mb-4" src="Logo.png" alt="Logo" />
         <h1 className="text-2xl font-bold text-gray-800 mb-1">Barangay 183</h1>
         <p className="text-gray-500 text-sm mb-8 text-center font-medium">
@@ -130,6 +194,15 @@ const UserLogin: React.FC = () => {
           >
             {loading ? 'Processing...' : 'Sign In'}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setShowProxyModal(true)}
+            className="w-full bg-blue-50 text-blue-800 font-bold py-3 rounded-xl border border-blue-200 hover:bg-blue-100 transition duration-300 shadow-sm flex items-center justify-center space-x-2"
+          >
+            <UserCheck className="size-5" />
+            <span>Login VIA Proxy / CareTaker Login</span>
+          </button>
         </form>
       </div>
 
@@ -183,6 +256,116 @@ const UserLogin: React.FC = () => {
                 Proceed
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- PROXY / CARETAKER LOGIN MODAL --- */}
+      {showProxyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <div className="bg-blue-100 p-2 rounded-lg">
+                <UserCheck className="text-blue-600 size-6" />
+              </div>
+              <button onClick={resetProxyModal} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <h2 className="text-xl font-bold text-gray-800 mb-1">
+              {proxyStep === 'details' ? 'Proxy / Caretaker Verification' : 'Enter OTP Code'}
+            </h2>
+            <p className="text-xs text-gray-500 mb-4">
+              {proxyStep === 'details'
+                ? 'Enter the resident information to send a single-use OTP code to their emergency contact number.'
+                : `Enter the 6-digit verification code sent to ${maskedContact}.`}
+            </p>
+
+            {proxyError && (
+              <div className="w-full mb-4 text-xs text-red-600 bg-red-50 p-2 rounded-lg text-center border border-red-100">
+                {proxyError}
+              </div>
+            )}
+
+            {proxyStep === 'details' ? (
+              <form onSubmit={handleRequestProxyOtp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Resident Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Juan Dela Cruz"
+                    className="w-full px-4 py-2.5 rounded-xl bg-gray-100 border border-gray-200 focus:border-blue-500 focus:bg-white text-sm transition outline-none"
+                    value={residentFullName}
+                    onChange={(e) => setResidentFullName(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">Resident birthday</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-2.5 rounded-xl bg-gray-100 border border-gray-200 focus:border-blue-500 focus:bg-white text-sm transition outline-none"
+                    value={residentbirthday}
+                    onChange={(e) => setResidentbirthday(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={resetProxyModal}
+                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition text-sm"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={proxyLoading}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50 text-sm shadow-md"
+                  >
+                    {proxyLoading ? 'Sending OTP...' : 'Send OTP'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyProxyOtp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">OTP Verification Code</label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="6-digit code"
+                      className="w-full px-4 py-2.5 pl-10 rounded-xl bg-gray-100 border border-gray-200 focus:border-blue-500 focus:bg-white text-center text-lg tracking-widest font-mono transition outline-none"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      required
+                    />
+                    <KeyRound className="absolute left-3 top-3 text-gray-400 size-5" />
+                  </div>
+                </div>
+
+                <div className="flex space-x-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setProxyStep('details')}
+                    className="flex-1 py-3 border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition text-sm"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={proxyLoading}
+                    className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition disabled:opacity-50 text-sm shadow-md"
+                  >
+                    {proxyLoading ? 'Verifying...' : 'Verify & Login'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

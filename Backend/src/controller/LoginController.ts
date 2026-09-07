@@ -7,6 +7,9 @@ import NotificationService from '../services/NotificationService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret';
 
+// In-memory OTP store (Use Redis or DB table in production)
+const proxyOtpStore: { [key: string]: { otp: string; expiresAt: number; userId: number } } = {};
+
 class LoginController {
 
     private generateToken = (user: any): string => {
@@ -86,6 +89,112 @@ class LoginController {
 
         } catch (error) {
             console.error("Login Error:", error);
+            return res.status(500).json({ message: "Internal server error." });
+        }
+    };
+
+    public RequestProxyOTP = async (req: Request, res: Response): Promise<Response> => {
+        const { fullName, birthday } = req.body;
+
+        try {
+            if (!fullName || !birthday) {
+                return res.status(400).json({ message: "Resident full name and birthday are required." });
+            }
+
+            // Find user matching full name and date of birth
+            const [users] = await pool.execute<RowDataPacket[]>(
+                `SELECT u.*, ec.contact AS emergency_contact 
+                 FROM users u 
+                 INNER JOIN emergency_contacts ec ON u.id = ec.user_id 
+                 WHERE CONCAT(TRIM(u.firstname), ' ', TRIM(u.lastname)) = TRIM(?) 
+                 AND DATE(u.birthday) = DATE(?)`,
+                [fullName, birthday]
+            );
+
+            const user = users[0];
+
+            if (!user) {
+                return res.status(404).json({ message: "Resident profile or emergency contact details not found." });
+            }
+
+            if (user.status !== 'active') {
+                return res.status(403).json({ message: "Account is not active." });
+            }
+
+            if (!user.emergency_contact) {
+                return res.status(400).json({ message: "No emergency contact phone number on record for this resident." });
+            }
+
+            // Generate 6-digit OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = Date.now() + 5 * 60 * 1000; // 5 mins expiry
+
+            proxyOtpStore[user.id] = { otp, expiresAt, userId: user.id };
+
+            // Send OTP to emergency contact number
+            await NotificationService.sendSMS({
+                phoneNumber: user.emergency_contact,
+                message: `[Barangay 183] Your Proxy Verification OTP code is: ${otp}. Valid for 5 minutes.`
+            });
+
+            // Mask emergency contact number for UI display (e.g., 0952****560)
+            const phone = user.emergency_contact;
+            const maskedPhone = phone.length > 7
+                ? `${phone.substring(0, 4)}****${phone.substring(phone.length - 3)}`
+                : phone;
+
+            return res.status(200).json({
+                message: "OTP sent successfully to emergency contact.",
+                userId: user.id,
+                maskedContact: maskedPhone
+            });
+
+        } catch (error) {
+            console.error("Proxy OTP Request Error:", error);
+            return res.status(500).json({ message: "Internal server error." });
+        }
+    };
+
+    public ProxyLogin = async (req: Request, res: Response): Promise<Response> => {
+        const { userId, otp } = req.body;
+
+        try {
+            if (!userId || !otp) {
+                return res.status(400).json({ message: "User ID and OTP are required." });
+            }
+
+            const record = proxyOtpStore[userId];
+
+            if (!record || record.otp !== otp || Date.now() > record.expiresAt) {
+                return res.status(401).json({ message: "Invalid or expired OTP code." });
+            }
+
+            // OTP verified, remove code from memory
+            delete proxyOtpStore[userId];
+
+            const [rows] = await pool.execute<RowDataPacket[]>(
+                'SELECT * FROM users WHERE id = ?',
+                [userId]
+            );
+
+            const user = rows[0];
+
+            if (!user || user.status !== 'active') {
+                return res.status(403).json({ message: "Account is inactive or not found." });
+            }
+
+            const token = this.generateToken(user);
+            const { password: _, ...userData } = user;
+            userData.fullname = `${user.firstname} ${user.lastname}`.trim();
+
+            return res.status(200).json({
+                message: "Proxy login successful",
+                token,
+                user: userData
+            });
+
+        } catch (error) {
+            console.error("Proxy Login Error:", error);
             return res.status(500).json({ message: "Internal server error." });
         }
     };
@@ -183,27 +292,24 @@ class LoginController {
             return res.status(401).json({ valid: false, message: "Token expired or invalid." });
         }
     };
+
     public ForgotPassword = async (req: Request, res: Response): Promise<Response> => {
         const { email } = req.body;
 
         try {
-            // 1. Find user
             const [rows]: any = await pool.execute('SELECT * FROM users WHERE email = ?', [email]);
             const user = rows[0];
 
             if (!user) {
-                // For security, don't reveal if email exists or not
                 return res.status(200).json({ message: "If an account exists, a reset link has been sent." });
             }
 
-            // 2. Generate Reset Token (15 min expiry)
             const resetToken = jwt.sign(
                 { email: user.email, id: user.id },
                 process.env.JWT_SECRET || 'fallback_secret',
                 { expiresIn: '15m' }
             );
 
-            // 3. Send Email
             const fullName = `${user.firstname} ${user.lastname}`;
             const emailSent = await NotificationService.sendPasswordResetEmail(user.email, fullName, resetToken);
 
@@ -223,14 +329,11 @@ class LoginController {
         const { token, newPassword } = req.body;
 
         try {
-            // 1. Verify token
             const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
 
-            // 2. Hash new password
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-            // 3. Update DB
             await pool.execute(
                 'UPDATE users SET password = ? WHERE email = ?',
                 [hashedPassword, decoded.email]

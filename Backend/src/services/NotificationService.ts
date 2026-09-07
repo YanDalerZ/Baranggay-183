@@ -27,45 +27,73 @@ interface ConfigurationRow extends RowDataPacket {
 }
 
 class NotificationService {
-    // Kept clean and simple to comply with the spam filter rules
     private readonly SENDER_LABEL = "Villamor Town Hall";
-    private readonly UNISMS_API_URL = 'https://unismsapi.com/api/sms';
+    private readonly IPROGSMS_API_URL = 'https://www.iprogsms.com/api/v1/sms_messages';
     private readonly EMAILJS_API_URL = 'https://api.emailjs.com/api/v1.0/email/send';
 
     private configCache: Map<string, string> | null = null;
 
     constructor() { }
 
-    private async getConfigValue(key: string): Promise<string> {
-        if (!this.configCache) {
-            this.configCache = new Map<string, string>();
-            try {
-                const [rows] = await pool.query<ConfigurationRow[]>('SELECT `key`, `value` FROM global_configurations');
-                for (const row of rows) {
-                    if (row.key) {
-                        const normalizedKey = row.key.toLowerCase().replace(/_/g, '');
-                        this.configCache.set(normalizedKey, String(row.value ?? ''));
-                    }
+    private async loadConfigurations(): Promise<Map<string, string>> {
+        const cache = new Map<string, string>();
+        try {
+            const [rows] = await pool.query<ConfigurationRow[]>('SELECT `key`, `value` FROM global_configurations');
+            for (const row of rows) {
+                if (row.key) {
+                    const rawKey = String(row.key).trim();
+                    const normalizedKey = rawKey.toLowerCase().replace(/_/g, '');
+                    cache.set(rawKey, String(row.value ?? ''));
+                    cache.set(normalizedKey, String(row.value ?? ''));
                 }
-            } catch (err) {
-                console.error('[Notification Config Error] Failed to initialize DB configuration values:', err);
             }
+        } catch (err) {
+            console.error('[Notification Config Error] Failed to initialize DB configuration values:', err);
         }
-
-        const lookupKey = key.toLowerCase().replace(/_/g, '');
-        return this.configCache.get(lookupKey) || '';
+        return cache;
     }
 
-    private formatPhoneNumber(phone: string | number): string {
+    private async getConfigValue(key: string): Promise<string> {
+        if (!this.configCache) {
+            this.configCache = await this.loadConfigurations();
+        }
+
+        const rawVal = this.configCache.get(key);
+        if (rawVal) return rawVal;
+
+        const normalizedKey = key.toLowerCase().replace(/_/g, '');
+        return this.configCache.get(normalizedKey) || '';
+    }
+
+    /**
+     * Validates and formats Philippine Mobile Numbers.
+     * Valid Formats: 09171234567, 639171234567, +639171234567, 9171234567
+     * Returns standard E.164 without plus: 639171234567
+     * Returns null if invalid or dummy format.
+     */
+    private formatAndValidatePhMobileNumber(phone: string | number): string | null {
+        if (!phone) return null;
+
         let cleanPhone = String(phone).trim().replace(/\D/g, '');
 
-        if (cleanPhone.startsWith('0')) {
+        if (cleanPhone.startsWith('09') && cleanPhone.length === 11) {
             cleanPhone = '63' + cleanPhone.substring(1);
         } else if (cleanPhone.startsWith('9') && cleanPhone.length === 10) {
             cleanPhone = '63' + cleanPhone;
         }
 
-        return '+' + cleanPhone;
+        // Philippine mobile numbers MUST start with 639 and have exactly 12 digits
+        const phMobileRegex = /^639\d{9}$/;
+
+        if (!phMobileRegex.test(cleanPhone)) {
+            return null;
+        }
+
+        return cleanPhone;
+    }
+
+    private delay(ms: number) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     public async notifyTargetGroup(attendeeType: 'SC' | 'PWD' | 'BOTH', title: string, message: string) {
@@ -80,12 +108,17 @@ class NotificationService {
 
             const [users] = await pool.execute<TargetUser[]>(query, params);
 
-            // FIXED: Flush cache and explicitly preload both keys before launching the map loop
-            this.configCache = null;
-            await this.getConfigValue('smsApiKey');
-            await this.getConfigValue('smsSenderId');
+            this.configCache = await this.loadConfigurations();
 
-            const notificationPromises = users.map(async (user) => {
+            const smsApiToken = await this.getConfigValue('smsApiKey') ||
+                await this.getConfigValue('sms_api_key') ||
+                await this.getConfigValue('sms_key');
+
+            if (!smsApiToken) {
+                console.error("[Notification Error] Aborting SMS sequence: API Token missing in global_configurations.");
+            }
+
+            for (const user of users) {
                 const fullName = `${user.firstname} ${user.lastname}`;
 
                 await this.sendBroadcastNotification({
@@ -95,25 +128,25 @@ class NotificationService {
                     message: message
                 });
 
-                if (user.contact_number) {
+                if (user.contact_number && smsApiToken) {
                     await this.sendSMS({
                         phoneNumber: user.contact_number,
                         message: `${title}: ${message}`
                     });
+                    await this.delay(300);
                 }
-            });
+            }
 
-            await Promise.allSettled(notificationPromises);
-            console.log(`[Notification] Broadcast completed for ${users.length} users.`);
+            console.log(`[Notification] Sequential broadcast completed for ${users.length} users.`);
         } catch (error) {
             console.error("[Notification Error] Bulk notify failed:", error);
         }
     }
 
     private async sendViaEmailJS(toEmail: string, subject: string, htmlContent: string) {
-        const serviceId = await this.getConfigValue('emailJsServiceId');
-        const templateId = await this.getConfigValue('emailJsTemplateId');
-        const publicKey = await this.getConfigValue('emailJsPublicKey');
+        const serviceId = await this.getConfigValue('emailJsServiceId') || await this.getConfigValue('emailjs_service_id');
+        const templateId = await this.getConfigValue('emailJsTemplateId') || await this.getConfigValue('emailjs_template_id');
+        const publicKey = await this.getConfigValue('emailJsPublicKey') || await this.getConfigValue('emailjs_public_key');
 
         const payload = {
             service_id: serviceId,
@@ -132,34 +165,40 @@ class NotificationService {
 
     async sendSMS({ phoneNumber, message }: SMSOptions) {
         try {
-            const formattedPhone = this.formatPhoneNumber(phoneNumber);
-            const smsApiToken = await this.getConfigValue('smsApiKey');
-            const smsSenderId = await this.getConfigValue('smsSenderId');
+            const validFormattedPhone = this.formatAndValidatePhMobileNumber(phoneNumber);
 
-            const finalSenderId = smsSenderId || "UniSMS";
+            if (!validFormattedPhone) {
+                console.warn(`[SMS Skipped] Discarded invalid PH phone number: "${phoneNumber}". Credits saved.`);
+                return null;
+            }
 
-            // Structuring the content message safely to avoid spam triggers
-            const payload = {
-                recipient: formattedPhone,
-                content: `Notice from ${this.SENDER_LABEL}: ${message}`,
-                sender_id: finalSenderId
+            const smsApiToken = await this.getConfigValue('smsApiKey') ||
+                await this.getConfigValue('sms_api_key') ||
+                await this.getConfigValue('sms_key');
+
+            if (!smsApiToken) {
+                console.error("[SMS Error] API Token is missing or not configured in database.");
+                return null;
+            }
+
+            const payload: Record<string, any> = {
+                api_token: smsApiToken,
+                phone_number: validFormattedPhone,
+                message: message
             };
 
-            const tokenBase64 = Buffer.from(`${smsApiToken}:`).toString('base64');
-
-            const response = await axios.post(this.UNISMS_API_URL, payload, {
+            const response = await axios.post(this.IPROGSMS_API_URL, payload, {
                 headers: {
-                    'Authorization': `Basic ${tokenBase64}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            console.log(`[SMS Success] sent via UniSMS to ${formattedPhone}:`, response.data);
+            console.log(`[SMS Success] sent via iProgSMS to ${validFormattedPhone}:`, response.data);
             return response.data;
         } catch (error: any) {
             if (error.response) {
-                console.error(`[SMS Error] UniSMS status: ${error.response.status}`);
-                console.error(`[SMS Error] UniSMS response data:`, error.response.data);
+                console.error(`[SMS Error] iProgSMS status: ${error.response.status}`);
+                console.error(`[SMS Error] iProgSMS response data:`, error.response.data);
             } else {
                 console.error(`[SMS Error] Network/Configuration message: ${error.message}`);
             }
@@ -241,7 +280,7 @@ class NotificationService {
 
     async sendPasswordResetEmail(userEmail: string, fullName: string, resetToken: string) {
         try {
-            const frontendUrl = await this.getConfigValue('frontendUrl');
+            const frontendUrl = await this.getConfigValue('frontendUrl') || await this.getConfigValue('frontend_url');
             const baseUrl = frontendUrl || 'http://localhost:5173/';
             const resetLink = `${baseUrl}/reset-password/${resetToken}`;
 
