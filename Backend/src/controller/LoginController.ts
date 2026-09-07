@@ -101,14 +101,20 @@ class LoginController {
                 return res.status(400).json({ message: "Resident full name and birthday are required." });
             }
 
-            // Find user matching full name and date of birth
+            // Clean extra spaces and convert input to lowercase
+            const cleanFullName = fullName.trim().replace(/\s+/g, ' ').toLowerCase();
+
+            // Find user matching full name (case-insensitive) and date of birth
             const [users] = await pool.execute<RowDataPacket[]>(
-                `SELECT u.*, ec.contact AS emergency_contact 
-                 FROM users u 
-                 INNER JOIN emergency_contacts ec ON u.id = ec.user_id 
-                 WHERE CONCAT(TRIM(u.firstname), ' ', TRIM(u.lastname)) = TRIM(?) 
-                 AND DATE(u.birthday) = DATE(?)`,
-                [fullName, birthday]
+                `SELECT u.*, 
+                (SELECT ec.contact 
+                 FROM emergency_contacts ec 
+                 WHERE ec.user_id = u.id 
+                 LIMIT 1) AS emergency_contact 
+             FROM users u 
+             WHERE LOWER(CONCAT(TRIM(u.firstname), ' ', TRIM(u.lastname))) = ? 
+             AND DATE(u.birthday) = DATE(?)`,
+                [cleanFullName, birthday]
             );
 
             const user = users[0];
@@ -117,7 +123,8 @@ class LoginController {
                 return res.status(404).json({ message: "Resident profile or emergency contact details not found." });
             }
 
-            if (user.status !== 'active') {
+            // Case-insensitive status check
+            if (user.status?.toLowerCase() !== 'active') {
                 return res.status(403).json({ message: "Account is not active." });
             }
 
@@ -165,7 +172,8 @@ class LoginController {
 
             const record = proxyOtpStore[userId];
 
-            if (!record || record.otp !== otp || Date.now() > record.expiresAt) {
+            // Ensure string OTP evaluation is exact
+            if (!record || String(record.otp).trim() !== String(otp).trim() || Date.now() > record.expiresAt) {
                 return res.status(401).json({ message: "Invalid or expired OTP code." });
             }
 
@@ -179,7 +187,8 @@ class LoginController {
 
             const user = rows[0];
 
-            if (!user || user.status !== 'active') {
+            // Case-insensitive status check
+            if (!user || user.status?.toLowerCase() !== 'active') {
                 return res.status(403).json({ message: "Account is inactive or not found." });
             }
 
