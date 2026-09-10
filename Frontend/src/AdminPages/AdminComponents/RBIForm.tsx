@@ -124,6 +124,7 @@ const ResidentModal = ({ isOpen, onClose, initialData }: ResidentModalProps) => 
                     suffix: clean(initialData.suffix),
                     gender: clean(initialData.gender),
                     civil_status: clean(initialData.civil_status),
+                    blood_type: clean(initialData.blood_type),
                     birthplace: clean(initialData.birthplace),
                     nationality: clean(initialData.nationality) || 'Filipino',
                     contact_number: clean(initialData.contact_number),
